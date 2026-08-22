@@ -259,14 +259,30 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 
 Video moment search (WebCodecs frame sampling → CLIP index → clip export via WebCodecs encode/remux; fallback: export frame range); OCR (tesseract.js) for scanned PDFs/images; Photos tools (background removal, auto-tags, near-duplicate finder); translation (opus-mt or Chrome Translator API); read-aloud (Kokoro); WebNN experimental backend + benchmark; WebGPU compute-shader vector search (depth pocket). Each behind consented downloads with its own DoD.
 
-**Picked, and delivered:** video moment search. Two departures from the sketch above, both for stated reasons:
+**Picked, and delivered:** video moment search, the near-duplicate finder, and OCR.
+
+### Video moment search
+
+Two departures from the sketch above, both for stated reasons:
 
 - **`<video>` seeking rather than WebCodecs.** WebCodecs decodes encoded chunks but does not demux, so MP4/WebM would need a container parser shipped alongside. Measured, seeking is not the bottleneck anyway: 40 ms to sample a frame against 257 ms to embed it. [ADR 12](./docs/adr/0012-video-moments.md).
 - **Clip export re-encodes in real time** (play the section, record the element's stream) rather than remuxing. A lossless cut needs a muxer per container; re-encoding starts the clip exactly where asked rather than at the nearest keyframe.
 
 Moments live in the existing CLIP image index rather than a third index — a frame is an image, and the model does not distinguish them. The sample video is recorded by the desktop itself from the sample pictures, which satisfies the "20–40 s self-made video featuring the red keyboard" in Appendix A without adding bytes to the repository.
 
-Still in the pool, unpicked: OCR, Photos tools, translation, read-aloud, WebNN, WebGPU vector search.
+### Near-duplicate finder
+
+No new model and no new index: the CLIP vectors were already there, and a duplicate is a pair with a very high cosine. The all-pairs scan is quadratic, so an exact prefix bound skips 99.6% of the full comparisons — 6.1× faster over 5,000 vectors, with results a test asserts are identical to the naive scan. The 0.92 threshold is measured: copies score 0.95–0.98, no two different sample pictures exceed 0.79.
+
+### OCR
+
+**TrOCR rather than tesseract.js**, which the plan named. The reasons are about this project rather than about OCR: no new dependency, no megabytes of binary committed, and no second answer to "where do the weights come from" — it is a model like the others, under the same consent, integrity and lifecycle machinery. The cost is that TrOCR reads a line rather than a page, so the desktop does its own layout analysis with a projection profile, handles upright single-column text, and refuses photographs rather than pretending. [ADR 13](./docs/adr/0013-ocr.md).
+
+Measured: all ten lines of the sample scanned page found and read with **zero character errors**, in 3.1 s — and text recognition turned out to be **six times faster on threaded WASM than on WebGPU**, and more accurate, which moved `preferredBackend` again.
+
+### Still in the pool, unpicked
+
+Photos tools beyond duplicates (background removal, auto-tags), translation, read-aloud, WebNN, WebGPU compute-shader vector search. Each remains a self-contained addition behind its own consented download.
 
 ### M5 — Optional intelligence (only after M1–M3 DoD are met; ~4+ FTE-weeks)
 
