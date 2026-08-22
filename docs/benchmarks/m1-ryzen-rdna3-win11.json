@@ -1,0 +1,126 @@
+{
+  "tool": "tabula-system-report",
+  "schemaVersion": 1,
+  "capabilities": {
+    "gpu": {
+      "available": true,
+      "fallbackAdapter": false,
+      "vendor": "amd",
+      "architecture": "rdna-3",
+      "maxBufferBytes": 2147483648,
+      "maxStorageBufferBindingBytes": 2147483644,
+      "maxComputeInvocationsPerWorkgroup": 1024,
+      "shaderF16": true,
+      "featureCount": 19
+    },
+    "wasm": {
+      "simd": true,
+      "threads": true
+    },
+    "crossOriginIsolated": true,
+    "sharedArrayBuffer": true,
+    "storage": {
+      "opfs": true,
+      "syncAccessHandle": null,
+      "indexedDB": true,
+      "persisted": false,
+      "quotaBytes": 3026888679,
+      "usageBytes": 746888
+    },
+    "fileSystemAccess": {
+      "directoryPicker": true,
+      "filePicker": true,
+      "dragDropHandles": true
+    },
+    "builtinAi": {
+      "promptApi": true,
+      "summarizer": true,
+      "translator": true,
+      "availability": "downloadable"
+    },
+    "webnn": false,
+    "media": {
+      "webCodecs": true,
+      "offscreenCanvas": true,
+      "imageBitmap": true
+    },
+    "hardwareConcurrency": 16,
+    "deviceMemoryGb": 16,
+    "serviceWorker": true,
+    "tier": "A",
+    "tierReason": "WebGPU with 16 GB reported memory and >=2 GiB max buffer size.",
+    "probedAt": "2026-08-22T09:57:10.008Z"
+  },
+  "workerCapabilities": {
+    "syncAccessHandle": true,
+    "offscreenCanvas": true,
+    "webgpuInWorker": true,
+    "crossOriginIsolated": true
+  },
+  "boot": {
+    "isolation": "isolated",
+    "serviceWorkerRegistered": true,
+    "updateWaiting": false,
+    "detail": "Cross-origin isolated: SharedArrayBuffer and multi-threaded WASM are available."
+  },
+  "embeddings": [
+    {
+      "ok": true,
+      "device": "webgpu",
+      "dtype": "q8",
+      "model": "Xenova/all-MiniLM-L6-v2",
+      "loadMs": 6837,
+      "warmupMs": 790,
+      "batchSize": 16,
+      "batches": 8,
+      "totalChunks": 128,
+      "totalMs": 1847,
+      "msPerChunk": 14.427,
+      "chunksPerSecond": 69.3,
+      "dimensions": 384,
+      "transferredBytes": 0,
+      "numThreads": 4,
+      "label": "webgpu"
+    },
+    {
+      "ok": true,
+      "device": "wasm",
+      "dtype": "q8",
+      "model": "Xenova/all-MiniLM-L6-v2",
+      "loadMs": 992,
+      "warmupMs": 180,
+      "batchSize": 16,
+      "batches": 8,
+      "totalChunks": 128,
+      "totalMs": 818,
+      "msPerChunk": 6.394,
+      "chunksPerSecond": 156.4,
+      "dimensions": 384,
+      "transferredBytes": 0,
+      "numThreads": 4,
+      "label": "wasm"
+    }
+  ],
+  "opfs": {
+    "ok": true,
+    "fileSizeMb": 64,
+    "writeMs": 108,
+    "readMs": 82,
+    "writeMbPerSecond": 590.9,
+    "readMbPerSecond": 781.3,
+    "usedSyncAccessHandle": true
+  },
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.34493.1 Chrome/148.0.7778.280 Electron/42.9.2 Safari/537.36 MSIX",
+  "machine": {
+    "id": "m1-ryzen-rdna3-win11",
+    "label": "Windows 11, AMD RDNA-3 GPU, 16 logical cores, 16 GB reported memory",
+    "browser": "Chromium 148 (Electron 42 embedded browser)",
+    "note": "Reference machine for M0. Re-run in stock Chrome, Firefox and Safari before treating these as cross-browser numbers."
+  },
+  "runContext": {
+    "servedBy": "tools/serve-static.mjs",
+    "base": "/tabula/",
+    "headers": "none (GitHub Pages simulation)",
+    "isolationSource": "service worker"
+  }
+}

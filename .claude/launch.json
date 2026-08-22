@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tabula-pages-sim",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tools/serve-static.mjs", "--port", "4180", "--base", "/tabula/", "--log"],
+      "port": 4180,
+      "url": "http://localhost:4180"
+    }
+  ]
+}

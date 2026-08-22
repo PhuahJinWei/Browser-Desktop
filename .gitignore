@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.local
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+# Scratch / planning docs live in the repo root during design; keep them.
+public/runtime/
+
+# Local assistant settings (personal, not project config)
+.claude/settings.local.json

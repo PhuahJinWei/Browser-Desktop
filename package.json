@@ -1,0 +1,51 @@
+{
+  "name": "tabula",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "A local-first AI desktop that runs entirely in a browser tab. Static files, no backend.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.sw.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "sync:runtime": "node tools/sync-runtime.mjs",
+    "sync:models": "node tools/fetch-model-registry.mjs",
+    "predev": "node tools/sync-runtime.mjs",
+    "prebuild": "node tools/sync-runtime.mjs",
+    "serve:pages": "node tools/serve-static.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "eslint": "^10.9.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "adm-zip": "^0.6.0"
+  }
+}

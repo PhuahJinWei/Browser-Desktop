@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!--%CSP%-->
+    <title>Tabula — a desktop in a tab</title>
+    <meta
+      name="description"
+      content="A local-first AI desktop that runs entirely in a browser tab. No backend, no accounts, no uploads."
+    />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0b0d10" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark light" />
+  </head>
+  <body>
+    <div id="root">
+      <!-- Replaced on mount. Present so a failed script load still says something useful. -->
+      <noscript>Tabula needs JavaScript: the entire operating system runs on the client.</noscript>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

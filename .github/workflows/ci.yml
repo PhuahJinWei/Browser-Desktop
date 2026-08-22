@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The ML library depends on sharp and onnxruntime-node for its Node backend. Neither may
+      # ever reach the browser bundle: they would not work there, and their presence would mean
+      # the wrong entry point was resolved.
+      - name: Assert no Node-only dependencies in the browser bundle
+        run: |
+          if grep -rlE "onnxruntime-node|require\('sharp'\)" dist/assets/ >/dev/null 2>&1; then
+            echo "Node-only dependency found in the browser bundle"; exit 1
+          fi
+          echo "Browser bundle is free of Node-only dependencies"
+
+      # A stale or missing service worker silently disables offline support and cross-origin
+      # isolation, which is the one thing GitHub Pages cannot give us any other way.
+      - name: Assert the service worker was emitted
+        run: test -s dist/sw.js && echo "dist/sw.js present"

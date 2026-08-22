@@ -1,0 +1,226 @@
+# 1. Browser-only AI Desktop
+
+This is probably the most ambitious idea, but also one of my favorites.
+
+The basic concept is:
+
+> **Build something resembling a tiny AI-powered operating system that runs entirely inside a browser tab.**
+
+Not:
+
+```text
+Browser
+   ↓
+Your server
+   ↓
+OpenAI API
+```
+
+Instead:
+
+```text
+              USER'S COMPUTER
+
+┌────────────────────────────────────┐
+│              Browser               │
+│                                    │
+│   ┌────────┐   ┌──────────────┐   │
+│   │ Files  │   │ AI Assistant │   │
+│   └────────┘   └──────────────┘   │
+│                                    │
+│   ┌────────┐   ┌──────────────┐   │
+│   │ Photos │   │ Audio/Video  │   │
+│   └────────┘   └──────────────┘   │
+│            │                       │
+│            ▼                       │
+│        Local AI Model              │
+│            │                       │
+│         WebGPU                     │
+└────────────────────────────────────┘
+```
+
+Transformers.js can execute pretrained Transformer models directly in a web browser and use WebGPU for GPU acceleration; underneath, it uses ONNX Runtime. ONNX Runtime Web can also execute models using WebAssembly when GPU execution isn't appropriate. ([Hugging Face][2])
+
+## What would the user actually do?
+
+They visit:
+
+```text
+ai-desktop.example
+```
+
+And see something resembling:
+
+```text
+┌─────────────────────────────────────────────────┐
+│ AI Desktop                                  14:42│
+├─────────────────────────────────────────────────┤
+│                                                 │
+│    📁 Files       🖼 Photos       💬 Assistant  │
+│                                                 │
+│    🎵 Music       🎬 Video        🔎 Search     │
+│                                                 │
+│                                                 │
+│                                  ┌───────────┐  │
+│                                  │ Downloads │  │
+│                                  └───────────┘  │
+├─────────────────────────────────────────────────┤
+│  ⊞                    ● GPU ACTIVE               │
+└─────────────────────────────────────────────────┘
+```
+
+They drag a directory of files into it.
+
+Maybe:
+
+```text
+My Files/
+├── resume.pdf
+├── invoices/
+├── holiday/
+│   ├── tokyo.jpg
+│   ├── cat.jpg
+│   └── beach.jpg
+├── meeting-recording.mp3
+└── notes.txt
+```
+
+Now your local AI indexes them.
+
+The person can type:
+
+> Find photos containing cats.
+
+Or:
+
+> Which document mentions Samsung?
+
+Or:
+
+> Summarize my meeting recording.
+
+Or:
+
+> Find photos visually similar to this image.
+
+And importantly:
+
+```text
+Files ──► Browser ──► Local AI
+                    │
+                    X
+                 Internet
+```
+
+The user's data does not need to be uploaded to your backend.
+
+### Feature ideas
+
+You could eventually create little “apps.”
+
+**AI Photos**
+
+```text
+Search: "sunset near ocean"
+
+┌──────┐ ┌──────┐ ┌──────┐
+│ 🌅   │ │ 🏖️   │ │ 🌅   │
+│      │ │      │ │      │
+└──────┘ └──────┘ └──────┘
+```
+
+**AI Audio**
+
+Drop:
+
+```text
+meeting.wav
+```
+
+and get:
+
+```text
+00:00 Introduction
+03:21 Project discussion
+15:40 Budget
+26:15 Action items
+```
+
+**Semantic file search**
+
+Instead of searching filenames:
+
+```text
+invoice_428291.pdf
+invoice_173551.pdf
+```
+
+you ask:
+
+> Find the invoice where we purchased the monitor.
+
+### Interesting technical pieces
+
+```text
+React / TypeScript
+        │
+        ├── WebGPU
+        │
+        ├── Transformers.js / ONNX
+        │
+        ├── Web Workers
+        │
+        ├── IndexedDB
+        │
+        └── OPFS / File APIs
+```
+
+The web platform has sandboxed filesystem mechanisms for storing application-managed files locally, making surprisingly sophisticated local-first applications possible. ([File System Standard][3])
+
+### What makes your version unusual?
+
+Don't just make:
+
+> ChatGPT, but local.
+
+Instead build:
+
+### **“AI Computer Inside a Website”**
+
+Have windows, applications and files.
+
+And let the apps communicate:
+
+```text
+Photos
+   │
+   │ "send image"
+   ▼
+Assistant
+   │
+   │ "extract objects"
+   ▼
+Search
+```
+
+Eventually:
+
+> “Find the video where I showed my red keyboard and extract that 10-second section.”
+
+Now multiple browser technologies are cooperating.
+
+### Portfolio value
+
+Very high.
+
+It lets you talk about:
+
+* GPU computing
+* machine learning
+* browser storage
+* workers/threading
+* performance
+* UI architecture
+* privacy
+* caching
+* offline applications
