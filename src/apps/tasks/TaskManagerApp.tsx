@@ -140,6 +140,17 @@ export default function TaskManagerApp() {
           </section>
 
           <section className={styles.section}>
+            <h3>Photos</h3>
+            <dl className={styles.grid}>
+              <Row label="Indexed" value={String(indexStats?.images ?? 0)} />
+              <Row label="Image model" value={indexStats?.imageModel || 'not loaded'} />
+              <Row label="Model ready" value={indexStats?.visionReady ? 'yes' : 'no'} />
+              <Row label="Vector memory" value={formatBytes(indexStats?.imageVectorBytes ?? 0)} />
+              <Row label="Waiting to index" value={String(indexer.pendingImages)} />
+            </dl>
+          </section>
+
+          <section className={styles.section}>
             <h3>Storage</h3>
             <dl className={styles.grid}>
               <Row label="Files" value={String(vfsStats?.files ?? 0)} />

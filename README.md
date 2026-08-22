@@ -7,10 +7,9 @@ Windows, files, notes and a task manager, with machine-learning models running o
 hardware as system services — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
-> **Status: M1 — the desktop.** Window manager, file system, Files, Viewer, Notes, Search,
-> Settings, Task Manager and About are all working. Photos and audio arrive in M2. See
-> [`plan v2.md`](./plan%20v2.md) for the roadmap and [`docs/benchmarks/`](./docs/benchmarks/) for
-> what has actually been measured.
+> **Status: M2 — it sees and hears.** The desktop, file system and search from M1, plus photo
+> search by description and on-device transcription. See [`plan v2.md`](./plan%20v2.md) for the
+> roadmap and [`docs/benchmarks/`](./docs/benchmarks/) for what has actually been measured.
 
 ---
 
@@ -20,11 +19,13 @@ what they are called. Nothing you open leaves the tab.
    PDFs, written by the app itself.
 2. Open **Search** and click the example _invoice for the monitor_. The top result is the invoice,
    and you get the passage, not just the file name.
-3. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
+3. Open **Photos** and enable image search. Then type "a hot drink" and watch it pick out the cup
+   of coffee — from a picture nobody tagged, captioned or named.
+4. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
    the heading, and is searchable seconds later.
-4. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
+5. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
    not among them.
-5. Turn off your network and reload. The desktop still boots and keyword search still works.
+6. Turn off your network and reload. The desktop still boots and keyword search still works.
 
 ## Why this exists
 
@@ -122,6 +123,8 @@ Design notes worth the click:
   0.01 ms, and the bug that design creates if you tidy up carelessly.
 - [ADR 6 — content-addressed storage](./docs/adr/0006-content-addressed-opfs.md): why renaming and
   copying are free.
+- [ADR 10 — models are tested, not assumed](./docs/adr/0010-model-choices-are-tested-not-assumed.md):
+  the plan's smaller image model ranked correctly 0 times out of 6, and what that cost to find out.
 
 ## Browser support
 
@@ -138,8 +141,14 @@ Desktop-first and Chromium-first, degrading explicitly rather than silently.
 
 Stated plainly, because a portfolio piece that hides these is worth less:
 
-- **Photos and audio are M2.** Images and media play and preview, but are not yet searchable —
-  that needs the CLIP and Whisper models.
+- **Photo search costs a 150 MB download**, and transcription a further 69 MB. Both are asked
+  for first, shown with their size, and removable in Settings. Nothing downloads on its own.
+- **The sample pictures are drawn, not photographed.** They are illustrations generated in your
+  browser, which is enough to show the model working and avoids shipping image bytes or fetching
+  them from a third host. Drag in your own photos for the real test.
+- **No speech sample ships.** Speech cannot be synthesised without a voice model, so the Audio app
+  offers recording and import instead of pretending. The transcription real-time factor is
+  therefore reported by the app but not yet recorded in the benchmarks.
 - **One benchmark machine.** Tier-A desktop, Chromium only. Tier-B and other engines are pending.
 - **Search quality is honest, not tuned.** Ranking is reciprocal rank fusion over cosine
   similarity and BM25, with no learned reranking. Short generic documents can outrank better ones.

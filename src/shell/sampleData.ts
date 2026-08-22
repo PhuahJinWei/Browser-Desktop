@@ -3,6 +3,7 @@ import { updateSettings } from '../kernel/settings';
 import { vfs } from '../kernel/vfs/client';
 import { ROOT_ID, type ImportEntry } from '../kernel/vfs/types';
 import { createPdf } from './samplePdf';
+import { renderSampleImages } from './samplePhotos';
 
 /**
  * The sample dataset.
@@ -16,7 +17,10 @@ import { createPdf } from './samplePdf';
  * It is generated in the browser rather than shipped, so it costs nothing in the bundle or in
  * GitHub Pages bandwidth.
  *
- * Photos and audio arrive with the models that can index them, in M2.
+ * The pictures are drawn in the browser too (see samplePhotos.ts) — illustrations rather than
+ * photographs, which is stated plainly in the README. Audio is deliberately absent: a speech
+ * sample cannot be synthesised without a voice model, so the Audio app offers recording and
+ * import instead of pretending to ship one.
  */
 
 const encoder = new TextEncoder();
@@ -270,12 +274,19 @@ function buildEntries(): ImportEntry[] {
 
 export async function loadSampleData(): Promise<number> {
   const entries = buildEntries();
+
+  // Pictures are rendered at load time rather than stored: a handful of canvas draws costs
+  // milliseconds and keeps the bundle free of image bytes.
+  for (const image of await renderSampleImages()) {
+    entries.push({ path: `Pictures/${image.name}`, data: image.data, mime: image.mime });
+  }
+
   const result = await vfs.importEntries(ROOT_ID, entries, { sample: true });
   updateSettings({ sampleDataLoaded: true });
 
   notify({
-    title: `Added ${result.created.length} sample documents`,
-    body: 'Try Search: “invoice for the monitor”. Remove them any time in Settings.',
+    title: `Added ${result.created.length} sample files`,
+    body: 'Documents and pictures, made on this device. Remove them any time in Settings.',
     level: 'success',
     timeout: 9000,
   });

@@ -97,6 +97,18 @@ export class VectorIndex {
     return this.rowOf.has(id);
   }
 
+  /**
+   * The stored (already normalised) vector for an id.
+   *
+   * "Find more like this one" is a search whose query vector is one already in the index, so
+   * reading it back beats re-embedding the same picture.
+   */
+  get(id: string): Float32Array | null {
+    const row = this.rowOf.get(id);
+    if (row === undefined) return null;
+    return this.data.slice(row * this.dimensions, (row + 1) * this.dimensions) as Float32Array;
+  }
+
   clear(): void {
     this.ids = [];
     this.rowOf.clear();

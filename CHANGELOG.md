@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased] — M2, photos and audio
+
+Added
+
+- **Photos**: find pictures by describing them, using CLIP image and text embeddings in one vector
+  space. Grid, detail panel, "find similar", and example queries. No tags, captions or filenames
+  involved.
+- **Audio**: waveform player, microphone recording, on-device transcription with timestamps,
+  click-to-seek transcript, lexical-cohesion chapter detection, and .srt export.
+- **Transcripts are ordinary files.** Each one is written into the file system as Markdown, so it
+  is indexed, searchable, viewable and deletable through machinery that already existed.
+- **Model download manager**: nothing downloads without a dialog naming the model, its size, its
+  host and its licence; every file is verified against a SHA-256 pinned in `models.json`; the
+  download appears in the Task Manager and can be removed in Settings.
+- Search now returns photos alongside documents, with a relevance cutoff relative to the best hit
+  rather than a fixed threshold.
+- Sample pictures are drawn in the browser at first boot — illustrations, not photographs, and no
+  bytes in the repository or requests to a third host.
+- Task Manager gained a Photos panel; Settings gained a model shelf.
+
+Measured
+
+- CLIP ViT-B/32 returned the intended picture first for 6 of 6 test queries; MobileCLIP-S0, the
+  plan's smaller default, managed 0 of 6 and was rejected. See ADR 10.
+- Whisper's quantised decoder exports fail to load on the current ONNX Runtime; fp16 is the
+  smallest that works.
+
+Changed
+
+- Whisper moved from bundled to on-demand, returning the Tier-0 bundle to 22.6 MB.
+
+Fixed
+
+- CLIP text embeddings were padded to the longest phrase in the batch rather than CLIP's fixed
+  77-token context, so every photo search failed on a broadcast error.
+- The index and the file system could disagree about what was indexed — a lost snapshot left
+  files marked "indexed" that no longer were, and search silently returned nothing. Startup now
+  reconciles against what the index actually holds.
+- Photo search switched itself off after a reload even with the model on disk; consent covers the
+  download, not every session.
+
 ## [Unreleased] — M1, the desktop
 
 Added

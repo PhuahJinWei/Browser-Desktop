@@ -6,6 +6,7 @@ import { applySettings, settingsStore, updateSettings } from '../kernel/settings
 import { notifyError } from '../kernel/notifications';
 import { vfs } from '../kernel/vfs/client';
 import { startIndexer } from '../services/index/client';
+import { refreshModelStates } from '../kernel/models';
 import { CapabilitiesProvider } from './capabilitiesContext';
 import { Desktop } from './Desktop';
 import { registerSystemCommands } from './systemCommands';
@@ -110,6 +111,7 @@ export function Shell() {
         }
 
         await startIndexer(backend);
+        void refreshModelStates();
         if (cancelled) return;
         update(3, { state: 'done', detail: `Embeddings on ${backend}` });
 

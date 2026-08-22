@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { notify, notifyError } from '../../kernel/notifications';
 import {
   DEFAULT_SETTINGS,
@@ -11,6 +11,13 @@ import {
 import { useVfsStats, vfs } from '../../kernel/vfs/client';
 import { formatBytes } from '../../kernel/vfs/types';
 import { clearIndex, reindexEverything, useIndexStats } from '../../services/index/client';
+import {
+  MODELS,
+  deleteModel,
+  downloadModel,
+  refreshModelStates,
+  useModelStates,
+} from '../../kernel/models';
 import { useCapabilities } from '../../shell/capabilitiesContext';
 import { loadSampleData } from '../../shell/sampleData';
 import styles from './SettingsApp.module.css';
@@ -185,6 +192,15 @@ export default function SettingsApp() {
       </section>
 
       <section className={styles.section}>
+        <h3 className={styles.heading}>Models</h3>
+        <p className={styles.warning}>
+          Nothing here downloads without being asked first. Everything runs on this device; the only
+          thing that travels is the model, in this direction.
+        </p>
+        <ModelList />
+      </section>
+
+      <section className={styles.section}>
         <h3 className={styles.heading}>Storage</h3>
         <dl className={styles.stats}>
           <Stat label="Files" value={String(stats?.files ?? 0)} />
@@ -278,6 +294,70 @@ export default function SettingsApp() {
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+
+/** The model shelf: what is on disk, what it cost, and how to get rid of it. */
+function ModelList() {
+  const states = useModelStates();
+
+  useEffect(() => {
+    void refreshModelStates();
+  }, []);
+
+  return (
+    <ul className={styles.models}>
+      {MODELS.map((model) => {
+        const state = states[model.id] ?? { status: 'unknown', progress: 0, bytesDone: 0 };
+        return (
+          <li key={model.id} className={styles.model}>
+            <div className={styles.modelInfo}>
+              <p className={styles.modelName}>{model.label}</p>
+              <p className={styles.modelMeta}>
+                {formatBytes(model.totalBytes)} · {model.license.name} ·{' '}
+                {model.task.replace(/-/g, ' ')}
+              </p>
+              {state.status === 'downloading' ? (
+                <div className={styles.modelProgress}>
+                  <div
+                    className={styles.modelProgressBar}
+                    style={{ width: `${Math.round(state.progress * 100)}%` }}
+                  />
+                </div>
+              ) : null}
+              {state.error ? <p className={styles.modelError}>{state.error}</p> : null}
+            </div>
+
+            <div className={styles.modelActions}>
+              {state.status === 'ready' ? (
+                <>
+                  <span className={styles.modelReady}>on this device</span>
+                  <button
+                    type="button"
+                    className={styles.button}
+                    onClick={() => void deleteModel(model.id)}
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : state.status === 'downloading' ? (
+                <span className={styles.modelReady}>
+                  {Math.round(state.progress * 100)}% · {formatBytes(state.bytesDone)}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void downloadModel(model.id).promise}
+                >
+                  Download
+                </button>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 function Field({
   label,

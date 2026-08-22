@@ -208,3 +208,72 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
+
+.models {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.modelInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.modelName {
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.modelMeta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+}
+
+.modelProgress {
+  height: 3px;
+  margin-top: var(--space-2);
+  border-radius: 2px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.modelProgressBar {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--duration-fast) linear;
+}
+
+.modelError {
+  margin-top: var(--space-1);
+  color: var(--bad);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.modelActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.modelReady {
+  color: var(--ok);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}

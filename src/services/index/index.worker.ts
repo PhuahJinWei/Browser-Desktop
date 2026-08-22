@@ -1,11 +1,34 @@
 import { pipeline, type FeatureExtractionPipeline } from '@huggingface/transformers';
-import { exposeRpc } from '../../kernel/rpc';
+import { exposeRpc, transfer } from '../../kernel/rpc';
 import { configureRuntime } from '../ai/runtime';
 import { extractText } from '../extract/text';
 import { chunkText } from './chunk';
 import { Bm25Index, fuseRankings, tokenize } from './bm25';
 import { VectorIndex } from './vectors';
 import { idb, openDatabase, transact } from '../../kernel/idb';
+import {
+  addImage,
+  allImages,
+  clearImages,
+  hasImage,
+  imageBytes,
+  imageCount,
+  removeImage,
+  restoreImages,
+  searchImages as searchImageIndex,
+  serializeImages,
+  similarTo,
+  type ImageHit,
+  type ImageSnapshot,
+} from './images';
+import {
+  embedImage,
+  embedPhrases,
+  loadVision,
+  makeThumbnail,
+  unloadVision,
+  visionRuntime,
+} from './vision';
 
 /**
  * The search service.
@@ -54,12 +77,18 @@ export interface IndexStats {
   dimensions: number;
   vectorBytes: number;
   ready: boolean;
+  /** Image side, which uses a different model in a different vector space. */
+  images: number;
+  imageModel: string;
+  imageVectorBytes: number;
+  visionReady: boolean;
 }
 
 let extractor: FeatureExtractionPipeline | null = null;
 let loading: Promise<FeatureExtractionPipeline> | null = null;
 let backend: 'webgpu' | 'wasm' = 'wasm';
 let modelId = DEFAULT_MODEL;
+let visionModelId = '';
 let dimensions = 384;
 
 const documents = new Map<string, IndexedDocument>();
@@ -202,6 +231,9 @@ interface Snapshot {
   documents: IndexedDocument[];
   ids: string[];
   data: ArrayBuffer;
+  /** Present once any image has been indexed; absent on an index built before M2. */
+  visionModel?: string;
+  imageSnapshot?: ImageSnapshot;
 }
 
 async function persist(): Promise<void> {
@@ -213,6 +245,7 @@ async function persist(): Promise<void> {
     documents: [...documents.values()],
     ids: serialized.ids,
     data: serialized.data,
+    ...(imageCount() > 0 ? { visionModel: visionModelId, imageSnapshot: serializeImages() } : {}),
   };
   const db = await database();
   await transact(db, 'index', 'readwrite', (tx) => idb.put(tx.objectStore('index'), snapshot));
@@ -251,6 +284,13 @@ async function restore(): Promise<boolean> {
       keywords.add(chunkKey(document.id, index), tokenize(chunk.text));
     });
   }
+
+  // Image vectors are restored only if they came from the model we would use now; a different
+  // model means a different space, and comparing across them silently returns nonsense.
+  if (snapshot.imageSnapshot && snapshot.visionModel) {
+    visionModelId = snapshot.visionModel;
+    restoreImages(snapshot.imageSnapshot);
+  }
   return true;
 }
 
@@ -271,17 +311,38 @@ export type IndexMethods = {
   clear: () => void;
   save: () => void;
   warmUp: () => boolean;
+
+  /** Loads the image model. Separate from configure() because it is opt-in and much larger. */
+  loadVisionModel: (options: { model: string; backend: 'webgpu' | 'wasm' }) => IndexStats;
+  unloadVisionModel: () => IndexStats;
+  indexImage: (input: { id: string; name: string; mime: string; data: ArrayBuffer }) => {
+    indexed: boolean;
+    width: number;
+    height: number;
+    thumbnail: ArrayBuffer | null;
+    skipped?: string;
+  };
+  removeImage: (id: string) => boolean;
+  searchImages: (options: { query: string; limit?: number }) => ImageHit[];
+  similarImages: (options: { id: string; limit?: number }) => ImageHit[];
+  indexedImageIds: () => string[];
+  indexedDocumentIds: () => string[];
 };
 
 function currentStats(): IndexStats {
   let chunks = 0;
   for (const document of documents.values()) chunks += document.chunks.length;
+  const vision = visionRuntime();
   return {
     documents: documents.size,
     chunks,
     terms: keywords.terms,
     model: modelId,
     backend,
+    images: imageCount(),
+    imageModel: visionModelId,
+    imageVectorBytes: imageBytes(),
+    visionReady: vision.ready,
     dimensions,
     vectorBytes: vectors.bytes,
     ready: extractor !== null,
@@ -438,4 +499,76 @@ exposeRpc<IndexMethods>({
   },
 
   save: async () => persist(),
+
+  /* Images ----------------------------------------------------------------------------------- */
+
+  loadVisionModel: async ([options], report) => {
+    if (visionModelId && visionModelId !== options.model) {
+      // A different model means a different vector space; the existing image vectors are no
+      // longer comparable with anything this model produces.
+      clearImages();
+      await unloadVision();
+    }
+    visionModelId = options.model;
+    await loadVision(options.model, options.backend, report);
+    return currentStats();
+  },
+
+  unloadVisionModel: async () => {
+    await unloadVision();
+    return currentStats();
+  },
+
+  indexImage: async ([input]) => {
+    if (!visionRuntime().ready) {
+      return { indexed: false, width: 0, height: 0, thumbnail: null, skipped: 'model not loaded' };
+    }
+
+    // The thumbnail is made first: if the image cannot be decoded at all, there is no point
+    // handing it to the model, and the failure is clearer here.
+    const thumbnail = await makeThumbnail(input.data, input.mime);
+    const vector = await embedImage(input.data, input.mime);
+
+    addImage(
+      {
+        id: input.id,
+        name: input.name,
+        mime: input.mime,
+        width: thumbnail?.width ?? 0,
+        height: thumbnail?.height ?? 0,
+        bytes: input.data.byteLength,
+        indexedAt: Date.now(),
+      },
+      vector,
+    );
+
+    const thumbBytes = thumbnail ? await thumbnail.blob.arrayBuffer() : null;
+    const result = {
+      indexed: true,
+      width: thumbnail?.width ?? 0,
+      height: thumbnail?.height ?? 0,
+      thumbnail: thumbBytes,
+    };
+    return thumbBytes ? transfer(result, [thumbBytes]) : result;
+  },
+
+  removeImage: async ([id]) => removeImage(id),
+
+  searchImages: async ([options]) => {
+    const query = options.query.trim();
+    if (!query || imageCount() === 0 || !visionRuntime().ready) return [];
+    const [vector] = await embedPhrases([query]);
+    if (!vector) return [];
+    return searchImageIndex(vector, options.limit ?? 40);
+  },
+
+  similarImages: async ([options]) => {
+    // No model needed: the query vector is one already in the index.
+    if (!hasImage(options.id)) return [];
+    return similarTo(options.id, options.limit ?? 24);
+  },
+
+  indexedImageIds: async () => allImages().map((image) => image.id),
+
+  indexedDocumentIds: async () => [...documents.keys()],
 });

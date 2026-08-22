@@ -48,14 +48,19 @@ const SPEC = [
     label: 'Whisper tiny (multilingual, int8)',
     repo: 'onnx-community/whisper-tiny',
     revision: 'main',
-    tier: 'bundled',
+    // The plan had this bundled at M2. Consent-gated download turned out to be better: nobody
+    // who never opens the Audio app should pay 69 MB for it, and the fp16 decoder made bundling
+    // it a budget problem anyway.
+    tier: 'on-demand',
     minTier: 'C',
     license: 'MIT',
     licenseUrl: 'https://huggingface.co/openai/whisper-tiny',
-    dtype: 'q8',
+    dtype: 'q8 encoder / fp16 decoder',
     files: [
       'onnx/encoder_model_quantized.onnx',
-      'onnx/decoder_model_merged_quantized.onnx',
+      // Not the quantised decoder: it fails to build a session on current ONNX Runtime with
+      // "Missing required scale ... MatMulNBits". fp16 is the smallest export that loads.
+      'onnx/decoder_model_merged_fp16.onnx',
       'config.json',
       'generation_config.json',
       'preprocessor_config.json',
@@ -78,10 +83,17 @@ const SPEC = [
     license: 'Apple ASCL',
     licenseUrl: 'https://huggingface.co/apple/MobileCLIP-S0',
     dtype: 'q8',
-    files: ['onnx/text_model_quantized.onnx', 'onnx/vision_model_quantized.onnx'],
-    meta: { dimensions: 512 },
+    files: [
+      'onnx/text_model_quantized.onnx',
+      'onnx/vision_model_quantized.onnx',
+      'config.json',
+      'preprocessor_config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+    ],
+    meta: { dimensions: 512, imageSize: 256 },
     notes:
-      'Default photo search model: over budget to bundle, cheap to download. Check the Apple licence before any commercial use.',
+      'Smaller image model, kept for reference. Rejected as the default: its config omits the preprocessing parameters and search ranking is visibly worse. See ADR 10.',
     milestone: 'M2',
   },
   {
@@ -95,9 +107,19 @@ const SPEC = [
     license: 'MIT',
     licenseUrl: 'https://huggingface.co/openai/clip-vit-base-patch32',
     dtype: 'q8',
-    files: ['onnx/text_model_quantized.onnx', 'onnx/vision_model_quantized.onnx'],
-    meta: { dimensions: 512 },
-    notes: 'Higher-quality photo search for Tier A machines.',
+    files: [
+      'onnx/text_model_quantized.onnx',
+      'onnx/vision_model_quantized.onnx',
+      'config.json',
+      'preprocessor_config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'special_tokens_map.json',
+      'vocab.json',
+      'merges.txt',
+    ],
+    meta: { dimensions: 512, imageSize: 224 },
+    notes: 'The photo search model. MIT licensed, fully specified config, and correct ranking in testing.',
     milestone: 'M2',
   },
 ];

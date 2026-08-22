@@ -145,3 +145,62 @@ automatic; it has to be measured, or it degrades slowly instead of gracefully.
 
 Boot costs about **90 KB gzipped**. Everything expensive is deferred to the moment it is first
 genuinely needed, which is the whole argument for lazy-loading apps rather than bundling them.
+
+## M2 — photos and audio
+
+### Image search quality
+
+Eight procedurally drawn sample pictures, six natural-language queries, scoring how often the
+intended picture came first.
+
+| Model                | Size   | Correct at rank 1                  | Licence    |
+| -------------------- | ------ | ---------------------------------- | ---------- |
+| CLIP ViT-B/32 (int8) | 150 MB | **6 / 6**                          | MIT        |
+| MobileCLIP-S0 (int8) | 54 MB  | **0 / 6** (3 / 3 within top three) | Apple ASCL |
+
+Queries: "sunset over the ocean", "a red keyboard", "stars at night", "a hot drink", "mountains",
+"a bar chart". MobileCLIP put the right answer near the top every time and at the top never —
+consistent with its repository shipping a config that omits the preprocessing parameters. The
+choice, and the reasoning, are in [ADR 10](../adr/0010-model-choices-are-tested-not-assumed.md).
+
+This is a small and deliberately easy corpus. It is enough to separate a working configuration
+from a broken one, which is what it was for; it is not a benchmark of CLIP.
+
+### Photo indexing and search
+
+| Measurement                                             | Value                                                 |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| Embedding 8 pictures (512 px WebP), background priority | a few seconds, UI unaffected                          |
+| Photo query, model warm                                 | **~250–800 ms** including the text-tower forward pass |
+| Combined document + photo search                        | 12 document hits + 1 photo in **285 ms**              |
+| Image vector memory                                     | 512 dimensions × 4 bytes per picture                  |
+
+### Transcription
+
+| Whisper decoder export | Size   | Result                                            |
+| ---------------------- | ------ | ------------------------------------------------- |
+| `q8` (quantised)       | 29 MB  | **fails**: `Missing required scale … MatMulNBits` |
+| `int8`                 | 29 MB  | **fails**: same error                             |
+| `fp16`                 | 57 MB  | works — chosen                                    |
+| `fp32`                 | 113 MB | works                                             |
+
+End-to-end on a 4-second clip: decode → recognise → chapter → write the transcript into the file
+system → index it, in about 10 seconds including model load. The transcript is an ordinary
+Markdown file, so it was picked up by the document indexer 252 ms later and is searchable like
+anything else.
+
+**Not yet measured:** the real-time factor on a long recording, which needs actual speech. The
+project's own headless testing cannot supply that — there is no microphone and no bundled speech
+sample, for the reason given in the README. The code reports `realtimeFactor` on every run, so
+the number is one real recording away.
+
+### Model download manager
+
+| Measurement                                             | Value                                                                 |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| CLIP ViT-B/32, 9 files, downloaded and SHA-256 verified | 150 MB in ~3.3 s on this connection                                   |
+| Verification                                            | every file checked against a digest pinned in `models.json`           |
+| Storage                                                 | written into the ML library's own cache, so it never re-requests them |
+
+Tier-0 (no consent needed, no download) is back to **22.6 MB** — about 4,500 first-time visitors a
+month within the GitHub Pages allowance. Everything else is asked for first.
