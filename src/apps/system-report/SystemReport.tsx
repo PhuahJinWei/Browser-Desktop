@@ -8,6 +8,7 @@ import type {
   EmbeddingBenchResult,
   OpfsBenchResult,
 } from '../../services/bench/client';
+import { useCapabilities } from '../../shell/capabilitiesContext';
 import styles from './SystemReport.module.css';
 
 /**
@@ -68,14 +69,23 @@ export function SystemReport() {
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
 
+  // Inside the desktop the probe has already run at boot, so reuse it rather than paying for a
+  // second GPU adapter request and a second reload check. Standalone, it probes for itself.
+  const system = useCapabilities();
+
   useEffect(() => {
+    if (system) {
+      setBootResult(system.boot);
+      setCaps(system.capabilities);
+      setWorkerCaps(system.workerCapabilities);
+      return;
+    }
     void (async () => {
       setBootResult(await boot());
       setCaps(await probeCapabilities());
-      // Worker-only capabilities cannot be probed from here; ask a worker directly.
       setWorkerCaps(await probeWorkerCapabilities());
     })();
-  }, []);
+  }, [system]);
 
   const embeddingBackend = caps ? preferredBackend(caps, 'text-embedding') : null;
   const heavyBackend = caps ? preferredBackend(caps, 'image-text-embedding') : null;

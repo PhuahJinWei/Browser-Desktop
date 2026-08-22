@@ -1,0 +1,57 @@
+.list {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(auto-fill, 92px);
+  gap: var(--space-2);
+  max-height: calc(100% - 2 * var(--space-4));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: 88px;
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--desktop-fg);
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: color-mix(in oklab, var(--surface-2) 55%, transparent);
+  border-color: var(--border-subtle);
+  backdrop-filter: blur(6px);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface-2) 80%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent);
+  backdrop-filter: blur(6px);
+}
+
+.label {
+  font-size: var(--text-xs);
+  text-align: center;
+  line-height: 1.25;
+  /* A wallpaper can be any brightness; a shadow keeps the label readable on all of them. */
+  text-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+}
+
+:global(html[data-theme='light']) .label {
+  text-shadow: 0 1px 3px rgb(255 255 255 / 70%);
+}

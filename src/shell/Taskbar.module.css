@@ -1,0 +1,220 @@
+.bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 48px;
+  flex: 0 0 48px;
+  padding: 0 var(--space-2);
+  background: color-mix(in oklab, var(--surface-2) 88%, transparent);
+  border-top: 1px solid var(--border-subtle);
+  backdrop-filter: blur(14px);
+  z-index: 1000000;
+}
+
+.launcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 550;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.launcher:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.launcherOpen {
+  background: var(--accent-subtle);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+
+.launcherLabel {
+  font-size: var(--text-sm);
+}
+
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  min-width: 210px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.search:hover {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.search span {
+  flex: 1;
+}
+
+.kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.windows {
+  display: flex;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.windows::-webkit-scrollbar {
+  display: none;
+}
+
+.task {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  max-width: 190px;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.task:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.taskActive {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.taskMinimized {
+  opacity: 0.55;
+}
+
+.taskLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.chipButton {
+  position: relative;
+  cursor: pointer;
+}
+
+.chipButton:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.chipBusy {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.chipOffline {
+  color: var(--warn);
+  background: var(--warn-subtle);
+  border-color: transparent;
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid color-mix(in oklab, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respect the motion setting: an endlessly spinning element is exactly what it is about. */
+:global(html[data-motion='reduced']) .spinner {
+  animation: none;
+  border-top-color: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.clock {
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}

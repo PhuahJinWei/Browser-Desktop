@@ -1,0 +1,57 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--desktop-bg);
+}
+
+.area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* Windows are absolutely positioned inside this box; it is also the snapping frame. */
+  isolation: isolate;
+}
+
+.empty {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(8px);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.empty kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-1);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.snapPreview {
+  position: absolute;
+  z-index: 999999;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  pointer-events: none;
+  transition:
+    left var(--duration-fast) var(--easing),
+    top var(--duration-fast) var(--easing),
+    width var(--duration-fast) var(--easing),
+    height var(--duration-fast) var(--easing);
+}

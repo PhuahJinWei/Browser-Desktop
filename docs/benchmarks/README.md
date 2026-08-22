@@ -92,3 +92,56 @@ Tier-0 bundle total is 64.2 MB against an 80 MB budget (see `models.json`), whic
 Machine 1 is an Electron-embedded Chromium, not stock Chrome, and it is a desktop with a discrete
 AMD GPU. Nothing here should be quoted as a cross-browser or cross-tier result until the pending
 rows above are filled in.
+
+## M1 — the desktop
+
+Measured on the same reference machine, in the deployed build served without headers.
+
+### Window management
+
+| Measurement                                          | Value                                     |
+| ---------------------------------------------------- | ----------------------------------------- |
+| Pointer-move handling during a drag, 14 windows open | **0.01 ms** median (p95 0.02, worst 0.12) |
+| React commit for the whole desktop, per gesture      | **5.4 ms**                                |
+| Frame budget at 60 fps                               | 16.7 ms                                   |
+
+The drag path writes `transform` straight to the element and commits to React once, on
+pointer-up. Routing every move through state instead would spend that 5.4 ms _per frame_ — about a
+third of the budget — before any of the app's own work. See
+[ADR 9](../adr/0009-direct-dom-drag.md), which also records the bug this design creates if the
+inline styles are cleared rather than restored.
+
+Note the window count: the M1 target was eight, and these numbers are from fourteen.
+
+### Search
+
+| Measurement                               | Value                                                  |
+| ----------------------------------------- | ------------------------------------------------------ |
+| Hybrid query over 12 passages, model warm | **2–5 ms**                                             |
+| Same query, offline, keyword-only         | **2 ms**                                               |
+| Index restored from IndexedDB on reload   | 8 documents, 11 passages, 422 terms, 1.5 MB of vectors |
+
+Search latency here is dominated by fixed costs rather than corpus size — a linear scan of a
+1.5 MB Float32Array is not the expensive part at this scale. The figure worth re-measuring is with
+tens of thousands of passages, which needs a corpus M1 does not ship.
+
+**One offline finding worth recording.** With no model in memory and no network, the first search
+took **6.3 seconds** — all of it spent waiting for a model fetch that could not succeed — before
+falling back to keyword results. The fix was to check `navigator.onLine` and skip the attempt, so
+the keyword results already in hand are returned immediately. Graceful degradation is not
+automatic; it has to be measured, or it degrades slowly instead of gracefully.
+
+### Payload
+
+| Asset                                    | Raw        | Gzipped           | When it loads                        |
+| ---------------------------------------- | ---------- | ----------------- | ------------------------------------ |
+| Desktop shell (JS)                       | 68.7 KB    | **24.3 KB**       | boot                                 |
+| React                                    | 189.7 KB   | 59.6 KB           | boot                                 |
+| Shell CSS                                | 23.9 KB    | 5.3 KB            | boot                                 |
+| Files app                                | 15.6 KB    | 5.6 KB            | when opened                          |
+| Search / Notes / Settings / Task Manager | 4.7–7.0 KB | 2–2.5 KB each     | when opened                          |
+| pdf.js                                   | 427.3 KB   | 127.4 KB          | only when a PDF is opened or indexed |
+| ONNX runtime + embedding model           | —          | ~5.4 MB + 22.6 MB | first search or first index          |
+
+Boot costs about **90 KB gzipped**. Everything expensive is deferred to the moment it is first
+genuinely needed, which is the whole argument for lazy-loading apps rather than bundling them.

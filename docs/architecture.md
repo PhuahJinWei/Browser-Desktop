@@ -1,111 +1,134 @@
 # Architecture
 
-Version 0.1 — reflects what exists after M0. The layers below the shell are real; the shell layer
-is a single diagnostic app until M1 replaces it with the desktop.
+Version 0.2 — reflects M1, where the desktop actually exists.
 
 ## The shape
 
 ```
-┌───────────────────────── Browser tab (static files only) ──────────────────────────┐
-│ SHELL (main thread, React)                                                          │
-│   M0: System Report  ·  M1: desktop, window manager, taskbar, launcher, apps        │
-│                                                                                     │
-│ KERNEL (TypeScript, main thread)                                                    │
-│   capabilities · boot/service-worker lifecycle · store · worker RPC                 │
-│   M1 adds: window manager · VFS · job scheduler · model registry · permissions      │
-│                                                                                     │
-│ SERVICES (workers)                                                                  │
-│   probe worker · benchmark worker (ML runtime)                                      │
-│   M1 adds: file I/O (OPFS sync handles) · indexer · media · pdf                     │
-│                                                                                     │
-│ STORAGE                                                                             │
-│   OPFS: content-addressed blobs, derived data, index shards                         │
-│   IndexedDB: VFS tree, settings, grants   ·   Cache API: app shell (service worker)  │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-   ▲ serving origin — code, runtime, bundled models      ▲ huggingface.co — on consent only
+┌──────────────────────────── Browser tab (static files only) ─────────────────────────────┐
+│ SHELL (main thread, React)                                                                │
+│   desktop · window frames · taskbar · launcher · command palette · notifications · boot   │
+│   apps: Files · Viewer · Notes · Search · Settings · Task Manager · About                 │
+│                                                                                           │
+│ KERNEL (TypeScript, main thread)                                                          │
+│   window manager · VFS client · job scheduler · command registry · settings ·             │
+│   notifications · capability probe · worker RPC · network monitor                         │
+│                                                                                           │
+│ SERVICES (workers)                                                                        │
+│   vfs.worker    metadata + blobs, OPFS sync access handles                                │
+│   index.worker  embedding model + vector index + BM25 + text extraction (pdf.js)          │
+│   probe.worker  worker-only capability answers                                            │
+│   bench.worker  the M0 benchmark harness, still in About                                  │
+│                                                                                           │
+│ STORAGE                                                                                   │
+│   OPFS: content-addressed blobs        IndexedDB: file tree, index snapshot               │
+│   localStorage: settings, session      Cache API: app shell (service worker)              │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+   ▲ serving origin — code                          ▲ huggingface.co — the model, on first use
 ```
 
 ## Boot
 
-1. `boot()` registers the service worker.
-2. If the page is not cross-origin isolated, it reloads **once** (guarded by a sessionStorage
-   flag) so the worker's COOP/COEP headers apply to the document.
-3. `probeCapabilities()` answers what this machine can do; `probeWorkerCapabilities()` answers the
-   questions only a worker can (see below).
-4. The result classifies the machine into tier A, B or C, which decides which models are offered
-   and which backend runs them.
+1. Apply settings to `<html>` before the first paint, so the theme never flashes.
+2. Register the service worker. If the page is not cross-origin isolated, reload **once** so its
+   COOP/COEP headers apply to the document.
+3. Probe capabilities — on the main thread, and again inside a worker for the questions only a
+   worker can answer.
+4. Mount the file system.
+5. On a first visit, generate the sample corpus. Then start the indexer.
 
-A failed registration is not fatal: WebGPU needs no isolation, so the system runs single-threaded
-instead of not at all.
+Each step reports itself on the boot screen. That is not decoration: an app whose claim is "this
+runs on your hardware" should open by saying what it found there.
 
 ## Threading
 
-The main thread renders and coordinates; everything expensive runs in a worker, because the
-window manager must stay at 60 fps while models load and files index.
+The main thread renders and coordinates. Everything expensive is in a worker, because the window
+manager has to stay at 60 fps while models load and files index.
 
-`src/kernel/rpc.ts` is a ~90-line typed RPC over `postMessage`: promises for calls, a `report`
-channel for progress (model downloads and indexing runs are too long to be silent), transferables
-for buffers, and room for the cancellation tokens the M1 scheduler needs.
+`src/kernel/rpc.ts` is a ~130-line typed RPC over `postMessage`: promises for calls, a progress
+channel for long operations, and transferable buffers so a file read hands over its bytes instead
+of cloning them.
 
-Rule: file bytes cross the boundary only for display. Everything else passes ids and transferable
-buffers.
+## The window manager
 
-## Capability probing, and a lesson
+State in `src/kernel/windows.ts` — pure data, no DOM, no React. That separation is what lets the
+drag loop bypass React entirely while the taskbar, the command palette and session restore all
+read the same plain objects.
 
-A capability probe must run in the context that will use the capability.
+During a gesture, pointer moves write `transform` straight to the element; the store is committed
+once, on release. Measured: 0.01 ms per move against a 5.4 ms commit for the whole desktop. The
+trap this creates — and the bug it caused — is written up in
+[ADR 9](./adr/0009-direct-dom-drag.md).
 
-The first version asked whether `FileSystemFileHandle.prototype.createSyncAccessHandle` existed —
-on the main thread, where it never does, because the API is worker-only. It confidently reported
-"no" while the OPFS benchmark was using it successfully from a worker at 591 MB/s.
+Snapping, clamping and session serialisation are all functions over that state, which is why they
+are covered by unit tests rather than by clicking.
 
-Now `probeCapabilities()` returns `null` for "not knowable from here", and `probe.worker.ts`
-answers from inside a worker. Cheap fix; the interesting part is that a probe can be _confidently
-wrong_, which is worse than absent.
+## The file system
 
-## Inference
+Metadata is a tree of nodes in IndexedDB. Content lives once in OPFS under its SHA-256, sharded
+two characters deep. Consequences worth stating:
 
-`src/services/ai/runtime.ts` is the single place the ML runtime is configured. Two settings matter:
+- Rename, move and copy are metadata-only.
+- Two identical files cost one file's worth of space; the Task Manager reports the difference.
+- Derived data keyed by hash survives a rename for free.
+- Deleting means dropping blobs whose reference count reaches zero — done **after** the metadata
+  transaction commits, because OPFS and IndexedDB are not transactional together, and keeping
+  bytes nothing points at is far better than losing bytes something does.
 
-- **`wasmPaths` points at `/runtime/`**, files vendored from `onnxruntime-web` by
-  `tools/sync-runtime.mjs`. The default is a public CDN, which would break the two-hosts promise,
-  violate `script-src 'self'`, and stop the app working offline.
-- **`numThreads`** is 1 unless the page is cross-origin isolated, because without
-  `SharedArrayBuffer` asking for more throws rather than degrading. Capped at 4: beyond that,
-  memory bandwidth dominates and the extra workers fight the UI for cores.
+Every mutation announces what changed, locally and over a `BroadcastChannel`, so a note saved in
+one app appears in an open Files window — in this tab or another — without either knowing the
+other exists.
 
-Backend choice is per task, from measurement rather than assumption — see
-[ADR 8](./adr/0008-backend-selection-is-measured.md).
+## Search
 
-## The service worker
+One worker owns the model, the vector index and the keyword index, because a query needs all three
+and shuttling embeddings between workers would cost more than the search does.
 
-One worker, two jobs, because two registrations cannot share a scope:
+Text in → extract (pdf.js for PDFs, Markdown stripped to prose) → chunk on paragraph and sentence
+boundaries with overlap → embed → store. Chunks carry character offsets into the source, which is
+what lets a result open the file at the exact passage.
 
-1. **Isolation.** It rewrites every response with COOP and COEP (`credentialless`, so consented
-   cross-origin model downloads still work). This is the only way to get `SharedArrayBuffer` on a
-   host that cannot send headers.
-2. **Offline.** It precaches the app shell, keyed by a build hash, and serves cache-first.
+A query runs twice: cosine similarity over normalised vectors, and BM25 over tokens. The two
+rankings are combined by **reciprocal rank fusion**, which merges by position rather than score —
+a cosine similarity and a BM25 score are not on the same scale, and normalising them would invent
+a comparison that does not exist.
 
-Updates wait for an explicit "Restart to update" rather than swapping under a running desktop.
-Built separately from the app bundle by `tools/vite-plugin-sw.ts` so it lands at a stable,
-unhashed `/sw.js` with the precache list inlined.
+Both halves matter. Semantic retrieval finds "the joiner's quote for wooden countertops" in a note
+that says "the carpenter quoted 3200 for the oak worktops". Keyword retrieval is what finds
+"Samsung". Each result is labelled with which one found it.
 
-## Content-Security-Policy
+The vector index is a flat `Float32Array` scanned linearly — exact, cheap to update, and faster
+than an approximate-nearest-neighbour graph at this scale. The upgrade path is documented in
+ADR 6 and will be taken when a measurement demands it, not before.
 
-Injected as a `<meta>` tag at build time (`tools/vite-plugin-csp.ts`), production only — the dev
-server needs inline scripts for Fast Refresh.
+## The job scheduler
 
-`connect-src` is the interesting directive: it is the enforceable version of the two-hosts
-promise. `frame-ancestors` is deliberately absent because browsers ignore it in a meta policy;
-that protection needs a real header and is listed as a known limitation.
+Everything slow is a job: indexing, model loading, importing, searching. Three properties earn it
+its place — priority (an interactive search jumps ahead of two thousand background index jobs),
+cancellation (closing a window stops the work it started), and visibility (every job is listed in
+the Task Manager, because work you cannot see is work you cannot trust).
 
-## Storage
+Concurrency is capped at two, not at hardware concurrency: the ML runtime already uses up to four
+threads internally, and the limit exists to leave the main thread room to stay at 60 fps.
 
-Content-addressed blobs in OPFS, metadata in IndexedDB — see
-[ADR 6](./adr/0006-content-addressed-opfs.md). Implemented in M1.
+## One registry for commands
 
-## What M1 adds
+Commands, keyboard shortcuts and the launcher all read `src/kernel/commands.ts`. Keeping them
+separate is how a desktop ends up with a menu item that works, a shortcut that does something
+subtly different, and a palette entry nobody updated.
 
-Window manager, VFS and import pipeline, job scheduler with priorities and cancellation, model
-registry with LRU unloading, and the first real apps (Files, Viewer, Notes, Search, Settings, Task
-Manager). The System Report becomes the About/Stats app inside the desktop rather than the whole
-page.
+Shortcut choices are constrained by the browser: Ctrl+W, Ctrl+T and Ctrl+N belong to the tab strip
+and cannot be intercepted, so window management lives on Ctrl+Alt.
+
+## Trust, made checkable
+
+The privacy claim is only worth something if it can be verified, so the Task Manager reads the
+browser's own Resource Timing buffer and lists every request the page has made, third-party ones
+marked. Instrumenting our own fetches would only report the requests we chose to report; the
+browser's record includes the ones we did not.
+
+## What M2 adds
+
+CLIP-family image embeddings and Whisper transcription, which turn Photos and Audio into real
+apps. Both plug into the existing model registry, job scheduler and index rather than needing new
+machinery — which was the point of building those first.

@@ -1,9 +1,16 @@
 /**
  * Design tokens.
  *
- * Defined once here so the desktop, its windows and every app share one visual language, and so
- * theming is a variable swap rather than a component rewrite. Light is the default definition;
- * dark overrides only the colour tokens.
+ * Defined once so the desktop, its windows and every app share one visual language, and so
+ * theming is a variable swap rather than a component rewrite.
+ *
+ * Three axes, all driven by data attributes the settings store writes onto <html>:
+ *   data-theme     system | light | dark
+ *   data-accent    teal | indigo | amber | rose
+ *   data-wallpaper aurora | dusk | grid | plain
+ *
+ * Light is the base definition; dark overrides only colour. The `system` case is expressed as
+ * "dark unless the user explicitly chose light", so the toggle wins in both directions.
  *
  * The palette is deliberately not a Windows or macOS impersonation: this is its own thing.
  */
@@ -47,12 +54,14 @@
     ui-monospace, SFMono-Regular, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas,
     monospace;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9375rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.5rem;
-  --text-2xl: 2rem;
+  /* Every size scales from one variable, so the text-size setting is a single multiply. */
+  --font-scale: 1;
+  --text-xs: calc(0.75rem * var(--font-scale));
+  --text-sm: calc(0.8125rem * var(--font-scale));
+  --text-base: calc(0.9375rem * var(--font-scale));
+  --text-lg: calc(1.125rem * var(--font-scale));
+  --text-xl: calc(1.5rem * var(--font-scale));
+  --text-2xl: calc(2rem * var(--font-scale));
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -73,10 +82,14 @@
   --duration-fast: 120ms;
   --duration-normal: 200ms;
   --easing: cubic-bezier(0.2, 0, 0.13, 1);
+
+  --desktop-bg: linear-gradient(160deg, #dfe7f0 0%, #c9d8e8 45%, #d8e4ea 100%);
+  --desktop-fg: #12161c;
 }
 
+/* Dark: applied when the system prefers it and the user has not forced light. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --surface-0: #0b0d10;
     --surface-1: #12161b;
     --surface-2: #171c23;
@@ -105,12 +118,175 @@
 
     --shadow-window: 0 16px 40px rgb(0 0 0 / 55%), 0 2px 8px rgb(0 0 0 / 40%);
     --shadow-raised: 0 1px 2px rgb(0 0 0 / 40%);
+
+    --desktop-bg: linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
+    --desktop-fg: #e8edf3;
   }
 }
 
+/* Dark: applied when the user chose it explicitly, whatever the system says. */
+:root[data-theme='dark'] {
+  --surface-0: #0b0d10;
+  --surface-1: #12161b;
+  --surface-2: #171c23;
+  --surface-3: #1e242c;
+  --surface-sunken: #080a0d;
+
+  --border-subtle: #262e38;
+  --border-strong: #3a4552;
+
+  --text-primary: #e8edf3;
+  --text-secondary: #a9b4c0;
+  --text-muted: #7b8593;
+  --text-inverted: #0b0d10;
+
+  --accent: #5eead4;
+  --accent-hover: #7bf0dd;
+  --accent-contrast: #06231f;
+  --accent-subtle: #123833;
+
+  --ok: #5dd39e;
+  --warn: #e8b44a;
+  --bad: #f38b82;
+  --ok-subtle: #10291f;
+  --warn-subtle: #2c2312;
+  --bad-subtle: #2e1715;
+
+  --shadow-window: 0 16px 40px rgb(0 0 0 / 55%), 0 2px 8px rgb(0 0 0 / 40%);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 40%);
+
+  --desktop-bg: linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
+  --desktop-fg: #e8edf3;
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Accents                                                                                        */
+/* -------------------------------------------------------------------------------------------- */
+
+:root[data-accent='indigo'] {
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #e0e0fb;
+}
+:root[data-accent='amber'] {
+  --accent: #b45309;
+  --accent-hover: #92400e;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #fbeacf;
+}
+:root[data-accent='rose'] {
+  --accent: #be123c;
+  --accent-hover: #9f1239;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #fbdfe5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-accent='indigo'] {
+    --accent: #a5b4fc;
+    --accent-hover: #c7d2fe;
+    --accent-contrast: #1e1b4b;
+    --accent-subtle: #1e1b4b;
+  }
+  :root:not([data-theme='light'])[data-accent='amber'] {
+    --accent: #fcd34d;
+    --accent-hover: #fde68a;
+    --accent-contrast: #3b2405;
+    --accent-subtle: #3b2405;
+  }
+  :root:not([data-theme='light'])[data-accent='rose'] {
+    --accent: #fda4af;
+    --accent-hover: #fecdd3;
+    --accent-contrast: #4c0519;
+    --accent-subtle: #4c0519;
+  }
+}
+
+:root[data-theme='dark'][data-accent='indigo'] {
+  --accent: #a5b4fc;
+  --accent-hover: #c7d2fe;
+  --accent-contrast: #1e1b4b;
+  --accent-subtle: #1e1b4b;
+}
+:root[data-theme='dark'][data-accent='amber'] {
+  --accent: #fcd34d;
+  --accent-hover: #fde68a;
+  --accent-contrast: #3b2405;
+  --accent-subtle: #3b2405;
+}
+:root[data-theme='dark'][data-accent='rose'] {
+  --accent: #fda4af;
+  --accent-hover: #fecdd3;
+  --accent-contrast: #4c0519;
+  --accent-subtle: #4c0519;
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Wallpapers — CSS gradients rather than images: nothing to download, nothing to license.         */
+/* -------------------------------------------------------------------------------------------- */
+
+:root[data-wallpaper='dusk'] {
+  --desktop-bg:
+    radial-gradient(1100px 620px at 12% -8%, rgb(255 176 120 / 55%), transparent 62%),
+    linear-gradient(165deg, #f4d7c4 0%, #cfa7b4 48%, #8f8fbc 100%);
+}
+
+:root[data-wallpaper='grid'] {
+  --desktop-bg:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 5%) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 5%) 0 1px, transparent 1px 44px),
+    linear-gradient(160deg, #e7edf3, #d3dde8);
+}
+
+:root[data-wallpaper='plain'] {
+  --desktop-bg: #dde5ee;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-wallpaper='dusk'] {
+    --desktop-bg:
+      radial-gradient(1100px 620px at 12% -8%, rgb(120 60 30 / 45%), transparent 62%),
+      linear-gradient(165deg, #1b1013 0%, #171226 52%, #0a0d16 100%);
+  }
+  :root:not([data-theme='light'])[data-wallpaper='grid'] {
+    --desktop-bg:
+      repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 44px),
+      linear-gradient(160deg, #0c1119, #0a0d13);
+  }
+  :root:not([data-theme='light'])[data-wallpaper='plain'] {
+    --desktop-bg: #0b0f15;
+  }
+}
+
+:root[data-theme='dark'][data-wallpaper='dusk'] {
+  --desktop-bg:
+    radial-gradient(1100px 620px at 12% -8%, rgb(120 60 30 / 45%), transparent 62%),
+    linear-gradient(165deg, #1b1013 0%, #171226 52%, #0a0d16 100%);
+}
+:root[data-theme='dark'][data-wallpaper='grid'] {
+  --desktop-bg:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 44px),
+    linear-gradient(160deg, #0c1119, #0a0d13);
+}
+:root[data-theme='dark'][data-wallpaper='plain'] {
+  --desktop-bg: #0b0f15;
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Motion                                                                                         */
+/* -------------------------------------------------------------------------------------------- */
+
 @media (prefers-reduced-motion: reduce) {
-  :root {
+  :root:not([data-motion='full']) {
     --duration-fast: 0ms;
     --duration-normal: 0ms;
   }
+}
+
+:root[data-motion='reduced'] {
+  --duration-fast: 0ms;
+  --duration-normal: 0ms;
 }

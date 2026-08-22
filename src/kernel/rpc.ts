@@ -108,6 +108,28 @@ export type HandlerMap<M extends RpcMethods> = {
   [K in keyof M]: Handler<Parameters<M[K]>, Awaited<ReturnType<M[K]>>>;
 };
 
+const TRANSFER_MARKER = '__tabulaTransfer';
+
+interface TransferEnvelope {
+  [TRANSFER_MARKER]: true;
+  value: unknown;
+  transfer: Transferable[];
+}
+
+function isTransferEnvelope(value: unknown): value is TransferEnvelope {
+  return typeof value === 'object' && value !== null && TRANSFER_MARKER in value;
+}
+
+/**
+ * Hands buffers to the caller instead of copying them.
+ *
+ * File reads return whole files; structured-clone would duplicate every byte on the way out.
+ * The returned value is unwrapped by the client, so callers see the plain result.
+ */
+export function transfer<T>(value: T, buffers: Transferable[]): T {
+  return { [TRANSFER_MARKER]: true, value, transfer: buffers } as unknown as T;
+}
+
 export function exposeRpc<M extends RpcMethods>(handlers: HandlerMap<M>): void {
   const registry = handlers as Record<string, Handler<unknown[], unknown>>;
   const scope = self as unknown as {
@@ -115,7 +137,7 @@ export function exposeRpc<M extends RpcMethods>(handlers: HandlerMap<M>): void {
       type: 'message',
       listener: (event: MessageEvent<CallMessage>) => void,
     ) => void;
-    postMessage: (message: ResponseMessage) => void;
+    postMessage: (message: ResponseMessage, transfer?: Transferable[]) => void;
   };
 
   scope.addEventListener('message', (event) => {
@@ -132,7 +154,11 @@ export function exposeRpc<M extends RpcMethods>(handlers: HandlerMap<M>): void {
       try {
         const report = (payload: unknown) => scope.postMessage({ id, kind: 'progress', payload });
         const value = await handler(args, report);
-        scope.postMessage({ id, kind: 'result', value });
+        if (isTransferEnvelope(value)) {
+          scope.postMessage({ id, kind: 'result', value: value.value }, value.transfer);
+        } else {
+          scope.postMessage({ id, kind: 'result', value });
+        }
       } catch (error) {
         scope.postMessage({
           id,

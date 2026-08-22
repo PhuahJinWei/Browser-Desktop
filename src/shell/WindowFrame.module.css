@@ -1,0 +1,189 @@
+.frame {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 200px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-window);
+  overflow: hidden;
+  /* Contain layout and paint so a window's contents can never force the desktop to reflow. */
+  contain: layout paint style;
+}
+
+.frame:focus {
+  outline: none;
+}
+
+.focused {
+  border-color: var(--border-strong);
+  box-shadow:
+    var(--shadow-window),
+    0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+/* While dragging, drop the shadow work and stop hit-testing the contents. */
+.dragging {
+  transition: none;
+  will-change: transform;
+}
+
+.dragging .body {
+  pointer-events: none;
+}
+
+.titleBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 38px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  flex: 0 0 auto;
+}
+
+.dragging .titleBar {
+  cursor: grabbing;
+}
+
+.titleIcon {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.focused .titleIcon {
+  color: var(--accent);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focused .title {
+  color: var(--text-primary);
+}
+
+.controls {
+  display: flex;
+  gap: 2px;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.control:hover {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.close:hover {
+  background: var(--bad);
+  color: #fff;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.body > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Resize handles: wide enough to grab, invisible, outside the content flow. */
+.handle {
+  position: absolute;
+  touch-action: none;
+}
+
+.handle-n,
+.handle-s {
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.handle-n {
+  top: -2px;
+}
+.handle-s {
+  bottom: -2px;
+}
+
+.handle-e,
+.handle-w {
+  top: 8px;
+  bottom: 8px;
+  width: 6px;
+  cursor: ew-resize;
+}
+.handle-e {
+  right: -2px;
+}
+.handle-w {
+  left: -2px;
+}
+
+.handle-ne,
+.handle-nw,
+.handle-se,
+.handle-sw {
+  width: 14px;
+  height: 14px;
+}
+.handle-ne {
+  top: -2px;
+  right: -2px;
+  cursor: nesw-resize;
+}
+.handle-nw {
+  top: -2px;
+  left: -2px;
+  cursor: nwse-resize;
+}
+.handle-se {
+  bottom: -2px;
+  right: -2px;
+  cursor: nwse-resize;
+}
+.handle-sw {
+  bottom: -2px;
+  left: -2px;
+  cursor: nesw-resize;
+}
