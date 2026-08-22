@@ -359,14 +359,23 @@ LLM service plug-in with backends Chrome Prompt API / downloaded small model / s
 
 ## 13. Open decisions (resolve in M0, with data)
 
-1. Exact Tier-0 bundle (embeddings + which ASR/CLIP variant fits ≤ ~80 MB?) — from measured sizes and bandwidth maths.
-2. Embedding storage precision (f32 vs f16) and shard format.
-3. Zustand vs hand-rolled store; Comlink vs hand-rolled RPC; MiniSearch vs own BM25.
-4. Publish from a free GitHub organization for a dedicated origin?
-5. OS name and visual identity.
-6. Safari/Firefox "limited mode" banner wording; whether any feature is gated.
-7. Hashing approach for large files (streamed WASM hasher vs `crypto.subtle`).
-8. Sandboxed-app runner placement (same-origin runner + `blob:` scripts vs second Pages origin) — spike lands in M3.
+Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behind each.
+
+1. **Resolved.** Tier-0 bundle = all-MiniLM-L6-v2 int8 (22.6 MB, from M1) + Whisper tiny int8 (41.6 MB, from M2) = **64.2 MB of the 80 MB budget**, ~1,595 first-time visitors/month. MobileCLIP-S0 (52.1 MB) and CLIP ViT-B/32 (146.5 MB) are Tier 1, on demand. Sizes and SHA-256 digests generated into `models.json`.
+2. **Open.** Embedding precision (f32 vs f16) and shard format — decide with a real index in M1.
+3. **Resolved.** Hand-rolled store (~40 lines over `useSyncExternalStore`) and hand-rolled RPC (~90 lines, progress streaming built in). MiniSearch vs own BM25 still open until M1 has a corpus. See ADR 7.
+4. **Open.** A dedicated origin via a free GitHub organisation. Not blocking; decide before the first public link, since it changes the URL.
+5. **Provisional.** Working name **Tabula** ("a desktop in a tab"), with a placeholder mark. Centralised so renaming is cheap; check name availability before publishing.
+6. **Open.** Limited-mode wording for Safari/Firefox — needs the M1 import UI to exist first.
+7. **Open.** Large-file hashing. Deferred to M1 with the import pipeline; OPFS measured at ~591 MB/s write, so hashing, not I/O, will be the bottleneck.
+8. **Open, as planned.** Sandboxed-app runner placement — spike lands in M3.
+
+### Also settled by M0, having overturned an assumption in this plan
+
+- **Backend choice is per task, not "GPU if available."** Threaded WASM measured ~2.2x faster than WebGPU for small int8 embeddings (6.54 vs 14.43 ms/chunk median). §5.6 assumed WebGPU primary; the code now follows the measurement and the heavier-model defaults are labelled as assumptions until M2 measures them. See ADR 8.
+- **Cross-origin isolation is solved with our own service worker**, not `coi-serviceworker` — one worker must do both isolation and caching, because a second registration at the same scope evicts the first. Verified with no COOP/COEP headers at all. See ADR 2.
+- **The runtime actually fetched is the asyncify ONNX build** (5.4 MB gzipped), not the smaller 3.2 MB one. First AI-using visit ≈ 28 MB.
+- **`frame-ancestors` cannot be enforced** from a `<meta>` CSP; recorded as a known limitation rather than worked around.
 
 ---
 

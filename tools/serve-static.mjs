@@ -42,8 +42,17 @@ const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? '/', `http://localhost:${port}`);
 
   if (!url.pathname.startsWith(base)) {
-    response.writeHead(302, { Location: base });
-    response.end();
+    // Only the site root redirects. Anything else outside the base is a genuine miss and must
+    // 404: silently redirecting an asset to index.html turns a wrong base path into a confusing
+    // "expected a module but got text/html" error instead of an obvious 404.
+    if (url.pathname === '/') {
+      response.writeHead(302, { Location: base });
+      response.end();
+      return;
+    }
+    response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    response.end(`404 ${url.pathname} is outside the base path ${base}.
+Was the build made with VITE_BASE=${base}? Try: npm run build:pages`);
     return;
   }
 

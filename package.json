@@ -23,7 +23,8 @@
     "sync:models": "node tools/fetch-model-registry.mjs",
     "predev": "node tools/sync-runtime.mjs",
     "prebuild": "node tools/sync-runtime.mjs",
-    "serve:pages": "node tools/serve-static.mjs"
+    "serve:pages": "node tools/serve-static.mjs",
+    "build:pages": "node tools/build-pages.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
