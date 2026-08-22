@@ -116,10 +116,15 @@ export class VectorIndex {
   }
 
   /**
-   * Top-k by cosine similarity.
+   * Top-k by cosine similarity, above `minScore`.
    *
    * Keeps a small sorted list of the best hits instead of sorting every score: at k=50 over tens
    * of thousands of rows, sorting the whole array costs more than the scan that produced it.
+   *
+   * `minScore` is an absolute floor, applied to every row. It used to be applied only once the
+   * result list was full, which made it silently inert whenever the index held fewer rows than
+   * the limit — a caller asking for the top 240 of 20 vectors got all 20 back, floor or no floor.
+   * Video search asked for exactly that and got the whole video as one match.
    */
   search(query: Float32Array | number[], limit = 50, minScore = 0): VectorHit[] {
     if (this.count === 0) return [];
@@ -137,6 +142,7 @@ export class VectorIndex {
       const offset = row * this.dimensions;
       let score = 0;
       for (let i = 0; i < this.dimensions; i++) score += this.data[offset + i]! * normalised[i]!;
+      if (score < minScore) continue;
       if (score <= worst && best.length >= limit) continue;
 
       const hit: VectorHit = { id: this.ids[row]!, score };

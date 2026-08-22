@@ -1,5 +1,36 @@
 # Changelog
 
+## [Unreleased] — M4, more senses
+
+Added
+
+- **Video moment search.** Describe something you remember seeing and get the section of the video
+  it is in — a start, an end, and a jump straight to it. Frames are sampled every two seconds and
+  embedded with the same CLIP model Photos uses, so a moment and a photograph live in one index.
+- **Video** app: browse videos, index one on request, play just the matching section, and see how
+  sure the model was and how many frames agree.
+- **Save a frame** as a PNG, or **export the section** as its own video file, both beside the
+  original.
+- **A sample video the desktop records for itself** — eight of the sample pictures, filmed at
+  512×512 over 32 seconds, drawn and encoded on the device with nothing downloaded. You watch it
+  being drawn, then search it.
+
+Verified
+
+- Ten queries against the sample video: seven land exactly on the right scene, one lands inside
+  it, and two queries with no answer in the video correctly return nothing. Timings, scores and
+  the one weak case are in `docs/benchmarks/`.
+- 4.7 s to make 32 seconds of video searchable, of which the model is 4.1 s and decoding is 0.6 s.
+
+Fixed
+
+- **`VectorIndex.search` ignored its `minScore` floor** whenever the index held fewer vectors
+  than the requested limit — it was only consulted once the result list was full. Latent since M1,
+  hidden by the thresholds document and photo search apply afterwards. Now an absolute floor, with
+  tests.
+- The index could be saved before it had been restored, writing an empty snapshot over a good one
+  if a background job finished first. Writes now wait for a restore to have been attempted.
+
 ## [Unreleased] — M3, the app platform
 
 Added

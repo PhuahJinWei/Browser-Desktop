@@ -7,8 +7,9 @@ Windows, files, notes and a task manager, with machine-learning models running o
 hardware as system services — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
-> **Status: M3 — a platform.** The desktop, search, photos and transcription of M1–M2, plus
-> third-party apps running sandboxed with capability-based permissions. See
+> **Status: M4 — more senses.** The desktop, search, photos, transcription and sandboxed
+> third-party apps of M1–M3, plus search _inside_ video: describe a moment and get the section it
+> is in. See
 > [`plan v2.md`](./plan%20v2.md) for the roadmap, [`docs/sdk.md`](./docs/sdk.md) to write an app,
 > and [`docs/benchmarks/`](./docs/benchmarks/) for what has actually been measured.
 
@@ -24,9 +25,12 @@ what they are called. Nothing you open leaves the tab.
    of coffee — from a picture nobody tagged, captioned or named.
 4. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
    the heading, and is searchable seconds later.
-5. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
+5. Open **Video → Sample**. The desktop draws a short film of those same pictures and encodes it,
+   live, in front of you — half a minute, because a canvas recorder runs at wall-clock speed.
+   Index it, type "a red keyboard", and it hands back the four seconds of video containing one.
+6. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
    not among them.
-6. Turn off your network and reload. The desktop still boots and keyword search still works.
+7. Turn off your network and reload. The desktop still boots and keyword search still works.
 
 ## Why this exists
 
@@ -52,6 +56,10 @@ shows the whole request log so you can check all of this rather than take it on 
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                            |
 | **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                               |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                           |
+| **Photos**       | Find pictures by describing them, and find more like one you are looking at. No tags, captions or filenames involved.                                            |
+| **Audio**        | Play, record and transcribe on the device, with chapters and a transcript you can search.                                                                        |
+| **Video**        | Search inside a video by describing what you saw. Jumps to the section, and saves it as a frame or its own clip.                                                 |
+| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                         |
 | **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                  |
 | **Settings**     | Theme, accent, wallpaper, text size, motion, backend override, indexing, and every destructive operation clearly labelled.                                       |
 | **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.     |
@@ -60,14 +68,16 @@ shows the whole request log so you can check all of this rather than take it on 
 
 From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed build:
 
-| Result                                                    | Value                                               |
-| --------------------------------------------------------- | --------------------------------------------------- |
-| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker      |
-| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)  |
-| Hybrid search over the sample corpus                      | **2–5 ms**                                          |
-| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster   |
-| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                   |
-| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand) |
+| Result                                                    | Value                                                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker                         |
+| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)                     |
+| Hybrid search over the sample corpus                      | **2–5 ms**                                                             |
+| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster                      |
+| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                                      |
+| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand)                    |
+| 32 s of video, imported → searchable                      | **4.7 s** (4.1 s of it the model, 0.6 s decoding)                      |
+| Video moment queries returning the right scene            | **8 of 8** (7 of them exactly); the 2 unanswerable ones return nothing |
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark

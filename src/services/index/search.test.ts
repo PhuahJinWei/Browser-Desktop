@@ -168,6 +168,33 @@ describe('VectorIndex', () => {
     expect(index.search([Math.cos(angle), Math.sin(angle), 0, 0], 1)[0]!.id).toBe('id-42');
   });
 
+  it('applies minScore even when the index is smaller than the limit', () => {
+    // The regression: minScore used to be consulted only once the result list was full, so a
+    // caller asking for more hits than the index holds got everything back unfiltered. Video
+    // search asks for 240 hits over a handful of frames, and got the whole video as one match.
+    const index = new VectorIndex(2);
+    index.add('near', [1, 0]);
+    index.add('sideways', [0, 1]);
+    index.add('away', [-1, 0]);
+
+    const hits = index.search([1, 0], 240, 0.5);
+    expect(hits.map((hit) => hit.id)).toEqual(['near']);
+  });
+
+  it('returns nothing when everything is below the floor', () => {
+    const index = new VectorIndex(2);
+    index.add('a', [0, 1]);
+    expect(index.search([1, 0], 10, 0.5)).toEqual([]);
+  });
+
+  it('still returns the top-k when the floor admits everything', () => {
+    const index = new VectorIndex(2);
+    index.add('a', [1, 0]);
+    index.add('b', [0.9, 0.1]);
+    index.add('c', [0.8, 0.2]);
+    expect(index.search([1, 0], 2, 0).map((hit) => hit.id)).toEqual(['a', 'b']);
+  });
+
   it('round-trips through serialisation', () => {
     const index = new VectorIndex(3);
     index.add('a', [1, 0, 0]);

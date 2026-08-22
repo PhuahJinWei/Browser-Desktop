@@ -7,9 +7,15 @@ import { VectorIndex } from './vectors';
  * in a different space. Keeping them apart makes it impossible to compare a CLIP image vector with
  * a MiniLM sentence vector by accident, which would return confident nonsense rather than an
  * error.
+ *
+ * Video moments live here too. A sampled frame is an image as far as CLIP is concerned, so giving
+ * moments their own index would have duplicated the search, the persistence and the lifecycle to
+ * express a distinction the model does not make. A moment simply carries the time it was taken
+ * from and the id of the video it belongs to.
  */
 
 export interface ImageRecord {
+  /** A picture's file id, or `${fileId}@${seconds}` for a video moment. */
   id: string;
   name: string;
   mime: string;
@@ -17,6 +23,10 @@ export interface ImageRecord {
   height: number;
   bytes: number;
   indexedAt: number;
+  /** Seconds into the video this frame came from. Absent for ordinary pictures. */
+  time?: number;
+  /** The video's file id, when this is a moment. */
+  sourceId?: string;
 }
 
 export interface ImageHit {
@@ -26,6 +36,8 @@ export interface ImageHit {
   width: number;
   height: number;
   score: number;
+  time?: number;
+  sourceId?: string;
 }
 
 let vectors = new VectorIndex(512);
@@ -53,6 +65,34 @@ export function getImage(id: string): ImageRecord | undefined {
 
 export function allImages(): ImageRecord[] {
   return [...records.values()].sort((a, b) => b.indexedAt - a.indexedAt);
+}
+
+/** Just the still pictures — what Photos shows. */
+export function stillImages(): ImageRecord[] {
+  return allImages().filter((record) => record.time === undefined);
+}
+
+/** Every sampled moment of one video, in order. */
+export function momentsOf(sourceId: string): ImageRecord[] {
+  return [...records.values()]
+    .filter((record) => record.sourceId === sourceId)
+    .sort((a, b) => (a.time ?? 0) - (b.time ?? 0));
+}
+
+/** Removes every moment belonging to a video — used when it is re-indexed or deleted. */
+export function removeMomentsOf(sourceId: string): number {
+  const doomed = [...records.values()].filter((record) => record.sourceId === sourceId);
+  for (const record of doomed) removeImage(record.id);
+  return doomed.length;
+}
+
+/** How many videos have moments indexed. */
+export function indexedVideoIds(): string[] {
+  return [
+    ...new Set(
+      [...records.values()].flatMap((record) => (record.sourceId ? [record.sourceId] : [])),
+    ),
+  ];
 }
 
 export function addImage(record: ImageRecord, vector: Float32Array): void {
@@ -99,6 +139,8 @@ export function searchImages(
               width: record.width,
               height: record.height,
               score: hit.score,
+              ...(record.time !== undefined ? { time: record.time } : {}),
+              ...(record.sourceId ? { sourceId: record.sourceId } : {}),
             },
           ]
         : [];

@@ -22,6 +22,14 @@ import type { IndexMethods, IndexStats, SearchHit } from './index.worker';
 
 const client: RpcClient<IndexMethods> = createRpcClient<IndexMethods>(new IndexWorker());
 
+/**
+ * The same worker, for the video service.
+ *
+ * Video moments live in the image index, so they must be spoken to over the same connection —
+ * a second worker would hold a second copy of the model and a second, invisible index.
+ */
+export const indexWorker = client;
+
 interface IndexerState {
   stats: IndexStats | null;
   /** Files known to need indexing but not yet done. */
@@ -328,6 +336,11 @@ export async function enableVision(
   } finally {
     store.set((state) => ({ ...state, visionLoading: false }));
   }
+}
+
+/** Whether the image model is loaded — video moments need the same one. */
+export function isVisionEnabled(): boolean {
+  return store.get().visionEnabled;
 }
 
 export async function disableVision(): Promise<void> {

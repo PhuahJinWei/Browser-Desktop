@@ -268,3 +268,89 @@ that. Then a second surprise: in this environment a sandboxed frame loading a re
 still would not execute scripts, while the identical markup as `srcdoc` did — with or without the
 frame's own CSP, and with the service worker's headers removed. Full write-up in
 [ADR 11](../adr/0011-sandbox-delivery.md).
+
+## M4 — video moment search
+
+Reference machine as before. The fixture is the sample video the desktop records for itself:
+eight scenes, four seconds each, 512×512, 32 seconds, 2.9 MB of VP9.
+
+### Cost
+
+Three consecutive re-index runs, wall clock, measured from the app's own progress bar:
+
+|                                                             | run 1  | run 2  | run 3  |
+| ----------------------------------------------------------- | ------ | ------ | ------ |
+| Sampling 16 frames (seek + draw + WebP encode), main thread | 639 ms | 637 ms | 623 ms |
+| Thumbnails + embedding 16 frames (CLIP ViT-B/32, WebGPU)    | 4075   | 4105   | 4152   |
+| **Whole video, imported → searchable**                      | 4714   | 4742   | 4774   |
+
+So about **40 ms per frame to sample and 257 ms to embed** — 4.7 s to make 32 seconds of video
+searchable, and the model, not the seeking, is the cost. That is the opposite of what the design
+assumed: `<video>` seeking was chosen over WebCodecs expecting to pay for it, and at one frame
+every two seconds the bill never arrives.
+
+|                        |                                             |
+| ---------------------- | ------------------------------------------- |
+| Query, warm model      | **244–318 ms** across ten queries           |
+| Index growth           | 16 vectors × 512 × 4 B = **32 KB**          |
+| Frame thumbnails kept  | 3.5 KB average (1.9–5.3 KB), 336×336 WebP   |
+| Sample video itself    | 2.9 MB for 32 s, VP9, 512×512               |
+| Clip export, 4 seconds | **4 s** — real time, by definition — 468 KB |
+
+### Retrieval
+
+Every query typed into the app, against the 16 indexed frames. "Expected" is the scene's real
+position in the video; the app returns a padded range around the frames that matched.
+
+| Query                             | Returned    | Best frame | Correct?                     |
+| --------------------------------- | ----------- | ---------- | ---------------------------- |
+| a red keyboard                    | 0:12 – 0:16 | 0.32       | ✔ exactly the scene          |
+| a cup of coffee                   | 0:20 – 0:24 | 0.30       | ✔ exactly the scene          |
+| a path through trees              | 0:24 – 0:28 | 0.30       | ✔ exactly the scene          |
+| mountains reflected in a lake     | 0:08 – 0:12 | 0.30       | ✔ exactly the scene          |
+| a tropical beach with a palm tree | 0:28 – 0:32 | 0.31       | ✔ (plus the sunset, at 0.30) |
+| the night sky                     | 0:02 – 0:08 | 0.28       | ✔ one frame wide of the cut  |
+| a sunset over the ocean           | 0:02 – 0:04 | 0.30       | ✔ inside the scene           |
+| a bar chart                       | 0:12 – 0:20 | 0.27       | ~ contains it, 4 frames wide |
+| a submarine                       | _nothing_   | —          | ✔ correctly nothing          |
+| a person riding a horse           | _nothing_   | —          | ✔ correctly nothing          |
+
+The bar chart is the honest weak case, and it is weak in the still pictures too: against the
+sample photographs, "a bar chart" scores the chart at 0.27 and the keyboard at 0.26 — a one-point
+margin, because a drawn chart is mostly coloured rectangles and so is a drawn keyboard. Every
+other query has a five-to-nine point margin.
+
+### Where the score floor came from
+
+Measured on the still pictures, where the right answer is known:
+
+| Query                     | Correct picture | Best wrong picture |
+| ------------------------- | --------------- | ------------------ |
+| a red keyboard            | 0.32            | 0.23               |
+| a sunset over the ocean   | 0.29            | 0.24               |
+| a bar chart               | 0.27            | 0.26               |
+| a submarine (not present) | —               | 0.23               |
+
+So the floor goes at **0.25**: under every true answer even after a video's re-encoding costs it a
+point, over what a query with no answer can reach. Without it, every query returned every frame of
+every video, ranked by noise, and the whole video came back as one 0:00–end "moment".
+
+### Three things that were wrong, and how they showed up
+
+**The floor was not being applied at all.** `VectorIndex.search(query, limit, minScore)` consulted
+`minScore` only once its result list was full. Video search asks for 240 hits over a handful of
+frames, so the list never filled and every frame came back regardless of score. It had been latent
+since M1: document and photo search apply their own thresholds afterwards, which hid it. Now an
+absolute floor, with three tests.
+
+**Widescreen frames lost their subject.** CLIP's processor resizes the shortest edge to 224 and
+centre-crops, so a 16:9 frame loses about 44% of its width before the model sees it. A keyboard
+spanning the frame was cropped into an unrecognisable red band; a cat's face in the middle of an
+unrelated scene survived intact and won. Frames are now letterboxed into a square, which makes the
+crop a no-op.
+
+**The fixture was the weakest part.** The first sample video used eight scenes drawn for it, and
+the model ranked them at random — "a red keyboard" gave the hand-drawn keyboard 0.21 and a cat
+0.24. The same query against the sample _photographs_ gives 0.32 and 0.23. The video is now made
+of those pictures, so a video moment and a photograph are directly comparable rather than the
+video being tested against a worse set of drawings.

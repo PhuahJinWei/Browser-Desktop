@@ -8,15 +8,18 @@ import { VectorIndex } from './vectors';
 import { idb, openDatabase, transact } from '../../kernel/idb';
 import {
   addImage,
-  allImages,
   clearImages,
   hasImage,
   imageBytes,
   imageCount,
+  indexedVideoIds,
+  momentsOf,
   removeImage,
+  removeMomentsOf,
   restoreImages,
   searchImages as searchImageIndex,
   serializeImages,
+  stillImages,
   similarTo,
   type ImageHit,
   type ImageSnapshot,
@@ -29,6 +32,7 @@ import {
   unloadVision,
   visionRuntime,
 } from './vision';
+import { groupMoments, momentId, type Moment } from './moments';
 
 /**
  * The search service.
@@ -236,7 +240,17 @@ interface Snapshot {
   imageSnapshot?: ImageSnapshot;
 }
 
+/**
+ * Whether {@link restore} has run.
+ *
+ * Saving before restoring would write an empty index over a good snapshot — the whole session's
+ * work lost to a background job that happened to finish first. Every write checks this.
+ */
+let restoreAttempted = false;
+
 async function persist(): Promise<void> {
+  if (!restoreAttempted) return;
+
   const serialized = vectors.serialize();
   const snapshot: Snapshot = {
     key: 'current',
@@ -260,6 +274,7 @@ async function persist(): Promise<void> {
  * the user is trying to search.
  */
 async function restore(): Promise<boolean> {
+  restoreAttempted = true;
   const db = await database();
   const snapshot = await transact(db, 'index', 'readonly', (tx) =>
     idb.get<Snapshot>(tx.objectStore('index'), 'current'),
@@ -328,8 +343,48 @@ export type IndexMethods = {
   searchImages: (options: { query: string; limit?: number }) => ImageHit[];
   similarImages: (options: { id: string; limit?: number }) => ImageHit[];
   indexedImageIds: () => string[];
+
+  /** Video moments. Same model, same index — a frame is an image. */
+  indexMoments: (input: {
+    sourceId: string;
+    name: string;
+    mime: string;
+    duration: number;
+    frames: { time: number; data: ArrayBuffer }[];
+  }) => { indexed: number; total: number };
+  searchMoments: (options: { query: string; limit?: number; sourceId?: string }) => Moment[];
+  momentTimes: (sourceId: string) => number[];
+  forgetVideo: (sourceId: string) => number;
+  indexedVideoIds: () => string[];
   indexedDocumentIds: () => string[];
 };
+
+/**
+ * How similar a frame must be to the query before it counts as a match at all.
+ *
+ * Measured against the eight sample scenes, not guessed:
+ *
+ * | query                     | correct scene | best wrong scene |
+ * | ------------------------- | ------------- | ---------------- |
+ * | a red keyboard            | 0.32          | 0.23             |
+ * | a sunset over the ocean   | 0.29          | 0.24             |
+ * | a bar chart               | 0.27          | 0.26             |
+ * | a submarine (not present) | —             | 0.23             |
+ *
+ * So the weakest true answer is 0.27 and the strongest wrong one is 0.26 — the bands nearly touch,
+ * and "a bar chart" is the hard case because a drawn chart is mostly coloured rectangles. The
+ * floor goes at 0.25: below every true answer even after a video's re-encoding costs it a point
+ * or two, and above what a query with no answer in the video can reach. Without any floor the
+ * search returned every frame of every video ranked by noise, which is what it did before this
+ * constant existed.
+ */
+const MOMENT_FLOOR = 0.25;
+
+/**
+ * A second net, in case a whole video sits above the floor. Keeps moments close to the best one,
+ * so a query matching two scenes returns both, and one matching a single scene returns one.
+ */
+const MOMENT_RELATIVE = 0.9;
 
 function currentStats(): IndexStats {
   let chunks = 0;
@@ -568,7 +623,12 @@ exposeRpc<IndexMethods>({
     if (!query || imageCount() === 0 || !visionRuntime().ready) return [];
     const [vector] = await embedPhrases([query]);
     if (!vector) return [];
-    return searchImageIndex(vector, options.limit ?? 40);
+    const limit = options.limit ?? 40;
+    // Over-fetch and then drop video frames: Photos is asking about pictures, and a video with
+    // 200 indexed moments would otherwise crowd out every photograph in the index.
+    return searchImageIndex(vector, limit * 3)
+      .filter((hit) => hit.time === undefined)
+      .slice(0, limit);
   },
 
   similarImages: async ([options]) => {
@@ -577,7 +637,73 @@ exposeRpc<IndexMethods>({
     return similarTo(options.id, options.limit ?? 24);
   },
 
-  indexedImageIds: async () => allImages().map((image) => image.id),
+  indexedImageIds: async () => stillImages().map((image) => image.id),
+
+  /* Video moments -------------------------------------------------------------------------- */
+
+  /**
+   * Indexes a batch of sampled frames as moments of one video.
+   *
+   * Frames arrive already decoded and downscaled from the main thread, because <video> is a DOM
+   * element and cannot be opened here. Existing moments for the video are dropped first, so
+   * re-indexing after a re-sample replaces rather than accumulates.
+   */
+  indexMoments: async ([input], report) => {
+    if (!visionRuntime().ready) return { indexed: 0, total: input.frames.length };
+
+    removeMomentsOf(input.sourceId);
+
+    let indexed = 0;
+    for (const [position, frame] of input.frames.entries()) {
+      try {
+        const vector = await embedImage(frame.data, 'image/webp');
+        addImage(
+          {
+            id: momentId(input.sourceId, frame.time),
+            name: input.name,
+            mime: input.mime,
+            width: 0,
+            height: 0,
+            bytes: frame.data.byteLength,
+            indexedAt: Date.now(),
+            time: frame.time,
+            sourceId: input.sourceId,
+          },
+          vector,
+        );
+        indexed += 1;
+      } catch {
+        // One unreadable frame is not a reason to abandon the video.
+      }
+      report({ done: position + 1, total: input.frames.length });
+    }
+
+    return { indexed, total: input.frames.length };
+  },
+
+  searchMoments: async ([options]) => {
+    const query = options.query.trim();
+    if (!query || imageCount() === 0 || !visionRuntime().ready) return [];
+    const [vector] = await embedPhrases([query]);
+    if (!vector) return [];
+
+    const limit = options.limit ?? 12;
+    // Frames within a shot score alike, so a moment costs several hits. Ask for many, group them,
+    // then take the best few moments — the limit is in moments, which is what was requested.
+    const hits = searchImageIndex(vector, limit * 20, undefined, MOMENT_FLOOR)
+      .filter((hit) => hit.time !== undefined)
+      .filter((hit) => !options.sourceId || hit.sourceId === options.sourceId);
+
+    const moments = groupMoments(hits);
+    const best = moments[0]?.score ?? 0;
+    return moments.filter((moment) => moment.score >= best * MOMENT_RELATIVE).slice(0, limit);
+  },
+
+  momentTimes: async ([sourceId]) => momentsOf(sourceId).map((record) => record.time ?? 0),
+
+  forgetVideo: async ([sourceId]) => removeMomentsOf(sourceId),
+
+  indexedVideoIds: async () => indexedVideoIds(),
 
   indexedDocumentIds: async () => [...documents.keys()],
 });

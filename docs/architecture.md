@@ -132,3 +132,36 @@ browser's record includes the ones we did not.
 CLIP-family image embeddings and Whisper transcription, which turn Photos and Audio into real
 apps. Both plug into the existing model registry, job scheduler and index rather than needing new
 machinery — which was the point of building those first.
+
+## What M3 adds
+
+An app platform. Third-party code runs in an iframe with `sandbox="allow-scripts"` and no
+`allow-same-origin`, so its origin is opaque: no storage, no cookies, no reach into the host page,
+and `connect-src 'none'` for no network. Everything it can do passes through `src/kernel/appHost.ts`,
+which checks both that the manifest declared the capability and that the user has granted it, and
+scopes file access to the app's own folder plus the one file it was opened with. See
+[`docs/sdk.md`](./sdk.md) and [ADR 11](./adr/0011-sandbox-delivery.md).
+
+## What M4 adds
+
+Search inside video, which needed no new index and no new model.
+
+The split is the one the platform forces. `<video>` is a DOM element, so `src/services/video/frames.ts`
+runs on the main thread: it seeks the element to a timestamp every two seconds, draws to a canvas
+letterboxed into a square, and emits a few kilobytes of WebP. Those buffers are _transferred_ to
+the index worker, where the CLIP model already lives, so the expensive part never touches the main
+thread.
+
+A sampled frame is stored as an ordinary image record that additionally carries the time it came
+from and the id of its video. That is the whole of the data model: a video moment and a photograph
+are the same kind of thing in the same vector space, so persistence, model lifecycle and search
+were already written. What is new is `src/services/index/moments.ts`, which turns a run of
+consecutive matching frames into one moment with a start, an end, and its best frame — because six
+near-identical frames of one shot is a worse answer than one section with boundaries, and because
+a section with boundaries is the thing that can be exported.
+
+Two numbers shape the design. Sampling a frame costs 40 ms and embedding it costs 257 ms, so the
+decoder is not worth optimising and the model is; and a matching frame scores 0.27–0.32 while a
+query with no answer tops out at 0.24, so there is an absolute floor at 0.25 below which nothing
+is returned at all. Both are measured, in [`docs/benchmarks/`](./benchmarks/), and the reasoning
+is in [ADR 12](./adr/0012-video-moments.md).

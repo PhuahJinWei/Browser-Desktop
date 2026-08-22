@@ -11,15 +11,21 @@
  * honest test is still to drag in your own pictures, which is one of the things Files is for.
  */
 
+/**
+ * Either canvas context works: these are drawn to an OffscreenCanvas for the sample pictures and
+ * to an on-screen canvas for the sample video, and the drawing calls used are common to both.
+ */
+export type SampleCanvasContext = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+
 export interface DrawnImage {
   name: string;
   /** What it depicts, so the demo can suggest a query that should find it. */
   subject: string;
-  draw: (context: OffscreenCanvasRenderingContext2D, size: number) => void;
+  draw: (context: SampleCanvasContext, size: number) => void;
 }
 
 function sky(
-  context: OffscreenCanvasRenderingContext2D,
+  context: SampleCanvasContext,
   size: number,
   stops: [number, string][],
 ): void {

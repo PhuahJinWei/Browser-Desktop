@@ -259,6 +259,15 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 
 Video moment search (WebCodecs frame sampling → CLIP index → clip export via WebCodecs encode/remux; fallback: export frame range); OCR (tesseract.js) for scanned PDFs/images; Photos tools (background removal, auto-tags, near-duplicate finder); translation (opus-mt or Chrome Translator API); read-aloud (Kokoro); WebNN experimental backend + benchmark; WebGPU compute-shader vector search (depth pocket). Each behind consented downloads with its own DoD.
 
+**Picked, and delivered:** video moment search. Two departures from the sketch above, both for stated reasons:
+
+- **`<video>` seeking rather than WebCodecs.** WebCodecs decodes encoded chunks but does not demux, so MP4/WebM would need a container parser shipped alongside. Measured, seeking is not the bottleneck anyway: 40 ms to sample a frame against 257 ms to embed it. [ADR 12](./docs/adr/0012-video-moments.md).
+- **Clip export re-encodes in real time** (play the section, record the element's stream) rather than remuxing. A lossless cut needs a muxer per container; re-encoding starts the clip exactly where asked rather than at the nearest keyframe.
+
+Moments live in the existing CLIP image index rather than a third index — a frame is an image, and the model does not distinguish them. The sample video is recorded by the desktop itself from the sample pictures, which satisfies the "20–40 s self-made video featuring the red keyboard" in Appendix A without adding bytes to the repository.
+
+Still in the pool, unpicked: OCR, Photos tools, translation, read-aloud, WebNN, WebGPU vector search.
+
 ### M5 — Optional intelligence (only after M1–M3 DoD are met; ~4+ FTE-weeks)
 
 LLM service plug-in with backends Chrome Prompt API / downloaded small model / sideloaded; Assistant: conversational search (RAG over the index with citations to files/offsets), summaries; tool-calling agent across apps using manifests (read-only tools auto-run; mutating tools confirm; file content untrusted); app generation via template + patch with an auto-test loop (render in hidden sandbox, capture errors, retry) and a pre-generated gallery for the demo.

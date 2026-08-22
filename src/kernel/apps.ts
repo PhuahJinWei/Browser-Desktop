@@ -84,6 +84,17 @@ export const APPS: AppDefinition[] = [
     openPriority: 5,
   },
   {
+    id: 'video',
+    name: 'Video',
+    icon: 'video',
+    description: 'Find the moment inside a video by describing it',
+    component: lazy(() => import('../apps/video/VideoApp')),
+    defaultSize: { width: 1000, height: 700 },
+    singleton: true,
+    opens: (node) => node.mime.startsWith('video/'),
+    openPriority: 5,
+  },
+  {
     id: 'viewer',
     name: 'Viewer',
     icon: 'file-text',
