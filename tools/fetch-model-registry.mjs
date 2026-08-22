@@ -122,6 +122,33 @@ const SPEC = [
     notes: 'The photo search model. MIT licensed, fully specified config, and correct ranking in testing.',
     milestone: 'M2',
   },
+  {
+    id: 'ocr-trocr-small-printed',
+    task: 'ocr',
+    label: 'TrOCR small, printed (int8)',
+    repo: 'Xenova/trocr-small-printed',
+    revision: 'main',
+    tier: 'on-demand',
+    minTier: 'B',
+    license: 'MIT',
+    licenseUrl: 'https://huggingface.co/microsoft/trocr-small-printed',
+    dtype: 'q8',
+    files: [
+      'onnx/encoder_model_quantized.onnx',
+      'onnx/decoder_model_merged_quantized.onnx',
+      'config.json',
+      'generation_config.json',
+      'preprocessor_config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'special_tokens_map.json',
+      'sentencepiece.bpe.model',
+    ],
+    meta: { imageSize: 384, language: 'en' },
+    notes:
+      'Reads one line of printed text at a time, so the desktop finds the lines itself. Chosen over tesseract.js because it needs no new dependency, no binary in the repository and no third host: it is a model like the others, downloaded with consent and verified against a digest.',
+    milestone: 'M4',
+  },
 ];
 
 const api = (repo, path) =>

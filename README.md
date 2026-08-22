@@ -55,7 +55,7 @@ shows the whole request log so you can check all of this rather than take it on 
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten. |
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                            |
 | **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                               |
-| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                           |
+| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it, and reads printed text out of a picture.                                  |
 | **Photos**       | Find pictures by describing them, find more like one you are looking at, and find the copies you did not know you had. No tags or filenames involved.            |
 | **Audio**        | Play, record and transcribe on the device, with chapters and a transcript you can search.                                                                        |
 | **Video**        | Search inside a video by describing what you saw. Jumps to the section, and saves it as a frame or its own clip.                                                 |
@@ -79,6 +79,8 @@ From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed b
 | 32 s of video, imported → searchable                      | **4.7 s** (4.1 s of it the model, 0.6 s decoding)                      |
 | Video moment queries returning the right scene            | **8 of 8** (7 of them exactly); the 2 unanswerable ones return nothing |
 | Near-duplicate scan over 5,000 pictures                   | **830 ms** — an exact bound skips 99.6% of the comparisons             |
+| Reading the sample scanned page                           | **3.1 s**, 10 of 10 lines, **0 character errors** in 270               |
+| Text recognition: threaded WASM vs WebGPU                 | **3.1 vs 18.4 s** — the CPU is 6× faster, and more accurate            |
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark

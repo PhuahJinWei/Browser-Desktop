@@ -324,7 +324,11 @@ export async function probeCapabilities(): Promise<Capabilities> {
 }
 
 export type InferenceTask =
-  'text-embedding' | 'image-text-embedding' | 'speech-recognition' | 'generation';
+  | 'text-embedding'
+  | 'image-text-embedding'
+  | 'speech-recognition'
+  | 'text-recognition'
+  | 'generation';
 
 /**
  * Which backend to schedule a task on.
@@ -337,6 +341,13 @@ export type InferenceTask =
  * So: small text embeddings prefer threaded WASM; the heavier models (vision towers, Whisper,
  * any generation) still prefer the GPU, and those numbers get measured in M2 rather than assumed.
  * See docs/benchmarks/.
+ *
+ * M4 added text recognition, and it went the same way as the embeddings for the same reason. TrOCR
+ * is a vision encoder — GPU-shaped work — followed by an autoregressive decoder emitting a dozen
+ * tokens per line, which is a dozen tiny sequential dispatches where the launch cost is the whole
+ * cost. Measured over the same ten-line page: **3.1 s on threaded WASM against 18.4 s on WebGPU**,
+ * six times faster. It was also more accurate — the WebGPU run misread a word the WASM run got
+ * right, every time — so the choice is not even a trade.
  */
 export function preferredBackend(
   caps: Capabilities,
@@ -345,6 +356,6 @@ export function preferredBackend(
   const gpu = caps.gpu.available && !caps.gpu.fallbackAdapter;
   const threadedWasm = caps.wasm.simd && caps.wasm.threads && caps.crossOriginIsolated;
 
-  if (task === 'text-embedding' && threadedWasm) return 'wasm';
+  if ((task === 'text-embedding' || task === 'text-recognition') && threadedWasm) return 'wasm';
   return gpu ? 'webgpu' : 'wasm';
 }

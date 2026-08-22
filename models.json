@@ -244,6 +244,77 @@
         "imageSize": 224
       },
       "notes": "The photo search model. MIT licensed, fully specified config, and correct ranking in testing."
+    },
+    {
+      "id": "ocr-trocr-small-printed",
+      "task": "ocr",
+      "label": "TrOCR small, printed (int8)",
+      "tier": "on-demand",
+      "minHardwareTier": "B",
+      "milestone": "M4",
+      "source": {
+        "host": "huggingface.co",
+        "repo": "Xenova/trocr-small-printed",
+        "revision": "main"
+      },
+      "dtype": "q8",
+      "license": {
+        "name": "MIT",
+        "url": "https://huggingface.co/microsoft/trocr-small-printed"
+      },
+      "totalBytes": 69467484,
+      "files": [
+        {
+          "path": "onnx/encoder_model_quantized.onnx",
+          "bytes": 23082940,
+          "sha256": "860ea3477531f21904fdc6060872ecc4ea3e51714f3fa6a859f998f35941350b"
+        },
+        {
+          "path": "onnx/decoder_model_merged_quantized.onnx",
+          "bytes": 40527613,
+          "sha256": "f05fa0cb7db72c5c751c0d15a2dc53a61a43376b4af3567a85f0ed72280bcc2f"
+        },
+        {
+          "path": "config.json",
+          "bytes": 4511,
+          "sha256": "b36468b138f10b13bb220468753006805a2dcfe0457eaae795e107581fc1903a"
+        },
+        {
+          "path": "generation_config.json",
+          "bytes": 185,
+          "sha256": "cce308da91e0d656e07404c70d4b9c9f5839d426f679eff6fda6dcc0e727e3b6"
+        },
+        {
+          "path": "preprocessor_config.json",
+          "bytes": 465,
+          "sha256": "70da3434c33eedb3b56caf4067851741dfeed02f67576dcc3c6407c2533bfaf0"
+        },
+        {
+          "path": "tokenizer.json",
+          "bytes": 4494727,
+          "sha256": "68bcb5468c854362a615f3d2ff6a5e4091a85f4c8198993ed9a30afe0b143737"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "bytes": 471,
+          "sha256": "ce50304582ca15b925982e96dfe56548ddbaba89b584e73176d6bb3a5a0b4713"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "bytes": 279,
+          "sha256": "d5469a60db23249c7f8945013d78df30b44b6bf686c6bb4740f4223f77b1b535"
+        },
+        {
+          "path": "sentencepiece.bpe.model",
+          "bytes": 1356293,
+          "sha256": "6f5e2fefcf793761a76a6bfb8ad35489f9c203b25557673284b6d032f41043f4"
+        }
+      ],
+      "meta": {
+        "imageSize": 384,
+        "language": "en"
+      },
+      "notes": "Reads one line of printed text at a time, so the desktop finds the lines itself. Chosen over tesseract.js because it needs no new dependency, no binary in the repository and no third host: it is a model like the others, downloaded with consent and verified against a digest."
     }
   ]
 }

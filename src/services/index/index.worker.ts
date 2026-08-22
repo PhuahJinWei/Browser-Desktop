@@ -322,6 +322,11 @@ export type IndexMethods = {
     chunks: number;
     skipped?: string;
   };
+  /** Indexes text the caller extracted itself — the route OCR takes. */
+  indexText: (input: { id: string; name: string; mime: string; text: string }) => {
+    chunks: number;
+    skipped?: string;
+  };
   removeDocument: (id: string) => boolean;
   search: (options: { query: string; limit?: number }) => SearchHit[];
   stats: () => IndexStats;
@@ -411,6 +416,53 @@ function currentStats(): IndexStats {
   };
 }
 
+/**
+ * The shared tail of indexing: chunk, embed, store.
+ *
+ * Two callers reach it — a file whose text was extracted from its own bytes, and a scanned page
+ * whose text came from a model reading pixels. From here on they are the same document, which is
+ * why Search cannot tell them apart and does not need to.
+ */
+async function indexPlainText(
+  input: { id: string; name: string; mime: string },
+  text: string,
+  report: (payload: unknown) => void,
+): Promise<{ chunks: number; skipped?: string }> {
+  const chunks = chunkText(text);
+  if (chunks.length === 0) return { chunks: 0, skipped: 'no content after chunking' };
+
+  // Replace any previous version of this file before adding the new one.
+  const previous = documents.get(input.id);
+  if (previous) {
+    previous.chunks.forEach((_, index) => {
+      const key = chunkKey(input.id, index);
+      vectors.remove(key);
+      keywords.remove(key);
+    });
+  }
+
+  const embeddings = await embed(
+    chunks.map((chunk) => chunk.text),
+    report,
+  );
+
+  chunks.forEach((chunk, index) => {
+    const key = chunkKey(input.id, index);
+    vectors.add(key, embeddings[index]!);
+    keywords.add(key, tokenize(chunk.text));
+  });
+
+  documents.set(input.id, {
+    id: input.id,
+    name: input.name,
+    mime: input.mime,
+    chunks: chunks.map((chunk) => ({ text: chunk.text, start: chunk.start, end: chunk.end })),
+    indexedAt: Date.now(),
+  });
+
+  return { chunks: chunks.length };
+}
+
 exposeRpc<IndexMethods>({
   configure: async ([options]) => {
     if (options.backend !== backend || (options.model && options.model !== modelId)) {
@@ -446,46 +498,30 @@ exposeRpc<IndexMethods>({
 
   indexDocument: async ([input], report) => {
     const { text } = await extractText(input.data, input.mime, input.name);
-    // A file with no extractable text is not a failure — a scanned PDF simply needs the OCR
-    // that arrives in M4. Recording it as skipped keeps it out of the retry queue.
+    // A file with no extractable text is not a failure — a scanned page has none to extract, and
+    // needs OCR to produce some, which arrives here later through indexText. Recording it as
+    // skipped keeps it out of the retry queue.
     if (text.trim().length < 20) {
       documents.delete(input.id);
       return { chunks: 0, skipped: 'no extractable text' };
     }
 
-    const chunks = chunkText(text);
-    if (chunks.length === 0) return { chunks: 0, skipped: 'no content after chunking' };
+    return indexPlainText(input, text, report);
+  },
 
-    // Replace any previous version of this file before adding the new one.
-    const previous = documents.get(input.id);
-    if (previous) {
-      previous.chunks.forEach((_, index) => {
-        const key = chunkKey(input.id, index);
-        vectors.remove(key);
-        keywords.remove(key);
-      });
+  /**
+   * Indexes text the caller extracted itself.
+   *
+   * The route for OCR: a scanned page has no text layer to extract, so the words come from a model
+   * looking at pixels instead. Once they exist they are an ordinary document — same chunking, same
+   * embeddings, same snippets — and Search cannot tell the difference, which is the point.
+   */
+  indexText: async ([input], report) => {
+    if (input.text.trim().length < 12) {
+      documents.delete(input.id);
+      return { chunks: 0, skipped: 'not enough text' };
     }
-
-    const embeddings = await embed(
-      chunks.map((chunk) => chunk.text),
-      report,
-    );
-
-    chunks.forEach((chunk, index) => {
-      const key = chunkKey(input.id, index);
-      vectors.add(key, embeddings[index]!);
-      keywords.add(key, tokenize(chunk.text));
-    });
-
-    documents.set(input.id, {
-      id: input.id,
-      name: input.name,
-      mime: input.mime,
-      chunks: chunks.map((chunk) => ({ text: chunk.text, start: chunk.start, end: chunk.end })),
-      indexedAt: Date.now(),
-    });
-
-    return { chunks: chunks.length };
+    return indexPlainText(input, input.text, report);
   },
 
   removeDocument: async ([id]) => {

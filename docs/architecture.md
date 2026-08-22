@@ -177,3 +177,25 @@ into sets with union-find, so five copies are one row rather than ten pairs.
 
 It remains quadratic, and the honest limit is around twenty thousand pictures. Past that the
 answer is a blocking index rather than a better constant.
+
+## Reading text out of pictures
+
+The last thing M4 adds is OCR, and it is a model rather than a library on purpose: the desktop
+already has consent, integrity checking, caching, a Task Manager entry and an unload path for
+models, and none of that would have applied to a bundled OCR engine's own assets. See
+[ADR 13](./adr/0013-ocr.md).
+
+TrOCR reads one _line_, not a page, so `src/services/ocr/segment.ts` does the layout: Otsu
+binarisation, ink counted per row, and text lines read off the projection profile. It handles dark
+text on a light ground, upright, one column — and refuses anything that does not look like a page
+rather than spending a model pass on each band of texture in a photograph.
+
+What the model returns goes into the ordinary document index through `indexText`, which shares
+every step after extraction with `indexDocument`. From there a scanned page is a document: same
+chunks, same embeddings, same snippets, ranked beside the notes and the PDFs. Search has no idea
+the words came from pixels, which is the point.
+
+The backend surprised the plan for the second time. Recognition runs on **threaded WASM**, not the
+GPU: 3.1 s against 18.4 s for the same page, and with fewer mistakes. A dozen sequential decoder
+steps per line cost more to dispatch than to compute — the same finding M0 made about small text
+embeddings, in a place nobody expected it.

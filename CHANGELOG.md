@@ -17,6 +17,10 @@ Added
 - **Near-duplicate finder** in Photos. Groups pictures that are the same picture — a re-save, a
   crop, a frame exported from a video — and offers to keep the first and trash the rest together.
   Two deliberate copies now ship in the sample set so there is something to find.
+- **Reading text out of pictures.** A scanned page had no text to extract and so could not be
+  searched; now a recognition model reads it on the device and the words go into the ordinary
+  document index, where they turn up in Search with a snippet like any other file. Available from
+  both Photos and the Viewer, and a sample scanned delivery note ships so there is a page to read.
 
 Verified
 
@@ -28,6 +32,16 @@ Verified
   the sample set exceed 0.79, so the 0.92 threshold sits in an empty band. The all-pairs scan
   skips 99.6% of full comparisons using an exact bound — 6.1× faster over 5,000 vectors, with
   identical results.
+- The sample scanned page reads with **no character errors at all** (0 of 270, case-insensitive),
+  all ten lines found and all ten read exactly, in 3.1 seconds.
+
+Changed
+
+- **Text recognition runs on the CPU, not the GPU**, because that is what the measurement said:
+  3.1 s against 18.4 s for the same page, and more accurate with it. TrOCR's decoder emits about a
+  dozen tokens per line, and a dozen tiny sequential dispatches cost more to launch than to
+  compute. `preferredBackend` now puts `text-recognition` alongside `text-embedding` on the
+  WASM side — two of five inference tasks in this project, both found by measuring.
 
 Fixed
 

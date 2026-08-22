@@ -415,3 +415,59 @@ with the wrong picture, at 99%, and the pairing was correct: the file really was
 were never invalidated, so re-exporting a frame over an earlier one showed the old image for the
 rest of the session — while the index, correctly, had already re-read the new one. The two
 disagreed, which is how it was noticed.
+
+## M4 — reading text out of pictures
+
+The fixture is the sample scanned page the desktop renders for itself: a ten-line delivery note on
+an off-white ground with speckle and uneven exposure, 900×1180, no rotation. Its exact wording is
+in `src/shell/sampleScan.ts`, so accuracy is computed rather than judged.
+
+### Accuracy
+
+|                                    |                          |
+| ---------------------------------- | ------------------------ |
+| Lines found by the segmenter       | **10 of 10**             |
+| Lines read exactly (ignoring case) | **10 of 10**             |
+| Character errors, case-insensitive | **0 of 270** — 0.00% CER |
+
+Case-sensitively the same output scores 186 errors, because `trocr-small-printed` was trained on
+receipts and emits upper case whatever the page looks like. That is the model's nature rather than
+a defect; search is case-insensitive, so nothing downstream cares.
+
+### Backend — the plan's rule of thumb was wrong again
+
+Same page, same model, same ten lines:
+
+| Backend       | Run 1  | Run 2  | Run 3  | Character errors |
+| ------------- | ------ | ------ | ------ | ---------------- |
+| WebGPU        | 21.6 s | 18.4 s | —      | 2 of 270         |
+| Threaded WASM | 3.27 s | 3.06 s | 3.05 s | **0 of 270**     |
+
+**Six times faster on the CPU, and more accurate with it.** The WebGPU run misread "consignment" as
+"consisement" on every attempt; the WASM run never did.
+
+The reason is the one M0 found for small text embeddings, in a new place. TrOCR is a vision encoder
+— genuinely GPU-shaped — followed by an autoregressive decoder emitting about a dozen tokens per
+line. Those dozen steps are tiny and strictly sequential, so the cost is dispatch, not arithmetic,
+and 3.1 s for ten lines is **305 ms per line** on four SIMD threads.
+
+So `preferredBackend` now returns WASM for `text-recognition` as well as `text-embedding`. Two of
+the five inference tasks in this project prefer the CPU, both discovered by measuring rather than
+by reasoning about which hardware "should" be faster.
+
+### Cost
+
+|                                 |                                          |
+| ------------------------------- | ---------------------------------------- |
+| Model download, once, consented | **66 MB** (encoder 22 MB, decoder 40 MB) |
+| Segmentation, 900×1180 page     | under 40 ms, main thread never touched   |
+| Reading, per line               | **305 ms**                               |
+| A ten-line page, end to end     | **3.1 s**, then searchable               |
+
+### What it will not do
+
+The line finder is a projection profile: it assumes dark text on a light ground, upright, in one
+column. It does not deskew, dewarp or find columns, so a rotated scan or a photograph of a sign is
+outside it. `looksLikeText` refuses those rather than spending a model pass per band of texture,
+and the refusal is shown with an override, because a heuristic that cannot be argued with is worse
+than one that can.

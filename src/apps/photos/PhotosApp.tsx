@@ -15,6 +15,7 @@ import {
   type ImageHit,
 } from '../../services/index/client';
 import { thumbnailUrl } from '../../services/index/thumbnails';
+import { readImage, useOcrState, type OcrResult } from '../../services/ocr/client';
 import { Icon } from '../../shell/Icon';
 import styles from './PhotosApp.module.css';
 
@@ -47,6 +48,8 @@ export default function PhotosApp({ args }: AppProps) {
   const [searching, setSearching] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [groups, setGroups] = useState<DuplicateGroup[] | null>(null);
+  const [text, setText] = useState<OcrResult | null>(null);
+  const ocr = useOcrState();
   const indexer = useIndexerState();
   const stats = useIndexStats();
 
@@ -129,6 +132,8 @@ export default function PhotosApp({ args }: AppProps) {
   }, [mode, hits, photos]);
 
   const selectedNode = photos.find((node) => node.id === selected) ?? null;
+
+  useEffect(() => setText(null), [selected]);
 
   return (
     <div className={styles.app}>
@@ -325,7 +330,36 @@ export default function PhotosApp({ args }: AppProps) {
               >
                 <Icon name="sparkle" size={14} /> Find similar
               </button>
+              <button
+                type="button"
+                className={styles.detailButton}
+                disabled={ocr.working.includes(selectedNode.id) || ocr.loading}
+                onClick={() => {
+                  void readImage(selectedNode).then((value) => value && setText(value));
+                }}
+                title="Reads printed text on this device and adds it to Search"
+              >
+                <Icon name="file-text" size={14} />
+                {ocr.working.includes(selectedNode.id)
+                  ? 'Reading…'
+                  : ocr.loading
+                    ? (ocr.progress ?? 'Loading…')
+                    : 'Read text'}
+              </button>
             </div>
+            {text ? (
+              text.attempted ? (
+                <div className={styles.ocrResult}>
+                  <pre className={styles.ocrText}>{text.text}</pre>
+                  <p className={styles.detailNote}>
+                    {text.lines.length} line{text.lines.length === 1 ? '' : 's'} ·{' '}
+                    {(text.processingMs / 1000).toFixed(1)} s · now searchable
+                  </p>
+                </div>
+              ) : (
+                <p className={styles.detailNote}>{text.skipped}</p>
+              )
+            ) : null}
             {stats && stats.images > 0 ? (
               <p className={styles.detailNote}>
                 {stats.images} photo{stats.images === 1 ? '' : 's'} searchable

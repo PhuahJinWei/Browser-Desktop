@@ -19,7 +19,7 @@ import { formatBytes } from './vfs/types';
  */
 
 export type ModelTier = 'bundled' | 'on-demand';
-export type ModelTask = 'text-embedding' | 'image-text-embedding' | 'speech-recognition';
+export type ModelTask = 'text-embedding' | 'image-text-embedding' | 'speech-recognition' | 'ocr';
 
 export interface ModelFile {
   path: string;
