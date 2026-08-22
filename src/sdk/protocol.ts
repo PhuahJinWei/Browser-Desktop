@@ -154,7 +154,6 @@ export const METHOD_CAPABILITIES = {
   'fs.remove': 'fs:write',
   'ai.embed': 'ai:embed',
   'ai.search': 'ai:search',
-  'ai.searchPhotos': 'ai:search',
   'ui.notify': 'notifications',
   'ui.setTitle': null,
   'ui.close': null,

@@ -1,6 +1,8 @@
 # 12. Video moments live in the image index, sampled through a `<video>` element
 
-Status: accepted (M4)
+Status: accepted (M4) · **retired** by [ADR 15](./0015-no-on-demand-models.md): video moment search is removed, along
+with the image index it lived in. Video still exports a frame or a section, which needed no model.
+Kept for the record of what was built and what it measured.
 
 ## Context
 

@@ -63,31 +63,15 @@ describe('preferredBackend', () => {
     expect(preferredBackend(caps({}), 'text-embedding')).toBe('wasm');
   });
 
-  it('prefers the GPU for heavier models', () => {
-    expect(preferredBackend(caps({}), 'image-text-embedding')).toBe('webgpu');
-    expect(preferredBackend(caps({}), 'speech-recognition')).toBe('webgpu');
-  });
-
   it('falls back to the GPU for embeddings when threads are unavailable', () => {
     expect(preferredBackend(caps({ crossOriginIsolated: false }), 'text-embedding')).toBe('webgpu');
   });
 
   it('uses WASM when there is no usable GPU', () => {
     const noGpu = caps({ gpu: gpu({ available: false }), crossOriginIsolated: false });
-    expect(preferredBackend(noGpu, 'speech-recognition')).toBe('wasm');
+    expect(preferredBackend(noGpu, 'text-embedding')).toBe('wasm');
   });
 
-  it('prefers threaded WASM for text recognition, as measured', () => {
-    // Six times faster than WebGPU on the reference machine, and more accurate with it. The
-    // decoder emits a dozen tokens per line, so dispatch cost is the whole cost.
-    expect(preferredBackend(caps({}), 'text-recognition')).toBe('wasm');
-  });
-
-  it('falls back to the GPU for text recognition without threads', () => {
-    expect(preferredBackend(caps({ crossOriginIsolated: false }), 'text-recognition')).toBe(
-      'webgpu',
-    );
-  });
 });
 
 describe('probeCapabilities', () => {

@@ -4,7 +4,6 @@ import { setWindowTitle } from '../../kernel/windows';
 import { vfs } from '../../kernel/vfs/client';
 import { categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
 import { Icon } from '../../shell/Icon';
-import { readImage, useOcrState, type OcrResult } from '../../services/ocr/client';
 import { renderMarkdown } from './markdown';
 import styles from './ViewerApp.module.css';
 
@@ -126,72 +125,11 @@ function useObjectUrl(data: ArrayBuffer, mime: string): string {
   return url;
 }
 
-/**
- * A picture, with the option of reading the words in it.
- *
- * The recognised text is shown beside the page rather than replacing it, because the useful thing
- * is checking one against the other — and because the model is fallible enough that hiding the
- * original would be dishonest. It also goes into the search index, which is the part that matters:
- * a scanned page nobody reads is still findable afterwards.
- */
 function ImageView({ node, data }: { node: VfsNode; data: ArrayBuffer }) {
   const url = useObjectUrl(data, node.mime);
-  const ocr = useOcrState();
-  const [result, setResult] = useState<OcrResult | null>(null);
-  const busy = ocr.working.includes(node.id);
-
-  // A different file means a different answer.
-  useEffect(() => setResult(null), [node.id]);
-
-  const read = (force: boolean) => {
-    void readImage(node, force ? { force: true } : {}).then((value) => {
-      if (value) setResult(value);
-    });
-  };
-
   return (
-    <div className={styles.imageLayout}>
-      <div className={styles.imageWrap}>
-        {url ? <img src={url} alt={node.name} className={styles.image} /> : null}
-      </div>
-
-      <aside className={styles.textPane}>
-        <div className={styles.textPaneHead}>
-          <span>Text in this picture</span>
-          <button
-            type="button"
-            className={styles.readButton}
-            disabled={busy || ocr.loading}
-            onClick={() => read(false)}
-          >
-            <Icon name="sparkle" size={13} />
-            {busy ? 'Reading…' : ocr.loading ? (ocr.progress ?? 'Loading…') : 'Read text'}
-          </button>
-        </div>
-
-        {result === null ? (
-          <p className={styles.textPaneHint}>
-            {busy
-              ? 'Finding the lines, then reading each one.'
-              : 'Runs a recognition model on this device. Best on printed, upright, single-column pages — a photograph of a sign is beyond it.'}
-          </p>
-        ) : result.attempted ? (
-          <>
-            <pre className={styles.textPaneBody}>{result.text}</pre>
-            <p className={styles.textPaneNote}>
-              {result.lines.length} line{result.lines.length === 1 ? '' : 's'} ·{' '}
-              {(result.processingMs / 1000).toFixed(1)} s · {result.backend} · now searchable
-            </p>
-          </>
-        ) : (
-          <>
-            <p className={styles.textPaneHint}>{result.skipped}</p>
-            <button type="button" className={styles.readButton} onClick={() => read(true)}>
-              Read it anyway
-            </button>
-          </>
-        )}
-      </aside>
+    <div className={styles.imageWrap}>
+      {url ? <img src={url} alt={node.name} className={styles.image} /> : null}
     </div>
   );
 }

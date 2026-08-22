@@ -26,16 +26,14 @@ and check. [ADR 14](./docs/adr/0014-no-text-generation.md) says why.
    PDFs, written by the app itself.
 2. Open **Search** and click the example _invoice for the monitor_. The top result is the invoice,
    and you get the passage, not just the file name.
-3. Open **Photos** and enable image search. Then type "a hot drink" and watch it pick out the cup
-   of coffee — from a picture nobody tagged, captioned or named.
-4. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
+3. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
    the heading, and is searchable seconds later.
-5. Open **Video → Sample**. The desktop draws a short film of those same pictures and encodes it,
-   live, in front of you — half a minute, because a canvas recorder runs at wall-clock speed.
-   Index it, type "a red keyboard", and it hands back the four seconds of video containing one.
-6. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
+4. Open **Video → Sample**. The desktop draws a short film and encodes it, live, in front of you —
+   half a minute, because a canvas recorder runs at wall-clock speed. Then scrub to any point and
+   save that frame as a picture, or cut ten seconds out into a file of its own.
+5. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
    not among them.
-7. Turn off your network and reload. The desktop still boots and keyword search still works.
+6. Turn off your network and reload. The desktop still boots and keyword search still works.
 
 ## Why this exists
 
@@ -47,11 +45,16 @@ demonstration.
 This page contacts exactly two hosts, ever:
 
 1. the origin serving it — code, and nothing else;
-2. `huggingface.co`, for the embedding model on first use.
+2. `huggingface.co`, **once**, for the 23 MB embedding model that document search runs on.
 
-The sample documents are **generated in your browser**, not downloaded. There is no analytics, no
-telemetry, no third-party script and no CDN font. The ML runtime is self-hosted. The Task Manager
-shows the whole request log so you can check all of this rather than take it on trust.
+Nothing else is ever fetched, and nothing is ever asked of you: there is no "enable this feature"
+dialog anywhere, because the models that needed one were removed
+([ADR 15](./docs/adr/0015-no-on-demand-models.md)). The second host is the last thing between this
+and contacting nothing but itself, and vendoring that one model would close it.
+
+The sample documents and pictures are **generated in your browser**, not downloaded. There is no
+analytics, no telemetry, no third-party script and no CDN font. The ML runtime is self-hosted. The
+Task Manager shows the whole request log so you can check all of this rather than take it on trust.
 
 ## What it does
 
@@ -60,10 +63,10 @@ shows the whole request log so you can check all of this rather than take it on 
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten. |
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                            |
 | **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                               |
-| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it, and reads printed text out of a picture.                                  |
-| **Photos**       | Find pictures by describing them, find more like one you are looking at, and find the copies you did not know you had. No tags or filenames involved.            |
-| **Audio**        | Play, record and transcribe on the device, with chapters and a transcript you can search.                                                                        |
-| **Video**        | Search inside a video by describing what you saw. Jumps to the section, and saves it as a frame or its own clip.                                                 |
+| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                           |
+| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.              |
+| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                 |
+| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                |
 | **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                         |
 | **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                  |
 | **Settings**     | Theme, accent, wallpaper, text size, motion, backend override, indexing, and every destructive operation clearly labelled.                                       |
@@ -73,19 +76,14 @@ shows the whole request log so you can check all of this rather than take it on 
 
 From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed build:
 
-| Result                                                    | Value                                                                  |
-| --------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker                         |
-| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)                     |
-| Hybrid search over the sample corpus                      | **2–5 ms**                                                             |
-| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster                      |
-| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                                      |
-| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand)                    |
-| 32 s of video, imported → searchable                      | **4.7 s** (4.1 s of it the model, 0.6 s decoding)                      |
-| Video moment queries returning the right scene            | **8 of 8** (7 of them exactly); the 2 unanswerable ones return nothing |
-| Near-duplicate scan over 5,000 pictures                   | **830 ms** — an exact bound skips 99.6% of the comparisons             |
-| Reading the sample scanned page                           | **3.1 s**, 10 of 10 lines, **0 character errors** in 270               |
-| Text recognition: threaded WASM vs WebGPU                 | **3.1 vs 18.4 s** — the CPU is 6× faster, and more accurate            |
+| Result                                                    | Value                                               |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker      |
+| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)  |
+| Hybrid search over the sample corpus                      | **2–5 ms**                                          |
+| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster   |
+| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                   |
+| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand) |
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark

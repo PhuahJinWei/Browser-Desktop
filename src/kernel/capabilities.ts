@@ -341,16 +341,15 @@ export type InferenceTask =
  * 14.4 ms, reproducibly, with the GPU warm. For a 22 MB encoder over short sentences the per-
  * dispatch overhead dominates, and 4 SIMD threads simply win.
  *
- * So: small text embeddings prefer threaded WASM; the heavier models (vision towers, Whisper)
- * still prefer the GPU, and those numbers get measured in M2 rather than assumed.
- * See docs/benchmarks/.
+ * So: text embeddings prefer threaded WASM, and fall back to the GPU when threads are
+ * unavailable. See docs/benchmarks/.
  *
- * M4 added text recognition, and it went the same way as the embeddings for the same reason. TrOCR
- * is a vision encoder — GPU-shaped work — followed by an autoregressive decoder emitting a dozen
- * tokens per line, which is a dozen tiny sequential dispatches where the launch cost is the whole
- * cost. Measured over the same ten-line page: **3.1 s on threaded WASM against 18.4 s on WebGPU**,
- * six times faster. It was also more accurate — the WebGPU run misread a word the WASM run got
- * right, every time — so the choice is not even a trade.
+ * The heavier models this once chose between are gone, and the record of what was measured for
+ * them is worth keeping: CLIP and Whisper preferred the GPU, and text recognition did not — TrOCR
+ * ran six times faster on threaded WASM (3.1 s against 18.4 s for the same page) and more
+ * accurately with it, because a dozen sequential decoder steps per line cost more to dispatch than
+ * to compute. Two of the four tasks this project ever ran preferred the CPU, both found by
+ * measuring rather than by reasoning about which hardware ought to win.
  */
 export function preferredBackend(
   caps: Capabilities,
@@ -359,6 +358,6 @@ export function preferredBackend(
   const gpu = caps.gpu.available && !caps.gpu.fallbackAdapter;
   const threadedWasm = caps.wasm.simd && caps.wasm.threads && caps.crossOriginIsolated;
 
-  if ((task === 'text-embedding' || task === 'text-recognition') && threadedWasm) return 'wasm';
+  if (task === 'text-embedding' && threadedWasm) return 'wasm';
   return gpu ? 'webgpu' : 'wasm';
 }

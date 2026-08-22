@@ -2,16 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppProps } from '../../kernel/apps';
 import { launchApp } from '../../kernel/apps';
 import { vfs } from '../../kernel/vfs/client';
-import {
-  search,
-  searchPhotos,
-  useIndexStats,
-  useIndexerState,
-  warmUpModel,
-  type ImageHit,
-} from '../../services/index/client';
+import { search, useIndexStats, useIndexerState, warmUpModel } from '../../services/index/client';
 import type { SearchHit } from '../../services/index/client';
-import { thumbnailUrl } from '../../services/index/thumbnails';
 import { Icon, iconForFile } from '../../shell/Icon';
 import styles from './SearchApp.module.css';
 
@@ -35,7 +27,6 @@ export default function SearchApp({ args }: AppProps) {
   const initial = (args as { query?: string } | undefined)?.query ?? '';
   const [query, setQuery] = useState(initial);
   const [results, setResults] = useState<SearchHit[]>([]);
-  const [photoHits, setPhotoHits] = useState<ImageHit[]>([]);
   const [state, setState] = useState<'idle' | 'searching' | 'done'>('idle');
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,11 +50,8 @@ export default function SearchApp({ args }: AppProps) {
     setError(null);
     const started = performance.now();
     try {
-      // Documents and photos live in different vector spaces, so they are two searches whose
-      // results are shown side by side rather than one ranking pretending to compare them.
-      const [hits, photos] = await Promise.all([search(trimmed, 25), searchPhotos(trimmed, 12)]);
+      const hits = await search(trimmed, 25);
       setResults(hits);
-      setPhotoHits(relevantPhotos(photos));
       setElapsed(Math.round(performance.now() - started));
       setState('done');
     } catch (cause) {
@@ -76,7 +64,6 @@ export default function SearchApp({ args }: AppProps) {
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
-      setPhotoHits([]);
       setState('idle');
       return;
     }
@@ -125,11 +112,7 @@ export default function SearchApp({ args }: AppProps) {
         ) : null}
         {elapsed !== null && state === 'done' ? (
           <span className={styles.timing}>
-            {results.length} result{results.length === 1 ? '' : 's'}
-            {photoHits.length > 0
-              ? ` · ${photoHits.length} photo${photoHits.length === 1 ? '' : 's'}`
-              : ''}{' '}
-            in {elapsed} ms
+            {results.length} result{results.length === 1 ? '' : 's'} in {elapsed} ms
           </span>
         ) : null}
       </div>
@@ -169,7 +152,7 @@ export default function SearchApp({ args }: AppProps) {
               </button>
             ) : null}
           </div>
-        ) : results.length === 0 && photoHits.length === 0 && state === 'done' ? (
+        ) : results.length === 0 && state === 'done' ? (
           <div className={styles.message}>
             <Icon name="search" size={22} />
             <p>No matches for “{query}”.</p>
@@ -181,17 +164,6 @@ export default function SearchApp({ args }: AppProps) {
           </div>
         ) : (
           <>
-            {photoHits.length > 0 ? (
-              <section className={styles.photoSection}>
-                <h3 className={styles.photoHeading}>Photos ({photoHits.length})</h3>
-                <div className={styles.photoStrip}>
-                  {photoHits.map((hit) => (
-                    <PhotoResult key={hit.id} hit={hit} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             <ul className={styles.list}>
               {results.map((hit, index) => (
                 <li key={`${hit.fileId}-${hit.chunkIndex}-${index}`}>
@@ -221,53 +193,6 @@ export default function SearchApp({ args }: AppProps) {
         )}
       </div>
     </div>
-  );
-}
-
-/**
- * Which photo hits are worth showing next to document results.
- *
- * CLIP similarity scores are compressed: with the current model a genuine match lands around
- * 0.29–0.32 and an unrelated picture around 0.20–0.25, so the whole library sits inside a twelve
- * point band. Two rules together, because neither works alone —
- *
- *  - an absolute floor, or a query about invoices returns four photographs of nothing in
- *    particular purely because something had to come top;
- *  - a relative window, or a strong match drags in everything else that scored nearby.
- *
- * Both numbers are calibrated to CLIP ViT-B/32's observed range and should be re-checked if the
- * model changes — which is one more reason the model is not a detail to swap casually.
- */
-function relevantPhotos(hits: ImageHit[]): ImageHit[] {
-  const best = hits[0]?.score ?? 0;
-  if (best < 0.27) return [];
-  return hits.filter((hit) => hit.score >= Math.max(0.26, best * 0.95)).slice(0, 6);
-}
-
-/** One picture in the results strip, opened in Photos rather than the plain viewer. */
-function PhotoResult({ hit }: { hit: ImageHit }) {
-  const [url, setUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void thumbnailUrl(hit.id).then((value) => {
-      if (!cancelled) setUrl(value);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [hit.id]);
-
-  return (
-    <button
-      type="button"
-      className={styles.photo}
-      onClick={() => launchApp('photos', { args: { fileId: hit.id } })}
-      title={`${hit.name} · ${Math.round(hit.score * 100)}% match`}
-    >
-      {url ? <img src={url} alt={hit.name} className={styles.photoImage} loading="lazy" /> : null}
-      <span className={styles.photoScore}>{Math.round(hit.score * 100)}</span>
-    </button>
   );
 }
 

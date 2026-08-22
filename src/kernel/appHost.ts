@@ -96,7 +96,6 @@ function asOptionalString(value: unknown, label: string): string | null {
 export interface HostDependencies {
   embed: (texts: string[]) => Promise<Float32Array[]>;
   search: (query: string, limit: number) => Promise<{ fileId: string; fileName: string; snippet: string; score: number }[]>;
-  searchPhotos: (query: string, limit: number) => Promise<{ id: string; name: string; score: number }[]>;
 }
 
 /**
@@ -189,11 +188,6 @@ export async function handleAppCall(
       return deps.search(query, limit);
     }
 
-    case 'ai.searchPhotos': {
-      const query = asString(args[0], 'query');
-      const limit = Math.min(60, Math.max(1, Number(args[1]) || 20));
-      return deps.searchPhotos(query, limit);
-    }
 
     /* Window and shell ----------------------------------------------------------------------- */
 

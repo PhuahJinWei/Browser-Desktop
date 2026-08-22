@@ -61,6 +61,15 @@ export async function getThumbnail(id: string): Promise<Blob | null> {
   return record?.blob ?? null;
 }
 
+/** Whether one is already stored. Cheaper than reading the blob back to find out. */
+export async function hasThumbnail(id: string): Promise<boolean> {
+  const handle = await db();
+  const count = await transact(handle, STORE, 'readonly', (tx) =>
+    idb.count(tx.objectStore(STORE), IDBKeyRange.only(id)),
+  );
+  return count > 0;
+}
+
 export async function deleteThumbnail(id: string): Promise<void> {
   releaseThumbnailUrl(id);
   const handle = await db();

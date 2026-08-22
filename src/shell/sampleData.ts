@@ -4,7 +4,6 @@ import { vfs } from '../kernel/vfs/client';
 import { ROOT_ID, type ImportEntry } from '../kernel/vfs/types';
 import { createPdf } from './samplePdf';
 import { renderSampleImages } from './samplePhotos';
-import { renderSampleScan } from './sampleScan';
 
 /**
  * The sample dataset.
@@ -281,11 +280,6 @@ export async function loadSampleData(): Promise<number> {
   for (const image of await renderSampleImages()) {
     entries.push({ path: `Pictures/${image.name}`, data: image.data, mime: image.mime });
   }
-
-  // A page of printed text with no text layer, so there is something for OCR to read. It lands in
-  // Documents rather than Pictures because that is what it is.
-  const scan = await renderSampleScan();
-  if (scan) entries.push({ path: `Documents/${scan.name}`, data: scan.data, mime: scan.mime });
 
   const result = await vfs.importEntries(ROOT_ID, entries, { sample: true });
   updateSettings({ sampleDataLoaded: true });

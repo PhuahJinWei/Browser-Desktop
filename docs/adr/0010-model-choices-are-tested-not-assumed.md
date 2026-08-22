@@ -1,6 +1,8 @@
 # 10. Model choices are tested against the runtime, not read off a table
 
-Status: accepted (M2)
+Status: accepted (M2) · **retired** by [ADR 15](./0015-no-on-demand-models.md): the models it chose between were
+removed. Kept because the method — test the candidates rather than trust the model card — decided
+two things the plan had assumed, and because it is the record of what was measured.
 
 ## Context
 

@@ -127,11 +127,23 @@ browser's own Resource Timing buffer and lists every request the page has made, 
 marked. Instrumenting our own fetches would only report the requests we chose to report; the
 browser's record includes the ones we did not.
 
-## What M2 adds
+## What M2–M4 added, and what is left of it
 
-CLIP-family image embeddings and Whisper transcription, which turn Photos and Audio into real
-apps. Both plug into the existing model registry, job scheduler and index rather than needing new
-machinery — which was the point of building those first.
+M2 added image and speech models, M4 added video moment search, near-duplicate detection and OCR.
+All of them were fetched on demand from `huggingface.co` behind a consent dialog, and all of them
+were removed afterwards: a portfolio piece that asks a visitor to download 150 MB before it will do
+what it advertises is asking for a commitment the visitor has no reason to make. The reasoning and
+the cost are in [ADR 15](./adr/0015-no-on-demand-models.md).
+
+What survived is what needed no model:
+
+- **Thumbnails.** They used to be a by-product of embedding a picture, because the image was
+  decoded anyway. They are now made by a worker that does nothing else — a grid decoding
+  4000-pixel originals is what makes a file manager stutter regardless.
+- **Waveforms.** Decoding to mono 16 kHz was a speech model's requirement; it is now simply what
+  makes scanning three minutes of audio for peaks cheap.
+- **Frame and section export.** Seeking a `<video>`, drawing to a canvas and recording a stream
+  are browser APIs. Video still does both.
 
 ## What M3 adds
 
@@ -142,63 +154,13 @@ which checks both that the manifest declared the capability and that the user ha
 scopes file access to the app's own folder plus the one file it was opened with. See
 [`docs/sdk.md`](./sdk.md) and [ADR 11](./adr/0011-sandbox-delivery.md).
 
-## What M4 adds
+## What M4 added that stayed
 
-Search inside video, which needed no new index and no new model.
-
-The split is the one the platform forces. `<video>` is a DOM element, so `src/services/video/frames.ts`
-runs on the main thread: it seeks the element to a timestamp every two seconds, draws to a canvas
-letterboxed into a square, and emits a few kilobytes of WebP. Those buffers are _transferred_ to
-the index worker, where the CLIP model already lives, so the expensive part never touches the main
-thread.
-
-A sampled frame is stored as an ordinary image record that additionally carries the time it came
-from and the id of its video. That is the whole of the data model: a video moment and a photograph
-are the same kind of thing in the same vector space, so persistence, model lifecycle and search
-were already written. What is new is `src/services/index/moments.ts`, which turns a run of
-consecutive matching frames into one moment with a start, an end, and its best frame — because six
-near-identical frames of one shot is a worse answer than one section with boundaries, and because
-a section with boundaries is the thing that can be exported.
-
-Two numbers shape the design. Sampling a frame costs 40 ms and embedding it costs 257 ms, so the
-decoder is not worth optimising and the model is; and a matching frame scores 0.27–0.32 while a
-query with no answer tops out at 0.24, so there is an absolute floor at 0.25 below which nothing
-is returned at all. Both are measured, in [`docs/benchmarks/`](./benchmarks/), and the reasoning
-is in [ADR 12](./adr/0012-video-moments.md).
-
-M4 also adds a near-duplicate finder, which needed no model at all — the vectors were already
-there. `VectorIndex.pairsAbove` walks every pair, but skips almost all of them with an exact
-bound: because the rows are normalised, the dot product of the first 64 dimensions plus the
-product of the two tails' magnitudes cannot be less than the whole dot product, so a pair whose
-bound falls under the threshold cannot qualify and its remaining 448 dimensions are never read.
-Over five thousand vectors that is 0.41% of pairs needing full evaluation and a 6.1× speed-up,
-with results identical to the naive scan — which a test asserts. `duplicates.ts` then turns pairs
-into sets with union-find, so five copies are one row rather than ten pairs.
-
-It remains quadratic, and the honest limit is around twenty thousand pictures. Past that the
-answer is a blocking index rather than a better constant.
-
-## Reading text out of pictures
-
-The last thing M4 adds is OCR, and it is a model rather than a library on purpose: the desktop
-already has consent, integrity checking, caching, a Task Manager entry and an unload path for
-models, and none of that would have applied to a bundled OCR engine's own assets. See
-[ADR 13](./adr/0013-ocr.md).
-
-TrOCR reads one _line_, not a page, so `src/services/ocr/segment.ts` does the layout: Otsu
-binarisation, ink counted per row, and text lines read off the projection profile. It handles dark
-text on a light ground, upright, one column — and refuses anything that does not look like a page
-rather than spending a model pass on each band of texture in a photograph.
-
-What the model returns goes into the ordinary document index through `indexText`, which shares
-every step after extraction with `indexDocument`. From there a scanned page is a document: same
-chunks, same embeddings, same snippets, ranked beside the notes and the PDFs. Search has no idea
-the words came from pixels, which is the point.
-
-The backend surprised the plan for the second time. Recognition runs on **threaded WASM**, not the
-GPU: 3.1 s against 18.4 s for the same page, and with fewer mistakes. A dozen sequential decoder
-steps per line cost more to dispatch than to compute — the same finding M0 made about small text
-embeddings, in a place nobody expected it.
+Little, in the end — the M4 pool was picked for features that needed models. What remains from it
+is the video sample recorder (canvas plus `MediaRecorder`, drawn live), the clip exporter, and two
+fixes that outlived their features: an absolute floor in `VectorIndex.search` that had been
+silently inert since M1, and `MissingContentError`, which names the file when its stored bytes have
+gone missing.
 
 ## When the two stores disagree
 

@@ -1,33 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppProps } from '../../kernel/apps';
-import { launchApp } from '../../kernel/apps';
 import { setWindowTitle } from '../../kernel/windows';
 import { notify, notifyError } from '../../kernel/notifications';
 import { vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
-import {
-  transcribeFile,
-  useAsrState,
-  type Chapter,
-  type TranscriptSegment,
-} from '../../services/asr/client';
-import {
-  decodeToMono16k,
-  formatSrtTimestamp,
-  formatTimestamp,
-  waveformPeaks,
-} from '../../services/asr/decode';
-import { toSrt } from '../../services/asr/chapters';
+import { decodeToMono16k, formatTimestamp, waveformPeaks } from '../../services/audio/waveform';
 import { Icon } from '../../shell/Icon';
 import styles from './AudioApp.module.css';
 
 /**
  * Audio.
  *
- * Play a recording, see its waveform, transcribe it on this device, and jump around the result by
- * clicking the text. The transcript is written into the file system as Markdown, so it is
- * searchable through the same index as everything else — spoken words become findable without
- * the search service knowing audio exists.
+ * Play a recording, see its waveform, record a new one from the microphone.
+ *
+ * It used to transcribe too, on a 69 MB speech model fetched on first use. The project stopped
+ * requiring downloads of anyone, so that went; the waveform stayed, because drawing one needs
+ * nothing but the Web Audio API the browser already has.
  *
  * There is no bundled sample: speech cannot be synthesised without a voice model, and a silent
  * test tone would demonstrate nothing. Recording from the microphone is offered instead, which is
@@ -47,14 +35,9 @@ export default function AudioApp({ windowId, args }: AppProps) {
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [segments, setSegments] = useState<TranscriptSegment[] | null>(null);
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [transcriptFileId, setTranscriptFileId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const asr = useAsrState();
 
   const load = useCallback(async () => {
     const nodes = await vfs.allNodes();
@@ -82,9 +65,6 @@ export default function AudioApp({ windowId, args }: AppProps) {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    setSegments(null);
-    setChapters([]);
-    setTranscriptFileId(null);
     setPeaks(null);
 
     void (async () => {
@@ -132,21 +112,6 @@ export default function AudioApp({ windowId, args }: AppProps) {
     }
   }, []);
 
-  const transcribe = useCallback(async () => {
-    if (!activeNode) return;
-    setBusy(true);
-    try {
-      const outcome = await transcribeFile(activeNode);
-      if (outcome) {
-        setSegments(outcome.segments);
-        setChapters(outcome.chapters);
-        setTranscriptFileId(outcome.transcriptFileId);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }, [activeNode]);
-
   /* Recording: the substitute for a bundled speech sample. */
   const startRecording = useCallback(async () => {
     try {
@@ -192,10 +157,6 @@ export default function AudioApp({ windowId, args }: AppProps) {
 
   const canRecord =
     typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
-  const activeSegment = segments?.findIndex(
-    (segment) => position >= segment.start && position < segment.end,
-  );
-
   return (
     <div className={styles.app}>
       <aside className={styles.sidebar}>
@@ -282,92 +243,9 @@ export default function AudioApp({ windowId, args }: AppProps) {
             />
 
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.primary}
-                onClick={() => void transcribe()}
-                disabled={busy || asr.loading}
-              >
-                <Icon name="sparkle" size={15} />
-                {busy
-                  ? 'Transcribing…'
-                  : asr.loading
-                    ? (asr.progress ?? 'Loading model…')
-                    : 'Transcribe'}
-              </button>
-
-              {transcriptFileId ? (
-                <button
-                  type="button"
-                  className={styles.secondary}
-                  onClick={() => launchApp('viewer', { args: { fileId: transcriptFileId } })}
-                >
-                  Open transcript
-                </button>
-              ) : null}
-
-              {segments ? (
-                <button
-                  type="button"
-                  className={styles.secondary}
-                  onClick={() => exportSrt(activeNode, segments)}
-                >
-                  <Icon name="download" size={14} /> Save .srt
-                </button>
-              ) : null}
-
               <span className={styles.meta}>
                 {activeNode.mime} · {formatBytes(activeNode.size)}
               </span>
-            </div>
-
-            {chapters.length > 1 ? (
-              <div className={styles.chapters}>
-                <h3 className={styles.sectionTitle}>Chapters</h3>
-                <ul className={styles.chapterList}>
-                  {chapters.map((chapter) => (
-                    <li key={chapter.start}>
-                      <button
-                        type="button"
-                        className={styles.chapter}
-                        onClick={() => seek(chapter.start)}
-                      >
-                        <span className={styles.chapterTime}>{formatTimestamp(chapter.start)}</span>
-                        <span className={styles.chapterTitle}>{chapter.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className={styles.transcript}>
-              {segments ? (
-                <>
-                  <h3 className={styles.sectionTitle}>Transcript</h3>
-                  <ol className={styles.segments}>
-                    {segments.map((segment, index) => (
-                      <li key={`${segment.start}-${index}`}>
-                        <button
-                          type="button"
-                          className={`${styles.segment} ${index === activeSegment ? styles.segmentActive : ''}`}
-                          onClick={() => seek(segment.start)}
-                        >
-                          <span className={styles.segmentTime}>
-                            {formatTimestamp(segment.start)}
-                          </span>
-                          <span className={styles.segmentText}>{segment.text}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              ) : (
-                <p className={styles.transcriptHint}>
-                  Transcribe to get timestamped text you can click through — and to make what was
-                  said searchable everywhere else.
-                </p>
-              )}
             </div>
           </>
         )}
@@ -436,16 +314,4 @@ function Waveform({
       }}
     />
   );
-}
-
-function exportSrt(node: VfsNode, segments: TranscriptSegment[]): void {
-  const srt = toSrt(segments, formatSrtTimestamp);
-
-  const blob = new Blob([srt], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `${node.name.replace(/\.[^.]+$/, '')}.srt`;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }

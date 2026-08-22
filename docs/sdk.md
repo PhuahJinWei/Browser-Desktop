@@ -69,7 +69,7 @@ your app actually calls a method, and can revoke it later in Settings.
 | `fs:read`       | Read files in your own folder, and the one file the user opened your app with |
 | `fs:write`      | Create and change files in your own folder                                    |
 | `ai:embed`      | Turn text into vectors with the desktop's embedding model                     |
-| `ai:search`     | Search the user's indexed documents and photos                                |
+| `ai:search`     | Search the user's indexed documents                                           |
 | `notifications` | Show a desktop notification                                                   |
 | `clipboard`     | Write text to the clipboard                                                   |
 | `storage`       | Keep your own settings                                                        |
@@ -113,7 +113,6 @@ os.fs.remove(id)               // true — moves to Trash
 
 os.ai.embed(texts)             // number[][] — 384-dimensional, normalised
 os.ai.search(query, limit?)    // { fileId, fileName, snippet, score }[]
-os.ai.searchPhotos(query, n?)  // { id, name, score }[]
 
 os.ui.setTitle(title)          // window title, prefixed with your app's name
 os.ui.notify(title, body?)     // a desktop notification

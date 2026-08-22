@@ -1,11 +1,11 @@
-import { embedTexts, search, searchPhotos } from './client';
+import { embedTexts, search } from './client';
 
 /**
  * What a sandboxed app is allowed to reach of the search service.
  *
  * A deliberately narrow re-export rather than handing the app host the whole client: an app gets
- * embeddings, document hits and photo hits, and nothing that could clear an index, queue work or
- * change a model. Keeping that boundary in one small file makes it obvious when it widens.
+ * embeddings and document hits, and nothing that could clear an index, queue work or change a
+ * model. Keeping that boundary in one small file makes it obvious when it widens.
  */
 
 export async function embedForApps(texts: string[]): Promise<Float32Array[]> {
@@ -27,10 +27,3 @@ export async function searchForApps(
   }));
 }
 
-export async function searchPhotosForApps(
-  query: string,
-  limit: number,
-): Promise<{ id: string; name: string; score: number }[]> {
-  const hits = await searchPhotos(query, limit);
-  return hits.map((hit) => ({ id: hit.id, name: hit.name, score: hit.score }));
-}

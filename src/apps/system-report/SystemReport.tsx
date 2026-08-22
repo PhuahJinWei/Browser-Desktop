@@ -462,7 +462,7 @@ export function SystemReport() {
       <footer className={styles.footer}>
         <p>
           Backend the kernel would choose here: <code>{embeddingBackend}</code> for text embeddings,{' '}
-          <code>{heavyBackend}</code> for vision and speech models. Everything above ran on this
+          <code>{heavyBackend}</code> for anything heavier. Everything above ran on this
           machine. The only hosts this page contacts are the one serving it and{' '}
           <code>huggingface.co</code>, for model weights during a benchmark run.
         </p>

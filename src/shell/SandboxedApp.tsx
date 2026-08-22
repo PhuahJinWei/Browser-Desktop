@@ -3,7 +3,7 @@ import type { AppProps } from '../kernel/apps';
 import { handleAppCall, type AppContext } from '../kernel/appHost';
 import { getInstalledApp, useInstalledApps } from '../kernel/installedApps';
 import { settingsStore } from '../kernel/settings';
-import { embedForApps, searchForApps, searchPhotosForApps } from '../services/index/appBridge';
+import { embedForApps, searchForApps } from '../services/index/appBridge';
 import type { BootMessage, FromSandbox, ToSandbox } from '../sdk/protocol';
 import { runnerDocument } from './runnerDocument';
 import { Icon } from './Icon';
@@ -105,7 +105,6 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
           const value = await handleAppCall(context, message.method, message.args, {
             embed: embedForApps,
             search: searchForApps,
-            searchPhotos: searchPhotosForApps,
           });
           post({ kind: 'result', id: message.id, value });
         } catch (cause) {

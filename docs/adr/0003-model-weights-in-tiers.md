@@ -1,6 +1,8 @@
 # 3. Model weights in four tiers
 
-Status: accepted (M0)
+Status: accepted (M0) · the on-demand tier is **removed** by [ADR 15](./0015-no-on-demand-models.md). One model
+remains, in the bundled tier; the consent, integrity and caching machinery described below is what
+it still travels through.
 
 ## Context
 

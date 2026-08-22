@@ -367,119 +367,13 @@
   white-space: nowrap;
 }
 
-/* Results ------------------------------------------------------------------------------------ */
-
-.results {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--space-3);
-}
-
-.hint {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  padding: var(--space-4);
-  text-align: center;
-  display: grid;
-  gap: var(--space-3);
-  justify-items: center;
-}
-
-.examples {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  justify-content: center;
-}
-
-.example {
-  padding: var(--space-1) var(--space-3);
+.select {
   border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  background: var(--surface-1);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  cursor: pointer;
-}
-
-.example:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.momentList {
-  list-style: none;
-  display: grid;
-  gap: var(--space-2);
-}
-
-.moment {
-  display: grid;
-  grid-template-columns: 128px 1fr auto;
-  grid-template-areas:
-    'image time score'
-    'image name score';
-  align-items: center;
-  gap: 0 var(--space-3);
-  width: 100%;
-  padding: var(--space-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  text-align: left;
-  cursor: pointer;
-}
-
-.moment:hover {
-  border-color: var(--accent);
-}
-
-.momentActive {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
-}
-
-.momentImage,
-.momentPlaceholder {
-  grid-area: image;
-  width: 128px;
-  height: 72px;
-  object-fit: cover;
   border-radius: var(--radius-sm);
-  background: var(--surface-3, #0b0f18);
-}
-
-.momentTime {
-  grid-area: time;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  background: var(--surface-2);
   color: var(--text-primary);
-}
-
-.momentName {
-  grid-area: name;
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.momentScore {
-  grid-area: score;
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--accent);
-  padding-right: var(--space-2);
-}
-
-.momentFrames {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+  padding: 1px var(--space-1);
 }
 
 .canvasHidden {

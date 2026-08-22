@@ -17,6 +17,7 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 - Vision → execution plan: goals/non-goals, support matrix, architecture, model catalogue, milestones with definitions of done, quality bar, risks, conventions.
 - The desktop is the **genuine centrepiece** (full/most functionality), not a skin; window manager built from scratch; original design.
 - AI means **perception models: deterministic, small, fast** — embeddings, vision, speech, recognition. v2 put text generation in an optional M5 tier; M4 closed that tier without building it, because four milestones of features turned out to be retrieval problems. See [ADR 14](./docs/adr/0014-no-text-generation.md).
+- **Superseded after M4:** the on-demand models were removed too, and with them photo search, video moment search, near-duplicate detection, transcription and OCR. Everything below describing them is a record of what was planned and built, not of what ships. One model remains — the bundled embedding model that document search runs on — and no feature waits on a download. See [ADR 15](./docs/adr/0015-no-on-demand-models.md).
 - **Hybrid app model** decided up front: system apps in-process, third-party apps in sandboxed iframes, one SDK.
 - Hosting constraints baked in: GitHub Pages only, weights policy in tiers, cross-origin isolation via service worker, CSP via meta, self-hosted runtime.
 - Stack references updated to 2026 (Transformers.js v4 WebGPU runtime; WebGPU baseline in all major browsers; WebNN as a progressive enhancement).
@@ -251,6 +252,7 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 **AI:** CLIP-family image/text embeddings; Whisper tiny/base (small on Tier A); chaptering via embedding-shift segmentation + keyphrases; optional diarization.
 **Done when:** sample photos searchable by natural language on Tier B within a measured, documented time after boot; a 5-minute clip transcribes faster than real-time on Tier A and < 2× real-time on Tier B (measured); background indexing never drops the UI below 50 fps; every download consented and visible in Task Manager; offline still works after caching; tagged `v0.2.0`.
 **Out:** LLM, video, sandboxed apps.
+**Since removed:** everything in this milestone that needed a downloaded model — natural-language photo search, similar images, transcription, chapters, `.srt` export. Photos and Audio remain as a picture browser and a player/recorder ([ADR 15](./docs/adr/0015-no-on-demand-models.md)).
 
 ### M3 — Platform for apps · v0.3 (~4–5 FTE-weeks)
 
@@ -263,7 +265,7 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 
 Video moment search (WebCodecs frame sampling → CLIP index → clip export via WebCodecs encode/remux; fallback: export frame range); OCR (tesseract.js) for scanned PDFs/images; Photos tools (background removal, auto-tags, near-duplicate finder); translation (opus-mt or Chrome Translator API); read-aloud (Kokoro); WebNN experimental backend + benchmark; WebGPU compute-shader vector search (depth pocket). Each behind consented downloads with its own DoD.
 
-**Picked, and delivered:** video moment search, the near-duplicate finder, and OCR.
+**Picked, and delivered:** video moment search, the near-duplicate finder, and OCR — **all three since removed** with the rest of the on-demand models ([ADR 15](./docs/adr/0015-no-on-demand-models.md)). What survived from this milestone is the part that never needed a model: the sample video the desktop records for itself, and exporting a frame or a section from a video. The design notes below are kept as the record of what was built and measured.
 
 ### Video moment search
 

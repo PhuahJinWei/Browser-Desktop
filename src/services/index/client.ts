@@ -7,10 +7,7 @@ import { createStore, useStoreSelector } from '../../kernel/store';
 import { settingsStore } from '../../kernel/settings';
 import { vfs } from '../../kernel/vfs/client';
 import { categoryOf, isIndexable, type VfsNode } from '../../kernel/vfs/types';
-import { ensureModel, getModel, isDownloaded } from '../../kernel/models';
-import { putThumbnail, deleteThumbnail, clearThumbnails } from './thumbnails';
-import type { ImageHit } from './images';
-import { DUPLICATE_THRESHOLD, type DuplicateGroup } from './duplicates';
+import { putThumbnail, deleteThumbnail, hasThumbnail } from './thumbnails';
 import type { IndexMethods, IndexStats, SearchHit } from './index.worker';
 
 /**
@@ -23,24 +20,12 @@ import type { IndexMethods, IndexStats, SearchHit } from './index.worker';
 
 const client: RpcClient<IndexMethods> = createRpcClient<IndexMethods>(new IndexWorker());
 
-/**
- * The same worker, for the video service.
- *
- * Video moments live in the image index, so they must be spoken to over the same connection —
- * a second worker would hold a second copy of the model and a second, invisible index.
- */
-export const indexWorker = client;
-
 interface IndexerState {
   stats: IndexStats | null;
   /** Files known to need indexing but not yet done. */
   pending: number;
   modelLoading: boolean;
   modelProgress: string | null;
-  /** Photos waiting on the vision model. */
-  pendingImages: number;
-  visionEnabled: boolean;
-  visionLoading: boolean;
 }
 
 const store = createStore<IndexerState>({
@@ -48,13 +33,7 @@ const store = createStore<IndexerState>({
   pending: 0,
   modelLoading: false,
   modelProgress: null,
-  pendingImages: 0,
-  visionEnabled: false,
-  visionLoading: false,
 });
-
-/** The default image model. See ADR 10 for why the smaller MobileCLIP option was rejected. */
-export const DEFAULT_VISION_MODEL = 'image-text-clip-vit-b32';
 
 let started = false;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -168,11 +147,7 @@ export async function startIndexer(backend: 'webgpu' | 'wasm'): Promise<void> {
     });
   }
 
-  // A model already on disk needs no second conversation: consent covered the download, not
-  // every use of it. Loading it here is what makes photo search survive a reload.
-  if (await isDownloaded(DEFAULT_VISION_MODEL).catch(() => false)) {
-    void enableVision(DEFAULT_VISION_MODEL);
-  }
+  void makePendingThumbnails();
 
   // New and changed files get queued as they appear.
   vfs.onChange((change) => {
@@ -192,8 +167,8 @@ export async function startIndexer(backend: 'webgpu' | 'wasm'): Promise<void> {
       const nodes = await vfs.statMany(change.nodes);
       for (const node of nodes) {
         if (node.kind !== 'file') continue;
-        // Text and images take different routes: different model, different index.
-        if (categoryOf(node) === 'image') queueImage(node);
+        // A picture has no text to index; it gets a thumbnail instead.
+        if (categoryOf(node) === 'image') queueThumbnail(node);
         else if (node.indexState !== 'indexed') queueFile(node);
       }
     })();
@@ -239,7 +214,11 @@ export async function search(query: string, limit = 20): Promise<SearchHit[]> {
 /** Embeds text on behalf of an app, at interactive priority so it does not queue behind indexing. */
 export async function embedTexts(texts: string[]): Promise<Float32Array[]> {
   const vectors = await schedule(
-    { label: `Embed ${texts.length} text${texts.length === 1 ? '' : 's'}`, kind: 'embed', priority: PRIORITY.interactive },
+    {
+      label: `Embed ${texts.length} text${texts.length === 1 ? '' : 's'}`,
+      kind: 'embed',
+      priority: PRIORITY.interactive,
+    },
     () => client.call('embedTexts', [texts]),
   ).promise;
   return vectors.map((vector) => Float32Array.from(vector));
@@ -283,170 +262,56 @@ export type { SearchHit, IndexStats };
 /* Photos                                                                                         */
 /* -------------------------------------------------------------------------------------------- */
 
-const queuedImages = new Set<string>();
+const queuedThumbnails = new Set<string>();
 
 /**
- * Turns on photo search.
+ * Makes a thumbnail for a picture, once.
  *
- * Split from the rest of the indexer because it costs a download the user has to agree to. Until
- * they do, Photos still lists and opens pictures — it just cannot search them, and says so.
+ * All that remains of what used to be image indexing. The embedding model is gone, so there is
+ * nothing to search pictures by any more — but a grid that decodes 4000-pixel originals to draw
+ * them at 160 is still the thing that makes a file manager stutter, so the thumbnail stays.
  */
-export async function enableVision(
-  modelId = DEFAULT_VISION_MODEL,
-  backendHint?: 'webgpu' | 'wasm',
-): Promise<boolean> {
-  const model = getModel(modelId);
-  if (!model) return false;
-  if (store.get().visionEnabled) return true;
-
-  const agreed = await ensureModel(
-    modelId,
-    'Photo search needs an image model. It runs on your device; your pictures are not uploaded.',
-  );
-  if (!agreed) return false;
-
-  store.set((state) => ({ ...state, visionLoading: true }));
-  try {
-    // Vision is the heavier model, and M0 measured the GPU winning on larger networks — so unlike
-    // text embeddings this one prefers WebGPU when it is available.
-    const backend = backendHint ?? 'webgpu';
-    await schedule(
-      { label: 'Load image model', kind: 'model', priority: PRIORITY.userBatch },
-      async () => {
-        await client.call('loadVisionModel', [{ model: model.source.repo, backend }], {
-          onProgress: (payload) => {
-            const progress = payload as { status?: string; file?: string; progress?: number };
-            if (progress.status === 'progress' && progress.file) {
-              store.set((state) => ({
-                ...state,
-                modelProgress: `${progress.file} ${Math.round(progress.progress ?? 0)}%`,
-              }));
-            }
-          },
-        });
-      },
-    ).promise;
-
-    store.set((state) => ({ ...state, visionEnabled: true, modelProgress: null }));
-    await refreshStats();
-    await indexPendingImages();
-    return true;
-  } catch (error) {
-    notifyError('The image model could not be loaded', error);
-    return false;
-  } finally {
-    store.set((state) => ({ ...state, visionLoading: false }));
-  }
-}
-
-/** Whether the image model is loaded — video moments need the same one. */
-export function isVisionEnabled(): boolean {
-  return store.get().visionEnabled;
-}
-
-export async function disableVision(): Promise<void> {
-  await client.call('unloadVisionModel', []).catch(() => undefined);
-  store.set((state) => ({ ...state, visionEnabled: false }));
-  await refreshStats();
-}
-
-function queueImage(node: VfsNode): void {
-  if (node.trashed || queuedImages.has(node.id)) return;
+function queueThumbnail(node: VfsNode): void {
+  if (node.trashed || queuedThumbnails.has(node.id)) return;
   if (categoryOf(node) !== 'image') return;
 
-  queuedImages.add(node.id);
-  store.set((state) => ({ ...state, pendingImages: state.pendingImages + 1 }));
-
+  queuedThumbnails.add(node.id);
   schedule(
-    { label: `Index ${node.name}`, kind: 'index-image', priority: PRIORITY.background },
+    { label: `Thumbnail ${node.name}`, kind: 'thumbnail', priority: PRIORITY.background },
     async (context) => {
       context.throwIfCancelled();
       const { data } = await vfs.read(node.id);
       context.throwIfCancelled();
-      context.setProgress(null, node.name);
-
-      const result = await client.call(
-        'indexImage',
-        [{ id: node.id, name: node.name, mime: node.mime, data }],
-        { transfer: [data] },
-      );
-      if (result.thumbnail) {
-        await putThumbnail(node.id, result.thumbnail, result.width, result.height);
-      }
-      await vfs.setIndexState(node.id, result.indexed ? 'indexed' : 'skipped', 'clip');
+      const result = await client.call('thumbnail', [{ mime: node.mime, data }], {
+        transfer: [data],
+      });
+      if (result.blob) await putThumbnail(node.id, result.blob, result.width, result.height);
       return result;
     },
   )
-    .promise.then(() => {
-      scheduleSave();
-      void refreshStats();
+    .promise.catch(() => {
+      /* An undecodable picture simply has no thumbnail; the grid falls back to the original. */
     })
-    .catch(async (error: unknown) => {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      await vfs.setIndexState(node.id, 'failed');
-      if (store.get().pendingImages <= 1) notifyError(`Could not index ${node.name}`, error);
-    })
-    .finally(() => {
-      queuedImages.delete(node.id);
-      store.set((state) => ({ ...state, pendingImages: Math.max(0, state.pendingImages - 1) }));
-    });
+    .finally(() => queuedThumbnails.delete(node.id));
 }
 
-/** Queues every image the model has not seen yet. */
-export async function indexPendingImages(): Promise<number> {
-  if (!store.get().visionEnabled) return 0;
-
+/** Thumbnails every picture that does not have one yet. */
+export async function makePendingThumbnails(): Promise<number> {
   const nodes = await vfs.allNodes();
-  const known = new Set(await client.call('indexedImageIds', []).catch(() => []));
   const candidates = nodes.filter(
-    (node) =>
-      node.kind === 'file' && !node.trashed && categoryOf(node) === 'image' && !known.has(node.id),
+    (node) => node.kind === 'file' && !node.trashed && categoryOf(node) === 'image',
   );
-  for (const node of candidates) queueImage(node);
-  return candidates.length;
-}
-
-export async function searchPhotos(query: string, limit = 60): Promise<ImageHit[]> {
-  if (!store.get().visionEnabled) return [];
-  return schedule(
-    { label: `Photo search “${query}”`, kind: 'search', priority: PRIORITY.interactive },
-    () => client.call('searchImages', [{ query, limit }]),
-  ).promise;
-}
-
-export async function similarPhotos(id: string, limit = 24): Promise<ImageHit[]> {
-  return client.call('similarImages', [{ id, limit }]).catch(() => []);
-}
-
-/**
- * Finds groups of pictures that are the same picture.
- *
- * Runs at user-batch priority rather than in the background: nobody asks for this and then goes
- * away, and the scan is quadratic, so it should get the machine while it is wanted and finish.
- */
-export async function findDuplicates(threshold?: number): Promise<DuplicateGroup[]> {
-  if (!store.get().visionEnabled) return [];
-  return schedule(
-    { label: 'Find duplicate pictures', kind: 'duplicates', priority: PRIORITY.userBatch },
-    async (context) =>
-      client.call('findDuplicates', [threshold === undefined ? {} : { threshold }], {
-        onProgress: (payload) => {
-          const { done, total } = payload as { done: number; total: number };
-          context.setProgress(total > 0 ? done / total : null, `${done} of ${total}`);
-        },
-      }),
-  ).promise;
+  let queued = 0;
+  for (const node of candidates) {
+    if (await hasThumbnail(node.id)) continue;
+    queueThumbnail(node);
+    queued += 1;
+  }
+  return queued;
 }
 
 export async function forgetImage(id: string): Promise<void> {
-  await client.call('removeImage', [id]).catch(() => false);
   await deleteThumbnail(id);
 }
 
-export async function clearImageIndex(): Promise<void> {
-  await clearThumbnails();
-  await refreshStats();
-}
-
-export { DUPLICATE_THRESHOLD };
-export type { ImageHit, DuplicateGroup };
+export type { SearchHit as DocumentHit };

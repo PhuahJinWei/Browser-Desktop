@@ -146,6 +146,13 @@ automatic; it has to be measured, or it degrades slowly instead of gracefully.
 Boot costs about **90 KB gzipped**. Everything expensive is deferred to the moment it is first
 genuinely needed, which is the whole argument for lazy-loading apps rather than bundling them.
 
+> **Note.** The sections below on photo search, transcription, video moments, near-duplicate
+> detection and OCR measure features that have since been **removed** — see
+> [ADR 15](../adr/0015-no-on-demand-models.md). They are kept because they are the record of what
+> was built, what it cost and what the numbers said, including two occasions where a measurement
+> reversed a decision the plan had assumed. The measurements are still true; the features are no
+> longer in the product.
+
 ## M2 — photos and audio
 
 ### Image search quality

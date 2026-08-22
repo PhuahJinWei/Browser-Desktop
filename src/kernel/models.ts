@@ -19,7 +19,8 @@ import { formatBytes } from './vfs/types';
  */
 
 export type ModelTier = 'bundled' | 'on-demand';
-export type ModelTask = 'text-embedding' | 'image-text-embedding' | 'speech-recognition' | 'ocr';
+/** One task, one model. The on-demand tier was removed in full — see ADR 15. */
+export type ModelTask = 'text-embedding';
 
 export interface ModelFile {
   path: string;

@@ -1,9 +1,13 @@
 /**
- * Audio decoding and resampling.
+ * Audio decoding, for drawing a waveform.
  *
- * Whisper wants mono 16 kHz float samples, and files arrive as MP3, WAV, M4A or whatever the
- * browser will open. Decoding happens on the main thread because the Web Audio API is not exposed
- * to workers — only the samples cross over, as a transferable buffer.
+ * Files arrive as MP3, WAV, M4A or whatever the browser will open, and the Web Audio API is the
+ * thing that opens them. It is not exposed to workers, so this runs on the main thread.
+ *
+ * Down-mixing to mono at 16 kHz is not a requirement of the drawing — it is what makes it cheap.
+ * Three minutes of stereo at 48 kHz is 17 million samples to scan for peaks; the same audio at
+ * 16 kHz mono is under three million, and a waveform 400 pixels wide cannot tell the difference.
+ * The rate is a leftover from when this fed a speech model, and it stays for the reason above.
  */
 
 export const TARGET_SAMPLE_RATE = 16_000;
@@ -101,11 +105,4 @@ export function formatTimestamp(seconds: number, withHours = false): string {
   return hours > 0 || withHours
     ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}`
     : `${pad(minutes)}:${pad(secs)}`;
-}
-
-/** SubRip timestamps use a comma before the milliseconds. */
-export function formatSrtTimestamp(seconds: number): string {
-  const total = Math.max(0, seconds);
-  const milliseconds = Math.floor((total % 1) * 1000);
-  return `${formatTimestamp(total, true)},${String(milliseconds).padStart(3, '0')}`;
 }

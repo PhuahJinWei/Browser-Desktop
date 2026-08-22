@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased] — nothing to download
+
+Removed
+
+- **Every on-demand model, and the features that needed one.** Photo search by description and
+  find-similar, video moment search, the near-duplicate finder, transcription with chapters and
+  `.srt` export, and reading text out of pictures. With them go CLIP (150 MB), Whisper tiny
+  (69 MB) and TrOCR (66 MB), and the consent dialog they appeared behind — there is nothing left to
+  consent to. Reasoning, and what it cost, in [ADR 15](./docs/adr/0015-no-on-demand-models.md).
+
+Kept
+
+- **The apps.** Photos is a picture browser with a name filter, a detail pane and thumbnails still
+  generated on this device. Audio plays, records and draws a waveform. Video plays, and still saves
+  the frame you are looking at or cuts the section you are watching into its own file — both are
+  canvas and `MediaRecorder`, and never needed a model.
+- **Semantic document search**, unchanged. It runs on the bundled 23 MB embedding model, was never
+  behind a dialog, and is still hybrid semantic + keyword with snippets and highlights.
+- **The measurements.** ADRs 10, 12 and 13 and their benchmark sections are retired rather than
+  deleted. They record what was built and what it measured — including the two occasions where a
+  benchmark reversed a decision the plan had assumed — and losing the feature does not make the
+  finding untrue.
+
 ## [Unreleased] — M4, more senses
 
 Added

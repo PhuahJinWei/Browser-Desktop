@@ -6,6 +6,10 @@
  * API, so they are fetched rather than transcribed — rerun this when a model is added or pinned
  * to a new revision.
  *
+ * There is one model left. The on-demand tier — CLIP for photo search, Whisper for transcription,
+ * TrOCR for reading pages — was removed in full: see ADR 15. What remains is the embedding model
+ * that document search runs on.
+ *
  *   node tools/fetch-model-registry.mjs
  *
  * Note: `lfs.oid` is the SHA-256 of the file contents. Small non-LFS files have no oid; they are
@@ -41,113 +45,6 @@ const SPEC = [
     notes:
       'Default text embedding model. Small enough to ship in the repo, so search works offline on first visit.',
     milestone: 'M1',
-  },
-  {
-    id: 'asr-whisper-tiny',
-    task: 'speech-recognition',
-    label: 'Whisper tiny (multilingual, int8)',
-    repo: 'onnx-community/whisper-tiny',
-    revision: 'main',
-    // The plan had this bundled at M2. Consent-gated download turned out to be better: nobody
-    // who never opens the Audio app should pay 69 MB for it, and the fp16 decoder made bundling
-    // it a budget problem anyway.
-    tier: 'on-demand',
-    minTier: 'C',
-    license: 'MIT',
-    licenseUrl: 'https://huggingface.co/openai/whisper-tiny',
-    dtype: 'q8 encoder / fp16 decoder',
-    files: [
-      'onnx/encoder_model_quantized.onnx',
-      // Not the quantised decoder: it fails to build a session on current ONNX Runtime with
-      // "Missing required scale ... MatMulNBits". fp16 is the smallest export that loads.
-      'onnx/decoder_model_merged_fp16.onnx',
-      'config.json',
-      'generation_config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-    ],
-    meta: { languages: 'multilingual', chunkSeconds: 30 },
-    notes:
-      'Bundled from M2 onward so the audio demo needs no download. Larger variants are on-demand.',
-    milestone: 'M2',
-  },
-  {
-    id: 'image-text-mobileclip-s0',
-    task: 'image-text-embedding',
-    label: 'MobileCLIP-S0 (int8)',
-    repo: 'Xenova/mobileclip_s0',
-    revision: 'main',
-    tier: 'on-demand',
-    minTier: 'B',
-    license: 'Apple ASCL',
-    licenseUrl: 'https://huggingface.co/apple/MobileCLIP-S0',
-    dtype: 'q8',
-    files: [
-      'onnx/text_model_quantized.onnx',
-      'onnx/vision_model_quantized.onnx',
-      'config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-    ],
-    meta: { dimensions: 512, imageSize: 256 },
-    notes:
-      'Smaller image model, kept for reference. Rejected as the default: its config omits the preprocessing parameters and search ranking is visibly worse. See ADR 10.',
-    milestone: 'M2',
-  },
-  {
-    id: 'image-text-clip-vit-b32',
-    task: 'image-text-embedding',
-    label: 'CLIP ViT-B/32 (int8)',
-    repo: 'Xenova/clip-vit-base-patch32',
-    revision: 'main',
-    tier: 'on-demand',
-    minTier: 'A',
-    license: 'MIT',
-    licenseUrl: 'https://huggingface.co/openai/clip-vit-base-patch32',
-    dtype: 'q8',
-    files: [
-      'onnx/text_model_quantized.onnx',
-      'onnx/vision_model_quantized.onnx',
-      'config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-      'special_tokens_map.json',
-      'vocab.json',
-      'merges.txt',
-    ],
-    meta: { dimensions: 512, imageSize: 224 },
-    notes: 'The photo search model. MIT licensed, fully specified config, and correct ranking in testing.',
-    milestone: 'M2',
-  },
-  {
-    id: 'ocr-trocr-small-printed',
-    task: 'ocr',
-    label: 'TrOCR small, printed (int8)',
-    repo: 'Xenova/trocr-small-printed',
-    revision: 'main',
-    tier: 'on-demand',
-    minTier: 'B',
-    license: 'MIT',
-    licenseUrl: 'https://huggingface.co/microsoft/trocr-small-printed',
-    dtype: 'q8',
-    files: [
-      'onnx/encoder_model_quantized.onnx',
-      'onnx/decoder_model_merged_quantized.onnx',
-      'config.json',
-      'generation_config.json',
-      'preprocessor_config.json',
-      'tokenizer.json',
-      'tokenizer_config.json',
-      'special_tokens_map.json',
-      'sentencepiece.bpe.model',
-    ],
-    meta: { imageSize: 384, language: 'en' },
-    notes:
-      'Reads one line of printed text at a time, so the desktop finds the lines itself. Chosen over tesseract.js because it needs no new dependency, no binary in the repository and no third host: it is a model like the others, downloaded with consent and verified against a digest.',
-    milestone: 'M4',
   },
 ];
 

@@ -6,35 +6,7 @@ import { chunkText } from './chunk';
 import { Bm25Index, fuseRankings, tokenize } from './bm25';
 import { VectorIndex } from './vectors';
 import { idb, openDatabase, transact } from '../../kernel/idb';
-import {
-  addImage,
-  clearImages,
-  findDuplicates,
-  hasImage,
-  imageBytes,
-  imageCount,
-  indexedVideoIds,
-  momentsOf,
-  removeImage,
-  removeMomentsOf,
-  restoreImages,
-  searchImages as searchImageIndex,
-  serializeImages,
-  stillImages,
-  similarTo,
-  type ImageHit,
-  type ImageSnapshot,
-} from './images';
-import {
-  embedImage,
-  embedPhrases,
-  loadVision,
-  makeThumbnail,
-  unloadVision,
-  visionRuntime,
-} from './vision';
-import { groupMoments, momentId, type Moment } from './moments';
-import { DUPLICATE_THRESHOLD, type DuplicateGroup } from './duplicates';
+import { makeThumbnail } from './thumbnail-render';
 
 /**
  * The search service.
@@ -83,18 +55,12 @@ export interface IndexStats {
   dimensions: number;
   vectorBytes: number;
   ready: boolean;
-  /** Image side, which uses a different model in a different vector space. */
-  images: number;
-  imageModel: string;
-  imageVectorBytes: number;
-  visionReady: boolean;
 }
 
 let extractor: FeatureExtractionPipeline | null = null;
 let loading: Promise<FeatureExtractionPipeline> | null = null;
 let backend: 'webgpu' | 'wasm' = 'wasm';
 let modelId = DEFAULT_MODEL;
-let visionModelId = '';
 let dimensions = 384;
 
 const documents = new Map<string, IndexedDocument>();
@@ -237,9 +203,6 @@ interface Snapshot {
   documents: IndexedDocument[];
   ids: string[];
   data: ArrayBuffer;
-  /** Present once any image has been indexed; absent on an index built before M2. */
-  visionModel?: string;
-  imageSnapshot?: ImageSnapshot;
 }
 
 /**
@@ -261,7 +224,6 @@ async function persist(): Promise<void> {
     documents: [...documents.values()],
     ids: serialized.ids,
     data: serialized.data,
-    ...(imageCount() > 0 ? { visionModel: visionModelId, imageSnapshot: serializeImages() } : {}),
   };
   const db = await database();
   await transact(db, 'index', 'readwrite', (tx) => idb.put(tx.objectStore('index'), snapshot));
@@ -302,12 +264,6 @@ async function restore(): Promise<boolean> {
     });
   }
 
-  // Image vectors are restored only if they came from the model we would use now; a different
-  // model means a different space, and comparing across them silently returns nonsense.
-  if (snapshot.imageSnapshot && snapshot.visionModel) {
-    visionModelId = snapshot.visionModel;
-    restoreImages(snapshot.imageSnapshot);
-  }
   return true;
 }
 
@@ -336,80 +292,29 @@ export type IndexMethods = {
   /** Embeds arbitrary text. Exposed for apps built on the SDK. */
   embedTexts: (texts: string[]) => number[][];
 
-  /** Loads the image model. Separate from configure() because it is opt-in and much larger. */
-  loadVisionModel: (options: { model: string; backend: 'webgpu' | 'wasm' }) => IndexStats;
-  unloadVisionModel: () => IndexStats;
-  indexImage: (input: { id: string; name: string; mime: string; data: ArrayBuffer }) => {
-    indexed: boolean;
+  /**
+   * A thumbnail for the Photos grid. No model involved — decode, draw small, encode.
+   *
+   * It lives in this worker rather than on the main thread because decoding a 4000-pixel
+   * photograph is exactly the work that makes a grid stutter if it happens where the UI runs.
+   */
+  thumbnail: (input: { mime: string; data: ArrayBuffer }) => {
     width: number;
     height: number;
-    thumbnail: ArrayBuffer | null;
-    skipped?: string;
+    blob: ArrayBuffer | null;
   };
-  removeImage: (id: string) => boolean;
-  searchImages: (options: { query: string; limit?: number }) => ImageHit[];
-  similarImages: (options: { id: string; limit?: number }) => ImageHit[];
-  indexedImageIds: () => string[];
-
-  /** Pictures that are the same picture, grouped. */
-  findDuplicates: (options: { threshold?: number }) => DuplicateGroup[];
-
-  /** Video moments. Same model, same index — a frame is an image. */
-  indexMoments: (input: {
-    sourceId: string;
-    name: string;
-    mime: string;
-    duration: number;
-    frames: { time: number; data: ArrayBuffer }[];
-  }) => { indexed: number; total: number };
-  searchMoments: (options: { query: string; limit?: number; sourceId?: string }) => Moment[];
-  momentTimes: (sourceId: string) => number[];
-  forgetVideo: (sourceId: string) => number;
-  indexedVideoIds: () => string[];
   indexedDocumentIds: () => string[];
 };
-
-/**
- * How similar a frame must be to the query before it counts as a match at all.
- *
- * Measured against the eight sample scenes, not guessed:
- *
- * | query                     | correct scene | best wrong scene |
- * | ------------------------- | ------------- | ---------------- |
- * | a red keyboard            | 0.32          | 0.23             |
- * | a sunset over the ocean   | 0.29          | 0.24             |
- * | a bar chart               | 0.27          | 0.26             |
- * | a submarine (not present) | —             | 0.23             |
- *
- * So the weakest true answer is 0.27 and the strongest wrong one is 0.26 — the bands nearly touch,
- * and "a bar chart" is the hard case because a drawn chart is mostly coloured rectangles. The
- * floor goes at 0.25: below every true answer even after a video's re-encoding costs it a point
- * or two, and above what a query with no answer in the video can reach. Without any floor the
- * search returned every frame of every video ranked by noise, which is what it did before this
- * constant existed.
- */
-const MOMENT_FLOOR = 0.25;
-
-/**
- * A second net, in case a whole video sits above the floor. Keeps moments close to the best one,
- * so a query matching two scenes returns both, and one matching a single scene returns one.
- */
-const MOMENT_RELATIVE = 0.9;
 
 function currentStats(): IndexStats {
   let chunks = 0;
   for (const document of documents.values()) chunks += document.chunks.length;
-  const vision = visionRuntime();
   return {
     documents: documents.size,
     chunks,
     terms: keywords.terms,
     model: modelId,
     backend,
-    images: imageCount(),
-    imageModel: visionModelId,
-    imageVectorBytes: imageBytes(),
-    visionReady: vision.ready,
     dimensions,
     vectorBytes: vectors.bytes,
     ready: extractor !== null,
@@ -605,151 +510,12 @@ exposeRpc<IndexMethods>({
 
   save: async () => persist(),
 
-  /* Images ----------------------------------------------------------------------------------- */
-
-  loadVisionModel: async ([options], report) => {
-    if (visionModelId && visionModelId !== options.model) {
-      // A different model means a different vector space; the existing image vectors are no
-      // longer comparable with anything this model produces.
-      clearImages();
-      await unloadVision();
-    }
-    visionModelId = options.model;
-    await loadVision(options.model, options.backend, report);
-    return currentStats();
+  thumbnail: async ([input]) => {
+    const made = await makeThumbnail(input.data, input.mime);
+    if (!made) return { width: 0, height: 0, blob: null };
+    const bytes = await made.blob.arrayBuffer();
+    return transfer({ width: made.width, height: made.height, blob: bytes }, [bytes]);
   },
-
-  unloadVisionModel: async () => {
-    await unloadVision();
-    return currentStats();
-  },
-
-  indexImage: async ([input]) => {
-    if (!visionRuntime().ready) {
-      return { indexed: false, width: 0, height: 0, thumbnail: null, skipped: 'model not loaded' };
-    }
-
-    // The thumbnail is made first: if the image cannot be decoded at all, there is no point
-    // handing it to the model, and the failure is clearer here.
-    const thumbnail = await makeThumbnail(input.data, input.mime);
-    const vector = await embedImage(input.data, input.mime);
-
-    addImage(
-      {
-        id: input.id,
-        name: input.name,
-        mime: input.mime,
-        width: thumbnail?.width ?? 0,
-        height: thumbnail?.height ?? 0,
-        bytes: input.data.byteLength,
-        indexedAt: Date.now(),
-      },
-      vector,
-    );
-
-    const thumbBytes = thumbnail ? await thumbnail.blob.arrayBuffer() : null;
-    const result = {
-      indexed: true,
-      width: thumbnail?.width ?? 0,
-      height: thumbnail?.height ?? 0,
-      thumbnail: thumbBytes,
-    };
-    return thumbBytes ? transfer(result, [thumbBytes]) : result;
-  },
-
-  removeImage: async ([id]) => removeImage(id),
-
-  searchImages: async ([options]) => {
-    const query = options.query.trim();
-    if (!query || imageCount() === 0 || !visionRuntime().ready) return [];
-    const [vector] = await embedPhrases([query]);
-    if (!vector) return [];
-    const limit = options.limit ?? 40;
-    // Over-fetch and then drop video frames: Photos is asking about pictures, and a video with
-    // 200 indexed moments would otherwise crowd out every photograph in the index.
-    return searchImageIndex(vector, limit * 3)
-      .filter((hit) => hit.time === undefined)
-      .slice(0, limit);
-  },
-
-  similarImages: async ([options]) => {
-    // No model needed: the query vector is one already in the index.
-    if (!hasImage(options.id)) return [];
-    return similarTo(options.id, options.limit ?? 24);
-  },
-
-  indexedImageIds: async () => stillImages().map((image) => image.id),
-
-  findDuplicates: async ([options], report) =>
-    findDuplicates(options.threshold ?? DUPLICATE_THRESHOLD, (done, total) =>
-      report({ done, total }),
-    ),
-
-  /* Video moments -------------------------------------------------------------------------- */
-
-  /**
-   * Indexes a batch of sampled frames as moments of one video.
-   *
-   * Frames arrive already decoded and downscaled from the main thread, because <video> is a DOM
-   * element and cannot be opened here. Existing moments for the video are dropped first, so
-   * re-indexing after a re-sample replaces rather than accumulates.
-   */
-  indexMoments: async ([input], report) => {
-    if (!visionRuntime().ready) return { indexed: 0, total: input.frames.length };
-
-    removeMomentsOf(input.sourceId);
-
-    let indexed = 0;
-    for (const [position, frame] of input.frames.entries()) {
-      try {
-        const vector = await embedImage(frame.data, 'image/webp');
-        addImage(
-          {
-            id: momentId(input.sourceId, frame.time),
-            name: input.name,
-            mime: input.mime,
-            width: 0,
-            height: 0,
-            bytes: frame.data.byteLength,
-            indexedAt: Date.now(),
-            time: frame.time,
-            sourceId: input.sourceId,
-          },
-          vector,
-        );
-        indexed += 1;
-      } catch {
-        // One unreadable frame is not a reason to abandon the video.
-      }
-      report({ done: position + 1, total: input.frames.length });
-    }
-
-    return { indexed, total: input.frames.length };
-  },
-
-  searchMoments: async ([options]) => {
-    const query = options.query.trim();
-    if (!query || imageCount() === 0 || !visionRuntime().ready) return [];
-    const [vector] = await embedPhrases([query]);
-    if (!vector) return [];
-
-    const limit = options.limit ?? 12;
-    // Frames within a shot score alike, so a moment costs several hits. Ask for many, group them,
-    // then take the best few moments — the limit is in moments, which is what was requested.
-    const hits = searchImageIndex(vector, limit * 20, undefined, MOMENT_FLOOR)
-      .filter((hit) => hit.time !== undefined)
-      .filter((hit) => !options.sourceId || hit.sourceId === options.sourceId);
-
-    const moments = groupMoments(hits);
-    const best = moments[0]?.score ?? 0;
-    return moments.filter((moment) => moment.score >= best * MOMENT_RELATIVE).slice(0, limit);
-  },
-
-  momentTimes: async ([sourceId]) => momentsOf(sourceId).map((record) => record.time ?? 0),
-
-  forgetVideo: async ([sourceId]) => removeMomentsOf(sourceId),
-
-  indexedVideoIds: async () => indexedVideoIds(),
 
   indexedDocumentIds: async () => [...documents.keys()],
 });

@@ -65,11 +65,6 @@ function makeApi(manifest: AppManifest, args: unknown) {
       embed: (texts: string[]) => call<number[][]>('ai.embed', [texts]),
       search: (query: string, limit?: number) =>
         call<AppSearchHit[]>('ai.search', [query, limit ?? 10]),
-      searchPhotos: (query: string, limit?: number) =>
-        call<{ id: string; name: string; score: number }[]>('ai.searchPhotos', [
-          query,
-          limit ?? 20,
-        ]),
     },
 
     ui: {
