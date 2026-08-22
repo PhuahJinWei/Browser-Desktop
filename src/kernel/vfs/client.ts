@@ -199,6 +199,18 @@ class Vfs {
     // Deliberately quiet: index progress would otherwise refresh every open window per file.
   }
 
+  /**
+   * Files the desktop still lists but can no longer open.
+   *
+   * Metadata and content live in two stores that are not transactional with each other, so a
+   * record can outlive its bytes. Nothing here creates that state deliberately; this exists so
+   * that when it happens it can be seen and cleared, rather than being met one failed open at a
+   * time with a message from the platform.
+   */
+  findBrokenFiles(): Promise<VfsNode[]> {
+    return this.rpc.call('findBrokenFiles', []);
+  }
+
   async clearSample(): Promise<NodeId[]> {
     const removed = await this.rpc.call('clearSample', []);
     this.announce({ parents: [ROOT_ID], nodes: removed, reason: 'delete' });

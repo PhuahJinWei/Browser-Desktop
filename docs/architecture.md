@@ -199,3 +199,18 @@ The backend surprised the plan for the second time. Recognition runs on **thread
 GPU: 3.1 s against 18.4 s for the same page, and with fewer mistakes. A dozen sequential decoder
 steps per line cost more to dispatch than to compute — the same finding M0 made about small text
 embeddings, in a place nobody expected it.
+
+## When the two stores disagree
+
+File metadata lives in IndexedDB and file content lives in OPFS, and the two are not transactional
+with each other. Writes are ordered so the safe failure is the survivable one — bytes with no
+record, rather than a record with no bytes — and the blob sweep after a permanent delete only
+removes a hash no record still references.
+
+It is still possible to end up holding a record whose bytes are gone: an interrupted write, storage
+eviction, or a bug. Turning up during M4, that state produced nothing but a bare "A requested file
+or directory could not be found" rejected into the console, naming no file and suggesting no
+repair. Reads now raise a `MissingContentError` that names the file, and **Settings → Check files**
+walks every record and lists the ones whose content is absent. The desktop cannot repair them —
+the bytes are gone — but a system that can tell you exactly which files are damaged is a different
+thing from one that fails a file at a time and says nothing useful.

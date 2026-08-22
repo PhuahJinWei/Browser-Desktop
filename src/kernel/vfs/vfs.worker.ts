@@ -50,6 +50,8 @@ export type VfsMethods = {
   stats: () => VfsStats;
   setIndexState: (id: NodeId, state: IndexState, model?: string) => void;
   clearSample: () => NodeId[];
+  /** Files whose records point at bytes that are no longer in storage. */
+  findBrokenFiles: () => VfsNode[];
   resetEverything: () => void;
 };
 
@@ -84,5 +86,6 @@ exposeRpc<VfsMethods>({
   stats: async () => vfs.stats(),
   setIndexState: async ([id, state, model]) => vfs.setIndexState(id, state, model),
   clearSample: async () => vfs.clearSample(),
+  findBrokenFiles: async () => vfs.findBrokenFiles(),
   resetEverything: async () => vfs.resetEverything(),
 });

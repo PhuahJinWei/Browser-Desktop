@@ -174,14 +174,62 @@ export async function allNodes(): Promise<VfsNode[]> {
   );
 }
 
+/**
+ * Reads a file's bytes.
+ *
+ * The missing-blob case gets its own message rather than the platform's. Metadata lives in
+ * IndexedDB and content lives in OPFS, and the two are not transactional with each other, so it is
+ * possible — through an interrupted write, an eviction, or a bug — to hold a record whose bytes
+ * are gone. That surfaced during M4 as a bare "A requested file or directory could not be found"
+ * rejected into the console with nothing naming the file or saying what to do.
+ */
 export async function read(id: NodeId): Promise<FileContent> {
   const node = await stat(id);
   if (!node) throw new Error(`No such file: ${id}`);
   if (node.kind === 'directory') throw new Error(`${node.name} is a directory`);
   if (!node.hash) throw new Error(`${node.name} has no content`);
 
-  const file = await (await blobFile(node.hash, false)).getFile();
-  return { node, data: await file.arrayBuffer() };
+  try {
+    const file = await (await blobFile(node.hash, false)).getFile();
+    return { node, data: await file.arrayBuffer() };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'NotFoundError') {
+      throw new MissingContentError(node.name, id);
+    }
+    throw error;
+  }
+}
+
+/** A file whose record survives but whose stored bytes do not. */
+export class MissingContentError extends Error {
+  readonly nodeId: NodeId;
+  constructor(name: string, nodeId: NodeId) {
+    super(
+      `The contents of ${name} are missing from storage. The file entry is still here, but its bytes are not — deleting it and adding it again is the only repair.`,
+    );
+    this.name = 'MissingContentError';
+    this.nodeId = nodeId;
+  }
+}
+
+/**
+ * Files whose records point at bytes that are not there.
+ *
+ * Cheap enough to offer in Settings as a check rather than making every reader discover it one
+ * failure at a time.
+ */
+export async function findBrokenFiles(): Promise<VfsNode[]> {
+  const nodes = await allNodes();
+  const broken: VfsNode[] = [];
+  for (const node of nodes) {
+    if (node.kind !== 'file' || !node.hash) continue;
+    try {
+      await blobFile(node.hash, false);
+    } catch {
+      broken.push(node);
+    }
+  }
+  return broken;
 }
 
 export async function readText(id: NodeId): Promise<string> {

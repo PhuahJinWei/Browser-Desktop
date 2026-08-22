@@ -57,6 +57,12 @@ Fixed
   success without moving.
 - Thumbnails kept showing the old picture after a file was overwritten: object URLs were pooled by
   file id and never invalidated.
+- A file whose stored bytes were missing rejected with the platform's own
+  `NotFoundError` — no filename, no explanation, straight to the console as an unhandled
+  rejection. It now throws a `MissingContentError` naming the file and saying what the repair is,
+  and **Settings → Check files** lists every such file on demand. Metadata and content live in two
+  stores that are not transactional with each other, so the state is possible; what was missing was
+  any way to see it.
 
 ## [Unreleased] — M3, the app platform
 

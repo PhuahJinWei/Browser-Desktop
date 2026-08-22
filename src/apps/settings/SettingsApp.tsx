@@ -250,6 +250,34 @@ export default function SettingsApp() {
           >
             Clear sample data
           </button>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={busy !== null}
+            onClick={() =>
+              void run('Check files', async () => {
+                const broken = await vfs.findBrokenFiles();
+                if (broken.length === 0) {
+                  notify({ title: 'Every file can be opened', level: 'success' });
+                  return;
+                }
+                notify({
+                  title: `${broken.length} file${broken.length === 1 ? '' : 's'} cannot be opened`,
+                  body: `${broken
+                    .slice(0, 3)
+                    .map((node) => node.name)
+                    .join(
+                      ', ',
+                    )}${broken.length > 3 ? '…' : ''} — the entries are here but their contents are not. Deleting and re-adding them is the repair.`,
+                  level: 'warning',
+                  timeout: 12000,
+                });
+              })
+            }
+            title="Checks that every file's stored contents are still present"
+          >
+            Check files
+          </button>
         </div>
       </section>
 
