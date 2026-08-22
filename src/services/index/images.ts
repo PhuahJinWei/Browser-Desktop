@@ -1,4 +1,5 @@
 import { VectorIndex } from './vectors';
+import { groupDuplicates, type DuplicateGroup } from './duplicates';
 
 /**
  * The image index.
@@ -152,6 +153,34 @@ export function similarTo(id: string, limit = 24): ImageHit[] {
   const vector = vectors.get(id);
   if (!vector) return [];
   return searchImages(vector, limit, id);
+}
+
+/**
+ * Pictures that are the same picture.
+ *
+ * Video moments are excluded rather than filtered afterwards: frames two seconds apart in one shot
+ * are near-duplicates by any measure, so including them would bury the real answer under every
+ * video in the library and pay for the comparisons as well.
+ */
+export function findDuplicates(
+  threshold: number,
+  onProgress?: (done: number, total: number) => void,
+): DuplicateGroup[] {
+  const pairs = vectors.pairsAbove(threshold, {
+    include: (id) => records.get(id)?.time === undefined,
+    ...(onProgress ? { onProgress } : {}),
+  });
+  // Biggest first, so the first member of each group is the one the UI offers to keep. Size is a
+  // rough proxy for "least damaged": the original rather than the re-save, the whole picture
+  // rather than the crop. Newest-first was tried and picks the crop, which is backwards — a
+  // duplicate is usually made *from* the one worth keeping.
+  return groupDuplicates(
+    pairs,
+    [...records.values()]
+      .filter((record) => record.time === undefined)
+      .sort((a, b) => b.bytes - a.bytes)
+      .map((record) => record.id),
+  );
 }
 
 export interface ImageSnapshot {

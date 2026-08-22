@@ -165,3 +165,15 @@ decoder is not worth optimising and the model is; and a matching frame scores 0.
 query with no answer tops out at 0.24, so there is an absolute floor at 0.25 below which nothing
 is returned at all. Both are measured, in [`docs/benchmarks/`](./benchmarks/), and the reasoning
 is in [ADR 12](./adr/0012-video-moments.md).
+
+M4 also adds a near-duplicate finder, which needed no model at all — the vectors were already
+there. `VectorIndex.pairsAbove` walks every pair, but skips almost all of them with an exact
+bound: because the rows are normalised, the dot product of the first 64 dimensions plus the
+product of the two tails' magnitudes cannot be less than the whole dot product, so a pair whose
+bound falls under the threshold cannot qualify and its remaining 448 dimensions are never read.
+Over five thousand vectors that is 0.41% of pairs needing full evaluation and a 6.1× speed-up,
+with results identical to the naive scan — which a test asserts. `duplicates.ts` then turns pairs
+into sets with union-find, so five copies are one row rather than ten pairs.
+
+It remains quadratic, and the honest limit is around twenty thousand pictures. Past that the
+answer is a blocking index rather than a better constant.

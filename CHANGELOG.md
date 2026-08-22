@@ -14,6 +14,9 @@ Added
 - **A sample video the desktop records for itself** — eight of the sample pictures, filmed at
   512×512 over 32 seconds, drawn and encoded on the device with nothing downloaded. You watch it
   being drawn, then search it.
+- **Near-duplicate finder** in Photos. Groups pictures that are the same picture — a re-save, a
+  crop, a frame exported from a video — and offers to keep the first and trash the rest together.
+  Two deliberate copies now ship in the sample set so there is something to find.
 
 Verified
 
@@ -21,6 +24,10 @@ Verified
   it, and two queries with no answer in the video correctly return nothing. Timings, scores and
   the one weak case are in `docs/benchmarks/`.
 - 4.7 s to make 32 seconds of video searchable, of which the model is 4.1 s and decoding is 0.6 s.
+- Duplicate detection separates cleanly: copies score 0.95–0.98 and no two different pictures in
+  the sample set exceed 0.79, so the 0.92 threshold sits in an empty band. The all-pairs scan
+  skips 99.6% of full comparisons using an exact bound — 6.1× faster over 5,000 vectors, with
+  identical results.
 
 Fixed
 
@@ -30,6 +37,12 @@ Fixed
   tests.
 - The index could be saved before it had been restored, writing an empty snapshot over a good one
   if a background job finished first. Writes now wait for a restore to have been attempted.
+- **Frames exported from a video were the last frame, not the one asked for.** Probing a
+  `MediaRecorder` file for its duration leaves the element at the end, and its `seeked` event was
+  still in flight when the real seek began — so the real seek caught the stale event and reported
+  success without moving.
+- Thumbnails kept showing the old picture after a file was overwritten: object URLs were pooled by
+  file id and never invalidated.
 
 ## [Unreleased] — M3, the app platform
 

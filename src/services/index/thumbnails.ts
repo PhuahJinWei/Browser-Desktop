@@ -37,6 +37,10 @@ export async function putThumbnail(
   width: number,
   height: number,
 ): Promise<void> {
+  // A replaced thumbnail must not keep its old object URL. Overwriting a picture — re-exporting a
+  // frame over an earlier one, say — re-indexes it and writes a new thumbnail here, and without
+  // this the grid went on showing the previous image for the rest of the session.
+  releaseThumbnailUrl(id);
   const handle = await db();
   await transact(handle, STORE, 'readwrite', (tx) =>
     idb.put(tx.objectStore(STORE), {
@@ -58,6 +62,7 @@ export async function getThumbnail(id: string): Promise<Blob | null> {
 }
 
 export async function deleteThumbnail(id: string): Promise<void> {
+  releaseThumbnailUrl(id);
   const handle = await db();
   await transact(handle, STORE, 'readwrite', (tx) => idb.delete(tx.objectStore(STORE), id));
 }
@@ -100,6 +105,14 @@ export async function thumbnailUrl(id: string): Promise<string | null> {
     if (stale) URL.revokeObjectURL(stale);
   }
   return url;
+}
+
+/** Forgets one pooled URL, so the next request re-reads the stored blob. */
+export function releaseThumbnailUrl(id: string): void {
+  const url = urls.get(id);
+  if (!url) return;
+  urls.delete(id);
+  URL.revokeObjectURL(url);
 }
 
 export function releaseThumbnailUrls(): void {

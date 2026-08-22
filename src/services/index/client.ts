@@ -10,6 +10,7 @@ import { categoryOf, isIndexable, type VfsNode } from '../../kernel/vfs/types';
 import { ensureModel, getModel, isDownloaded } from '../../kernel/models';
 import { putThumbnail, deleteThumbnail, clearThumbnails } from './thumbnails';
 import type { ImageHit } from './images';
+import { DUPLICATE_THRESHOLD, type DuplicateGroup } from './duplicates';
 import type { IndexMethods, IndexStats, SearchHit } from './index.worker';
 
 /**
@@ -417,6 +418,26 @@ export async function similarPhotos(id: string, limit = 24): Promise<ImageHit[]>
   return client.call('similarImages', [{ id, limit }]).catch(() => []);
 }
 
+/**
+ * Finds groups of pictures that are the same picture.
+ *
+ * Runs at user-batch priority rather than in the background: nobody asks for this and then goes
+ * away, and the scan is quadratic, so it should get the machine while it is wanted and finish.
+ */
+export async function findDuplicates(threshold?: number): Promise<DuplicateGroup[]> {
+  if (!store.get().visionEnabled) return [];
+  return schedule(
+    { label: 'Find duplicate pictures', kind: 'duplicates', priority: PRIORITY.userBatch },
+    async (context) =>
+      client.call('findDuplicates', [threshold === undefined ? {} : { threshold }], {
+        onProgress: (payload) => {
+          const { done, total } = payload as { done: number; total: number };
+          context.setProgress(total > 0 ? done / total : null, `${done} of ${total}`);
+        },
+      }),
+  ).promise;
+}
+
 export async function forgetImage(id: string): Promise<void> {
   await client.call('removeImage', [id]).catch(() => false);
   await deleteThumbnail(id);
@@ -427,4 +448,5 @@ export async function clearImageIndex(): Promise<void> {
   await refreshStats();
 }
 
-export type { ImageHit };
+export { DUPLICATE_THRESHOLD };
+export type { ImageHit, DuplicateGroup };

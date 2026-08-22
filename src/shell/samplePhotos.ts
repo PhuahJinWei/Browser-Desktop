@@ -24,11 +24,7 @@ export interface DrawnImage {
   draw: (context: SampleCanvasContext, size: number) => void;
 }
 
-function sky(
-  context: SampleCanvasContext,
-  size: number,
-  stops: [number, string][],
-): void {
+function sky(context: SampleCanvasContext, size: number, stops: [number, string][]): void {
   const gradient = context.createLinearGradient(0, 0, 0, size);
   for (const [offset, colour] of stops) gradient.addColorStop(offset, colour);
   context.fillStyle = gradient;
@@ -392,6 +388,29 @@ export const SAMPLE_IMAGES: DrawnImage[] = [
   },
 ];
 
+/**
+ * Two pictures that are copies of other pictures.
+ *
+ * A duplicate finder with nothing to find demonstrates nothing, and these are the two ways
+ * duplicates actually appear in a real collection: something re-saved at a lower quality, and
+ * something cropped. Both are named so it is obvious what they are.
+ */
+const DUPLICATES: {
+  name: string;
+  of: string;
+  /** Fraction of the original kept, centred. 1 means the whole picture. */
+  crop: number;
+  quality: number;
+}[] = [
+  { name: 'Red keyboard (saved again).webp', of: 'Red keyboard.webp', crop: 1, quality: 0.32 },
+  {
+    name: 'Sunset over the sea (cropped).webp',
+    of: 'Sunset over the sea.webp',
+    crop: 0.72,
+    quality: 0.85,
+  },
+];
+
 /** Renders the set to WebP. Returns nothing if the browser has no OffscreenCanvas. */
 export async function renderSampleImages(
   size = 512,
@@ -412,5 +431,33 @@ export async function renderSampleImages(
       mime: 'image/webp',
     });
   }
+
+  for (const duplicate of DUPLICATES) {
+    const original = SAMPLE_IMAGES.find((image) => image.name === duplicate.of);
+    if (!original) continue;
+
+    // Drawn at full size, then cropped by drawing that canvas into a second one — the same two
+    // steps a photo goes through when someone crops and re-saves it.
+    const full = new OffscreenCanvas(size, size);
+    const fullContext = full.getContext('2d');
+    if (!fullContext) continue;
+    original.draw(fullContext, size);
+
+    const canvas = new OffscreenCanvas(size, size);
+    const context = canvas.getContext('2d');
+    if (!context) continue;
+    const keep = size * duplicate.crop;
+    const offset = (size - keep) / 2;
+    context.drawImage(full, offset, offset, keep, keep, 0, 0, size, size);
+
+    const blob = await canvas.convertToBlob({ type: 'image/webp', quality: duplicate.quality });
+    rendered.push({
+      name: duplicate.name,
+      subject: `a copy of ${original.subject}`,
+      data: await blob.arrayBuffer(),
+      mime: 'image/webp',
+    });
+  }
+
   return rendered;
 }

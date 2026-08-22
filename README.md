@@ -56,7 +56,7 @@ shows the whole request log so you can check all of this rather than take it on 
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                            |
 | **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                               |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                           |
-| **Photos**       | Find pictures by describing them, and find more like one you are looking at. No tags, captions or filenames involved.                                            |
+| **Photos**       | Find pictures by describing them, find more like one you are looking at, and find the copies you did not know you had. No tags or filenames involved.            |
 | **Audio**        | Play, record and transcribe on the device, with chapters and a transcript you can search.                                                                        |
 | **Video**        | Search inside a video by describing what you saw. Jumps to the section, and saves it as a frame or its own clip.                                                 |
 | **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                         |
@@ -78,6 +78,7 @@ From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed b
 | Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand)                    |
 | 32 s of video, imported → searchable                      | **4.7 s** (4.1 s of it the model, 0.6 s decoding)                      |
 | Video moment queries returning the right scene            | **8 of 8** (7 of them exactly); the 2 unanswerable ones return nothing |
+| Near-duplicate scan over 5,000 pictures                   | **830 ms** — an exact bound skips 99.6% of the comparisons             |
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark

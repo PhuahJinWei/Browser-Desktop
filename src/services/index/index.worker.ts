@@ -9,6 +9,7 @@ import { idb, openDatabase, transact } from '../../kernel/idb';
 import {
   addImage,
   clearImages,
+  findDuplicates,
   hasImage,
   imageBytes,
   imageCount,
@@ -33,6 +34,7 @@ import {
   visionRuntime,
 } from './vision';
 import { groupMoments, momentId, type Moment } from './moments';
+import { DUPLICATE_THRESHOLD, type DuplicateGroup } from './duplicates';
 
 /**
  * The search service.
@@ -344,6 +346,9 @@ export type IndexMethods = {
   similarImages: (options: { id: string; limit?: number }) => ImageHit[];
   indexedImageIds: () => string[];
 
+  /** Pictures that are the same picture, grouped. */
+  findDuplicates: (options: { threshold?: number }) => DuplicateGroup[];
+
   /** Video moments. Same model, same index — a frame is an image. */
   indexMoments: (input: {
     sourceId: string;
@@ -638,6 +643,11 @@ exposeRpc<IndexMethods>({
   },
 
   indexedImageIds: async () => stillImages().map((image) => image.id),
+
+  findDuplicates: async ([options], report) =>
+    findDuplicates(options.threshold ?? DUPLICATE_THRESHOLD, (done, total) =>
+      report({ done, total }),
+    ),
 
   /* Video moments -------------------------------------------------------------------------- */
 

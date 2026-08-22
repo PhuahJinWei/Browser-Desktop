@@ -354,3 +354,64 @@ the model ranked them at random — "a red keyboard" gave the hand-drawn keyboar
 0.24. The same query against the sample _photographs_ gives 0.32 and 0.23. The video is now made
 of those pictures, so a video moment and a photograph are directly comparable rather than the
 video being tested against a worse set of drawings.
+
+## M4 — the near-duplicate finder
+
+### Scoring
+
+Every number below is CLIP cosine similarity, read off the app. The sample set now contains two
+deliberate copies — one picture re-saved at low quality, one cropped — plus, incidentally, a frame
+exported from the sample video, which is a copy of a picture without anyone having planned it.
+
+| Pair                                                               | Score    |
+| ------------------------------------------------------------------ | -------- |
+| Red keyboard, and the same saved at quality 0.32                   | **0.98** |
+| Red keyboard, and a frame exported from the video showing it       | **0.97** |
+| Sunset over the sea, and a 72% centre crop of it                   | **0.95** |
+| Beach and palm ↔ Sunset over the sea (most alike _different_ pair) | 0.79     |
+| Forest path ↔ Mountain lake                                        | 0.79     |
+| Night sky ↔ Sunset over the sea                                    | 0.76     |
+
+Every copy scores 0.95 or more and no genuinely different pair reaches 0.80, so the threshold at
+**0.92** sits in an empty band sixteen points wide. That is a much easier judgement than the video
+score floor, where the bands nearly touched.
+
+Over eleven pictures the whole scan takes **8 ms**, and it finds two groups: the three keyboards
+(97–98% alike) and the two sunsets (95%).
+
+### The scan, and what the bound saves
+
+All-pairs similarity is quadratic, so it is worth not doing most of it. Because the vectors are
+normalised, the dot product of the first 64 dimensions plus the product of the two tails'
+magnitudes is an upper bound on the whole dot product; if that is already under the threshold the
+remaining 448 dimensions are never touched.
+
+Random 512-dimension vectors, threshold 0.92, on the reference machine:
+
+| Vectors | Pairs  | Naive    | With the bound | Full dot products still needed |
+| ------- | ------ | -------- | -------------- | ------------------------------ |
+| 500     | 125 k  | 54 ms    | **13 ms**      | 0.374%                         |
+| 2,000   | 2.0 M  | 807 ms   | **129 ms**     | 0.419%                         |
+| 5,000   | 12.5 M | 5,066 ms | **830 ms**     | 0.410%                         |
+
+Six times faster at five thousand pictures, and the results are identical — checked here, and by a
+unit test that compares the pruned answer with the unpruned one on vectors built so the first 64
+dimensions say almost nothing.
+
+It is still quadratic. Twenty thousand pictures would be about thirteen seconds, and past that the
+answer is a blocking index (LSH or a clustering pass), not a better constant factor.
+
+### Two bugs this feature found
+
+**Exported frames were the last frame of the video, not the requested one.** `MediaRecorder`
+output has no duration until the browser scans for it, which the sampler forces by seeking far
+past the end. Resolving as soon as the duration was known left the element parked at the end with
+its own `seeked` event still in flight, and the next seek caught that stale event and reported
+success without having moved. A frame exported from 0:13 of a 32-second video was the frame at
+0:32 — from a scene nineteen seconds later. Found because the duplicate finder paired that frame
+with the wrong picture, at 99%, and the pairing was correct: the file really was that other scene.
+
+**Thumbnails never updated after a picture was overwritten.** Object URLs are pooled by file id and
+were never invalidated, so re-exporting a frame over an earlier one showed the old image for the
+rest of the session — while the index, correctly, had already re-read the new one. The two
+disagreed, which is how it was noticed.

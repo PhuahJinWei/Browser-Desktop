@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppProps } from '../../kernel/apps';
 import { vfs } from '../../kernel/vfs/client';
 import { categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
-import { notifyError } from '../../kernel/notifications';
+import { notify, notifyError } from '../../kernel/notifications';
 import {
+  DUPLICATE_THRESHOLD,
   enableVision,
+  findDuplicates,
   searchPhotos,
   similarPhotos,
   useIndexStats,
   useIndexerState,
+  type DuplicateGroup,
   type ImageHit,
 } from '../../services/index/client';
 import { thumbnailUrl } from '../../services/index/thumbnails';
@@ -31,7 +34,8 @@ const EXAMPLES = ['sunset over water', 'something red', 'a chart or diagram', 'n
 type Mode =
   | { kind: 'all' }
   | { kind: 'search'; query: string }
-  | { kind: 'similar'; id: string; name: string };
+  | { kind: 'similar'; id: string; name: string }
+  | { kind: 'duplicates' };
 
 export default function PhotosApp({ args }: AppProps) {
   const initial = (args as { fileId?: string } | undefined) ?? {};
@@ -42,6 +46,7 @@ export default function PhotosApp({ args }: AppProps) {
   const [selected, setSelected] = useState<string | null>(initial.fileId ?? null);
   const [searching, setSearching] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
+  const [groups, setGroups] = useState<DuplicateGroup[] | null>(null);
   const indexer = useIndexerState();
   const stats = useIndexStats();
 
@@ -86,6 +91,24 @@ export default function PhotosApp({ args }: AppProps) {
     const timer = setTimeout(() => void runSearch(query), 260);
     return () => clearTimeout(timer);
   }, [query, runSearch, indexer.visionEnabled]);
+
+  /** Scans for pictures that are the same picture. Quadratic, so it is asked for, not automatic. */
+  const showDuplicates = useCallback(async () => {
+    setSearching(true);
+    const started = performance.now();
+    try {
+      const found = await findDuplicates();
+      setGroups(found);
+      setMode({ kind: 'duplicates' });
+      setHits(null);
+      setQuery('');
+      setElapsed(Math.round(performance.now() - started));
+    } catch (error) {
+      notifyError('Could not scan for duplicates', error);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
 
   const showSimilar = useCallback(async (node: VfsNode) => {
     const results = await similarPhotos(node.id);
@@ -133,17 +156,37 @@ export default function PhotosApp({ args }: AppProps) {
             onClick={() => {
               setMode({ kind: 'all' });
               setHits(null);
+              setGroups(null);
               setQuery('');
             }}
           >
             <Icon name="close" size={13} />
-            {mode.kind === 'similar' ? `Similar to ${mode.name}` : `“${mode.query}”`}
+            {mode.kind === 'similar'
+              ? `Similar to ${mode.name}`
+              : mode.kind === 'duplicates'
+                ? 'Duplicates'
+                : `“${mode.query}”`}
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            className={styles.clear}
+            disabled={!indexer.visionEnabled || searching}
+            onClick={() => void showDuplicates()}
+            title={`Groups pictures more than ${Math.round(DUPLICATE_THRESHOLD * 100)}% alike`}
+          >
+            <Icon name="copy" size={13} />
+            Find duplicates
+          </button>
+        )}
 
         <span className={styles.count}>
-          {shown.length} photo{shown.length === 1 ? '' : 's'}
-          {elapsed !== null && mode.kind === 'search' ? ` · ${elapsed} ms` : ''}
+          {mode.kind === 'duplicates'
+            ? `${groups?.length ?? 0} group${groups?.length === 1 ? '' : 's'}`
+            : `${shown.length} photo${shown.length === 1 ? '' : 's'}`}
+          {elapsed !== null && (mode.kind === 'search' || mode.kind === 'duplicates')
+            ? ` · ${elapsed} ms`
+            : ''}
         </span>
       </div>
 
@@ -179,43 +222,75 @@ export default function PhotosApp({ args }: AppProps) {
       ) : null}
 
       <div className={styles.body}>
-        <div className={styles.grid}>
-          {shown.length === 0 ? (
-            <div className={styles.empty}>
-              <p>
-                {photos.length === 0
-                  ? 'No pictures yet. Drop some into Files, or load the sample set from Settings.'
-                  : 'Nothing matches that description.'}
-              </p>
-              {indexer.visionEnabled && photos.length > 0 ? (
-                <div className={styles.examples}>
-                  {EXAMPLES.map((example) => (
-                    <button
-                      key={example}
-                      type="button"
-                      className={styles.example}
-                      onClick={() => setQuery(example)}
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            shown.map(({ node, score }) => (
-              <Thumb
-                key={node.id}
-                node={node}
-                score={score}
-                selected={node.id === selected}
-                onSelect={() => setSelected(node.id)}
-              />
-            ))
-          )}
-        </div>
+        {mode.kind === 'duplicates' ? (
+          <div className={styles.groups}>
+            {groups === null || groups.length === 0 ? (
+              <div className={styles.empty}>
+                <p>
+                  No duplicates. Nothing here is more than {Math.round(DUPLICATE_THRESHOLD * 100)}%
+                  alike to anything else.
+                </p>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <DuplicateRow
+                  key={group.ids.join('|')}
+                  group={group}
+                  photos={photos}
+                  onTrashed={(gone) =>
+                    setGroups((current) =>
+                      (current ?? [])
+                        .map((candidate) => ({
+                          ...candidate,
+                          ids: candidate.ids.filter((id) => !gone.includes(id)),
+                        }))
+                        // A group of one is not a duplicate any more.
+                        .filter((candidate) => candidate.ids.length > 1),
+                    )
+                  }
+                />
+              ))
+            )}
+          </div>
+        ) : (
+          <div className={styles.grid}>
+            {shown.length === 0 ? (
+              <div className={styles.empty}>
+                <p>
+                  {photos.length === 0
+                    ? 'No pictures yet. Drop some into Files, or load the sample set from Settings.'
+                    : 'Nothing matches that description.'}
+                </p>
+                {indexer.visionEnabled && photos.length > 0 ? (
+                  <div className={styles.examples}>
+                    {EXAMPLES.map((example) => (
+                      <button
+                        key={example}
+                        type="button"
+                        className={styles.example}
+                        onClick={() => setQuery(example)}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              shown.map(({ node, score }) => (
+                <Thumb
+                  key={node.id}
+                  node={node}
+                  score={score}
+                  selected={node.id === selected}
+                  onSelect={() => setSelected(node.id)}
+                />
+              ))
+            )}
+          </div>
+        )}
 
-        {selectedNode ? (
+        {selectedNode && mode.kind !== 'duplicates' ? (
           <aside className={styles.detail}>
             <Preview node={selectedNode} />
             <h3 className={styles.detailName}>{selectedNode.name}</h3>
@@ -260,6 +335,77 @@ export default function PhotosApp({ args }: AppProps) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * One group of duplicates.
+ *
+ * The first picture is the one to keep — the list arrives newest-first — and the rest are offered
+ * for the trash together, because clicking through five copies one at a time is the tedium this
+ * feature exists to remove. Trash, not delete: it is still recoverable.
+ */
+function DuplicateRow({
+  group,
+  photos,
+  onTrashed,
+}: {
+  group: DuplicateGroup;
+  photos: VfsNode[];
+  onTrashed: (gone: string[]) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const nodes = group.ids.flatMap((id) => {
+    const node = photos.find((candidate) => candidate.id === id);
+    return node ? [node] : [];
+  });
+  if (nodes.length < 2) return null;
+
+  const extras = nodes.slice(1);
+
+  return (
+    <section className={styles.group}>
+      <header className={styles.groupHead}>
+        <span className={styles.groupCount}>
+          {nodes.length} copies · {Math.round(group.minScore * 100)}
+          {group.minScore === group.maxScore ? '' : `–${Math.round(group.maxScore * 100)}`}% alike
+        </span>
+        <button
+          type="button"
+          className={styles.groupAction}
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void vfs
+              .trash(extras.map((node) => node.id))
+              .then(() => {
+                notify({
+                  title: `Moved ${extras.length} ${extras.length === 1 ? 'copy' : 'copies'} to Trash`,
+                  body: `Kept ${nodes[0]!.name}.`,
+                  level: 'success',
+                });
+                // The list is updated here rather than by rescanning: dropping the files from the
+                // index is asynchronous, and a rescan started now would still find the group.
+                onTrashed(extras.map((node) => node.id));
+              })
+              .catch((error: unknown) => notifyError('Could not move those to Trash', error))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <Icon name="trash" size={13} /> Keep the first, trash {extras.length}
+        </button>
+      </header>
+      <div className={styles.groupItems}>
+        {nodes.map((node, index) => (
+          <figure key={node.id} className={styles.groupItem}>
+            <Thumb node={node} score={null} selected={index === 0} onSelect={() => undefined} />
+            <figcaption className={styles.groupCaption}>
+              {index === 0 ? 'keep' : formatBytes(node.size)}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   );
 }
 

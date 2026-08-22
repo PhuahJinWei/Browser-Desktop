@@ -32,50 +32,6 @@ export interface SampleOptions {
   onProgress?: (done: number, total: number) => void;
 }
 
-/** Loads a video element far enough to know its duration and dimensions. */
-async function openVideo(url: string): Promise<HTMLVideoElement> {
-  const video = document.createElement('video');
-  video.preload = 'auto';
-  video.muted = true;
-  // Required for some browsers to allow programmatic seeking without user interaction.
-  video.playsInline = true;
-
-  // Attached, but off-screen. A detached element decodes well enough to be drawn to a canvas, but
-  // `captureStream` on one is not reliably fed frames — the browser has no reason to render
-  // something that is not in a document.
-  video.style.cssText = 'position:fixed;left:-10000px;top:0;width:2px;height:2px;opacity:0';
-  document.body.appendChild(video);
-
-  video.src = url;
-
-  await new Promise<void>((resolve, reject) => {
-    const onReady = () => {
-      // A duration of Infinity means the container has no seekable index yet, which happens with
-      // MediaRecorder output. Nudging the current time forces the browser to work it out.
-      if (video.duration === Infinity) {
-        video.currentTime = 1e6;
-        video.addEventListener('timeupdate', () => resolve(), { once: true });
-        return;
-      }
-      resolve();
-    };
-    video.addEventListener('loadedmetadata', onReady, { once: true });
-    video.addEventListener('error', () => reject(new Error('That video could not be decoded')), {
-      once: true,
-    });
-  });
-
-  return video;
-}
-
-function closeVideo(video: HTMLVideoElement | null): void {
-  if (!video) return;
-  video.pause();
-  video.removeAttribute('src');
-  video.load();
-  video.remove();
-}
-
 function seek(video: HTMLVideoElement, time: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const onSeeked = () => {
@@ -94,6 +50,54 @@ function seek(video: HTMLVideoElement, time: number): Promise<void> {
     video.addEventListener('error', onError);
     video.currentTime = time;
   });
+}
+
+/** Loads a video element far enough to know its duration and dimensions. */
+async function openVideo(url: string): Promise<HTMLVideoElement> {
+  const video = document.createElement('video');
+  video.preload = 'auto';
+  video.muted = true;
+  // Required for some browsers to allow programmatic seeking without user interaction.
+  video.playsInline = true;
+
+  // Attached, but off-screen. A detached element decodes well enough to be drawn to a canvas, but
+  // `captureStream` on one is not reliably fed frames — the browser has no reason to render
+  // something that is not in a document.
+  video.style.cssText = 'position:fixed;left:-10000px;top:0;width:2px;height:2px;opacity:0';
+  document.body.appendChild(video);
+
+  video.src = url;
+
+  await new Promise<void>((resolve, reject) => {
+    video.addEventListener('loadedmetadata', () => resolve(), { once: true });
+    video.addEventListener('error', () => reject(new Error('That video could not be decoded')), {
+      once: true,
+    });
+  });
+
+  // A duration of Infinity means the container carries no seeking index, which is what
+  // MediaRecorder produces. Seeking far past the end makes the browser scan for the real end and
+  // learn the duration.
+  //
+  // Both seeks are awaited, and the second one — back to the start — is why. Resolving as soon as
+  // the duration was known left the element parked at the end with its own 'seeked' event still
+  // in flight, and the *next* seek would catch that stale event and report success without having
+  // moved. Measured symptom: a frame exported from 0:13 of a 32-second video was the last frame
+  // of the video, from a scene nineteen seconds later.
+  if (video.duration === Infinity) {
+    await seek(video, 1e6);
+    await seek(video, 0);
+  }
+
+  return video;
+}
+
+function closeVideo(video: HTMLVideoElement | null): void {
+  if (!video) return;
+  video.pause();
+  video.removeAttribute('src');
+  video.load();
+  video.remove();
 }
 
 /**
@@ -183,7 +187,8 @@ export async function frameAt(
 
   try {
     video = await openVideo(url);
-    await seek(video, Math.max(0, Math.min(time, (video.duration || 0) - 0.05)));
+    const duration = Number.isFinite(video.duration) ? video.duration : time + 1;
+    await seek(video, Math.max(0, Math.min(time, duration - 0.05)));
 
     const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
     const canvas = document.createElement('canvas');
