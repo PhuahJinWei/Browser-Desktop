@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { Plugin } from 'vite';
 
 /**
@@ -15,14 +16,18 @@ import type { Plugin } from 'vite';
  *    to. Only the model CDN is listed, and only for consent-gated weight downloads.
  *  - There is deliberately no 'unsafe-inline' anywhere.
  */
-const POLICY = [
+const policy = () => [
   "default-src 'self'",
   "base-uri 'none'",
   "object-src 'none'",
   "form-action 'none'",
   // No `frame-ancestors`: browsers ignore it in a <meta> policy and log an error for it. Clickjacking
   // protection needs a real header, which GitHub Pages cannot send — noted as a known limitation.
-  "script-src 'self' 'wasm-unsafe-eval'",
+  // Sandboxed app frames inherit this policy (their origin is opaque, and CSP is inherited
+  // precisely so sandboxing cannot escape a policy), so it has to permit the sandbox bootstrap
+  // and the blob: scripts that carry app code. The bootstrap is allowed by hash — one exact
+  // script — rather than by opening the desktop to inline script in general.
+  `script-src 'self' 'wasm-unsafe-eval' blob: '${runnerHash()}'`,
   "worker-src 'self' blob:",
   "style-src 'self'",
   "img-src 'self' blob: data:",
@@ -41,6 +46,23 @@ const POLICY = [
   ].join(' '),
 ].join('; ');
 
+
+/**
+ * The digest of the sandbox bootstrap, written by tools/build-app-runner.mjs.
+ *
+ * Missing means the runner has not been built; the policy is still emitted so the desktop works,
+ * but sandboxed apps will not start — and saying so here is better than a silent CSP failure
+ * inside a frame nobody can inspect.
+ */
+function runnerHash(): string {
+  try {
+    return readFileSync('.app-runner-hash', 'utf8').trim();
+  } catch {
+    console.warn('[tabula:csp] .app-runner-hash is missing — run tools/build-app-runner.mjs');
+    return '';
+  }
+}
+
 export function cspPlugin(): Plugin {
   return {
     name: 'tabula:csp',
@@ -49,7 +71,7 @@ export function cspPlugin(): Plugin {
       handler(html, ctx) {
         const isBuild = !ctx.server;
         const tag = isBuild
-          ? `<meta http-equiv="Content-Security-Policy" content="${POLICY}" />`
+          ? `<meta http-equiv="Content-Security-Policy" content="${policy()}" />`
           : '<!-- CSP is injected for production builds only; the dev server needs inline HMR scripts. -->';
         return html.replace('<!--%CSP%-->', tag);
       },
@@ -57,4 +79,4 @@ export function cspPlugin(): Plugin {
   };
 }
 
-export const CSP_POLICY = POLICY;
+export const CSP_POLICY = policy;

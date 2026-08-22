@@ -204,3 +204,67 @@ the number is one real recording away.
 
 Tier-0 (no consent needed, no download) is back to **22.6 MB** — about 4,500 first-time visitors a
 month within the GitHub Pages allowance. Everything else is asked for first.
+
+## M3 — the app sandbox
+
+The claim is that a third-party app cannot reach the user's data. Here is a sandboxed app being
+asked to try, and the results it reported.
+
+### What the sandbox refuses
+
+Probed from inside a running sandboxed app:
+
+| Attempt                                   | Result                            |
+| ----------------------------------------- | --------------------------------- |
+| `localStorage` / `sessionStorage`         | `SecurityError`                   |
+| `document.cookie`                         | `SecurityError`                   |
+| `indexedDB.open()`                        | `SecurityError`                   |
+| `caches.open()`                           | `SecurityError`                   |
+| `navigator.storage.getDirectory()` (OPFS) | promise rejects, `SecurityError`  |
+| `parent.document` / `parent.localStorage` | `SecurityError`                   |
+| `top.location.href`                       | `SecurityError`                   |
+| `fetch('https://example.com')`            | blocked (`TypeError`)             |
+| remote `<img>`                            | blocked                           |
+| `new WebSocket(...)`                      | constructs, never connects        |
+| `location.origin`                         | **`null`** — the origin is opaque |
+
+For comparison, the desktop's own OPFS at that moment contained `blobs` — the store holding every
+file the user has imported. The sandbox cannot see that it exists.
+
+One caveat found while writing this: the first version of the probe reported OPFS as _allowed_,
+because it only checked that `getDirectory()` returned an object. It returns a promise, and the
+promise rejects. A test that does not await is a test that lies.
+
+### File scoping
+
+The same technique, written by the app into a file the desktop can read:
+
+```
+write into own folder: ALLOWED
+list own folder:       ALLOWED
+read the home folder:  REFUSED — An app may only read its own files, or the file it was opened with
+list the home folder:  REFUSED — An app may only list its own folder
+remove a file outside: REFUSED — An app may only remove its own files
+```
+
+An app holding both `fs:read` and `fs:write` still reaches only `Apps/<its name>/` and the single
+file it was opened with.
+
+### Sizes
+
+|                                            |                                  |
+| ------------------------------------------ | -------------------------------- |
+| Sandbox bootstrap (the whole SDK client)   | **2.1 KB** minified              |
+| Sandbox document, including its stylesheet | 3.9 KB                           |
+| Calculator, Find and Scratchpad            | 3.4 KB, 3.0 KB, 2.7 KB of source |
+| App shared as a link                       | ~1.4 KB of URL per KB of source  |
+
+### Delivery, and two wrong assumptions
+
+Getting the bootstrap to run at all took three attempts. A sandboxed frame **inherits its
+embedder's CSP** (its origin is opaque, and inheritance exists so sandboxing cannot escape a
+policy), so the desktop's `script-src 'self'` silently blocked it. Allowing it by SHA-256 fixed
+that. Then a second surprise: in this environment a sandboxed frame loading a real same-origin URL
+still would not execute scripts, while the identical markup as `srcdoc` did — with or without the
+frame's own CSP, and with the service worker's headers removed. Full write-up in
+[ADR 11](../adr/0011-sandbox-delivery.md).

@@ -20,6 +20,7 @@ import {
 } from '../../kernel/models';
 import { useCapabilities } from '../../shell/capabilitiesContext';
 import { loadSampleData } from '../../shell/sampleData';
+import { AppsPanel } from './AppsPanel';
 import styles from './SettingsApp.module.css';
 
 /**
@@ -189,6 +190,11 @@ export default function SettingsApp() {
             Clear search index
           </button>
         </div>
+      </section>
+
+      <section className={styles.section}>
+        <h3 className={styles.heading}>Apps</h3>
+        <AppsPanel />
       </section>
 
       <section className={styles.section}>

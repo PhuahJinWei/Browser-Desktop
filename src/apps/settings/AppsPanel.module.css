@@ -1,0 +1,194 @@
+.intro {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.empty {
+  padding: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app {
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.appHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.appIdentity {
+  min-width: 0;
+}
+
+.appName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.version {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.origin,
+.originWarn {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+.originWarn {
+  background: var(--warn-subtle);
+  color: var(--warn);
+}
+
+.appDescription {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.appAuthor {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-style: italic;
+}
+
+.appActions {
+  display: flex;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+.smallButton {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.smallButton:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.danger:hover {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: var(--bad-subtle);
+}
+
+.noPermissions {
+  margin-top: var(--space-2);
+  color: var(--ok);
+  font-size: var(--text-xs);
+}
+
+.permissions {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.permission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  border-top: 1px dotted var(--border-subtle);
+  font-size: var(--text-xs);
+}
+
+.permissionLabel {
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.permissionControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.granted {
+  color: var(--ok);
+  font-family: var(--font-mono);
+}
+
+.denied {
+  color: var(--bad);
+  font-family: var(--font-mono);
+}
+
+.unasked {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.linkButton {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}

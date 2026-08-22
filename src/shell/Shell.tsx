@@ -11,6 +11,8 @@ import { CapabilitiesProvider } from './capabilitiesContext';
 import { Desktop } from './Desktop';
 import { registerSystemCommands } from './systemCommands';
 import { loadSampleData } from './sampleData';
+import { installSampleApps } from './sampleApps';
+import { installApp, loadInstalledApps, unpackAppLink } from '../kernel/installedApps';
 import { Icon } from './Icon';
 import styles from './Shell.module.css';
 
@@ -112,6 +114,21 @@ export function Shell() {
 
         await startIndexer(backend);
         void refreshModelStates();
+
+        // Apps last: they are the only thing here that runs code the desktop did not write.
+        await loadInstalledApps();
+        await installSampleApps();
+
+        // An app shared as a link arrives in the fragment, which browsers never send to a server.
+        const shared = unpackAppLink(location.hash);
+        if (shared) {
+          history.replaceState(null, '', location.pathname + location.search);
+          try {
+            await installApp(shared, 'link');
+          } catch (error) {
+            notifyError('That app link could not be installed', error);
+          }
+        }
         if (cancelled) return;
         update(3, { state: 'done', detail: `Embeddings on ${backend}` });
 

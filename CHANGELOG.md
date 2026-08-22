@@ -1,5 +1,38 @@
 # Changelog
 
+## [Unreleased] — M3, the app platform
+
+Added
+
+- **Third-party apps**, running in a sandbox with an opaque origin and no network. An app is one
+  JavaScript file with its manifest in a leading comment: no build step, no package format, and
+  nothing to inspect but the file itself.
+- **Capability broker.** An app declares what it wants; declaring grants nothing. The user is asked
+  the first time the app actually calls a method, and every grant is revocable in Settings → Apps.
+- **Scoped file access.** An app reaches `Apps/<its name>/` and the one file it was opened with.
+  Nothing else, whatever it was granted.
+- **SDK** (`docs/sdk.md`): files, embeddings, search, notifications, clipboard, per-app storage —
+  and no network capability, by design.
+- **Install from a file, or from a link.** A shared app travels in the URL fragment, which browsers
+  never send to a server, so sharing needs no backend.
+- Three bundled apps written only against the SDK: Calculator (no permissions at all), Find
+  (search), Scratchpad (scoped files, with a button that deliberately gets refused).
+
+Verified
+
+- A sandboxed app cannot reach localStorage, sessionStorage, cookies, IndexedDB, the Cache API,
+  OPFS, the parent document, or the network; its `location.origin` is `null`. Results in
+  `docs/benchmarks/`.
+
+Fixed
+
+- Permission requests arriving while another prompt was open were silently denied rather than
+  queued, so an app needing two permissions had its second refused without the user being asked.
+- Two concurrent calls could each create an app's folder, leaving `App` and `App (2)`. The lookup
+  now caches the in-flight promise rather than the resolved id.
+- The host could send an app its code before the frame was listening. The sandbox now announces
+  itself, and the host retries.
+
 ## [Unreleased] — M2, photos and audio
 
 Added

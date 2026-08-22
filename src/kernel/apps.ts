@@ -95,6 +95,17 @@ export const APPS: AppDefinition[] = [
     openPriority: 10,
   },
   {
+    // The host that runs installed third-party apps. Hidden: it is never launched directly, only
+    // through launchInstalledApp() with the app's id.
+    id: 'sandbox',
+    name: 'App',
+    icon: 'apps',
+    description: 'Runs an installed app in a sandbox',
+    component: lazy(() => import('../shell/SandboxedApp')),
+    defaultSize: { width: 720, height: 520 },
+    hidden: true,
+  },
+  {
     id: 'tasks',
     name: 'Task Manager',
     icon: 'gauge',
@@ -154,6 +165,25 @@ export function launchApp(appId: string, options: LaunchOptions = {}): string | 
     ...(options.args !== undefined ? { args: options.args } : {}),
     ...(app.defaultSize ?? {}),
     ...(app.singleton ? { singleton: true } : {}),
+  });
+}
+
+/**
+ * Opens an installed third-party app.
+ *
+ * Every one of them runs in the same sandbox host; the app's id is an argument rather than a
+ * separate registry entry, so installing an app never touches the built-in app list.
+ */
+export function launchInstalledApp(
+  appId: string,
+  name: string,
+  options: { args?: Record<string, unknown>; size?: { width: number; height: number } } = {},
+): string | null {
+  return openWindow({
+    appId: 'sandbox',
+    title: name,
+    args: { appId, ...(options.args ?? {}) },
+    ...(options.size ?? { width: 720, height: 520 }),
   });
 }
 

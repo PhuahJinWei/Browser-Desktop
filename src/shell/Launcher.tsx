@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { launcherApps, launchApp } from '../kernel/apps';
+import { launcherApps, launchApp, launchInstalledApp } from '../kernel/apps';
+import { useInstalledApps } from '../kernel/installedApps';
 import { Icon } from './Icon';
 import styles from './Launcher.module.css';
 
@@ -14,6 +15,7 @@ export function Launcher({ onClose }: { onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const apps = launcherApps();
+  const installed = useInstalledApps();
 
   useEffect(() => {
     panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -78,6 +80,36 @@ export function Launcher({ onClose }: { onClose: () => void }) {
           </button>
         ))}
       </div>
+
+      {installed.length > 0 ? (
+        <>
+          <p className={styles.heading} style={{ marginTop: 'var(--space-4)' }}>
+            Installed apps
+          </p>
+          <div className={styles.grid}>
+            {installed.map((app) => (
+              <button
+                key={app.id}
+                type="button"
+                role="menuitem"
+                className={styles.app}
+                onClick={() => {
+                  launchInstalledApp(app.id, app.manifest.name, {
+                    ...(app.manifest.defaultSize ? { size: app.manifest.defaultSize } : {}),
+                  });
+                  onClose();
+                }}
+              >
+                <span className={styles.appIcon}>
+                  <Icon name="apps" size={22} />
+                </span>
+                <span className={styles.appName}>{app.manifest.name}</span>
+                <span className={styles.appDescription}>{app.manifest.description}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

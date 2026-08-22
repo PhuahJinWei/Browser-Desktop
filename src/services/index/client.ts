@@ -227,6 +227,15 @@ export async function search(query: string, limit = 20): Promise<SearchHit[]> {
   ).promise;
 }
 
+/** Embeds text on behalf of an app, at interactive priority so it does not queue behind indexing. */
+export async function embedTexts(texts: string[]): Promise<Float32Array[]> {
+  const vectors = await schedule(
+    { label: `Embed ${texts.length} text${texts.length === 1 ? '' : 's'}`, kind: 'embed', priority: PRIORITY.interactive },
+    () => client.call('embedTexts', [texts]),
+  ).promise;
+  return vectors.map((vector) => Float32Array.from(vector));
+}
+
 export async function reindexEverything(): Promise<void> {
   await client.call('clear', []);
   const nodes = await vfs.allNodes();

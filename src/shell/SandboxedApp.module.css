@@ -1,0 +1,65 @@
+.host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--surface-2);
+}
+
+.frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--surface-2);
+}
+
+.state {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-6);
+  color: var(--text-muted);
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.hint {
+  font-size: var(--text-xs);
+}
+
+.starting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.crash {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--bad);
+  background: var(--bad-subtle);
+  color: var(--bad);
+  flex: 0 0 auto;
+}
+
+.crashTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.crashText {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}

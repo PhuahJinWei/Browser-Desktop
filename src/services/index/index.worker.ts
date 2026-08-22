@@ -311,6 +311,8 @@ export type IndexMethods = {
   clear: () => void;
   save: () => void;
   warmUp: () => boolean;
+  /** Embeds arbitrary text. Exposed for apps built on the SDK. */
+  embedTexts: (texts: string[]) => number[][];
 
   /** Loads the image model. Separate from configure() because it is opt-in and much larger. */
   loadVisionModel: (options: { model: string; backend: 'webgpu' | 'wasm' }) => IndexStats;
@@ -373,6 +375,13 @@ exposeRpc<IndexMethods>({
   warmUp: async (_args, report) => {
     await getExtractor(report);
     return true;
+  },
+
+  embedTexts: async ([texts]) => {
+    const vectors = await embed(texts);
+    // Plain arrays, not Float32Array: this crosses two boundaries (worker, then sandbox) and a
+    // typed array survives neither cleanly.
+    return vectors.map((vector) => [...vector]);
   },
 
   indexDocument: async ([input], report) => {

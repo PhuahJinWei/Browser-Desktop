@@ -7,9 +7,10 @@ Windows, files, notes and a task manager, with machine-learning models running o
 hardware as system services — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
-> **Status: M2 — it sees and hears.** The desktop, file system and search from M1, plus photo
-> search by description and on-device transcription. See [`plan v2.md`](./plan%20v2.md) for the
-> roadmap and [`docs/benchmarks/`](./docs/benchmarks/) for what has actually been measured.
+> **Status: M3 — a platform.** The desktop, search, photos and transcription of M1–M2, plus
+> third-party apps running sandboxed with capability-based permissions. See
+> [`plan v2.md`](./plan%20v2.md) for the roadmap, [`docs/sdk.md`](./docs/sdk.md) to write an app,
+> and [`docs/benchmarks/`](./docs/benchmarks/) for what has actually been measured.
 
 ---
 
@@ -125,6 +126,8 @@ Design notes worth the click:
   copying are free.
 - [ADR 10 — models are tested, not assumed](./docs/adr/0010-model-choices-are-tested-not-assumed.md):
   the plan's smaller image model ranked correctly 0 times out of 6, and what that cost to find out.
+- [ADR 11 — how the app sandbox is delivered](./docs/adr/0011-sandbox-delivery.md): two reasonable
+  assumptions about iframe CSP, both wrong, and the measurements that settled it.
 
 ## Browser support
 
@@ -158,6 +161,10 @@ Stated plainly, because a portfolio piece that hides these is worth less:
 - **Files above 256 MB are refused**, because hashing needs the whole buffer in memory.
 - **Storage quota is browser-granted**, roughly 3 GB on the reference machine.
 - **No multi-window drag-and-drop between apps yet**, and no folder re-sync after import.
+- **The SDK is v0** and will change; see the note at the top of `docs/sdk.md`.
+- **Sandbox delivery uses `srcdoc`** because a sandboxed frame loading a real URL would not run
+  scripts in the environment tested. Isolation is unaffected — srcdoc is bound by two policies
+  rather than one — but it is behaviour worth re-checking on other engines.
 
 ## Licence
 
