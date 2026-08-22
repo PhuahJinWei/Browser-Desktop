@@ -151,6 +151,7 @@ export default function VideoApp({ args }: AppProps) {
 
   const player = useRef<HTMLVideoElement | null>(null);
   const [url, setUrl] = useState<string | null>(null);
+  const [unreadable, setUnreadable] = useState<string | null>(null);
   const stopAt = useRef<number | null>(null);
 
   useEffect(() => {
@@ -160,11 +161,21 @@ export default function VideoApp({ args }: AppProps) {
     }
     let objectUrl: string | null = null;
     let cancelled = false;
+    setUnreadable(null);
     void (async () => {
-      const { data } = await vfs.read(selectedNode.id);
-      if (cancelled) return;
-      objectUrl = URL.createObjectURL(new Blob([data], { type: selectedNode.mime }));
-      setUrl(objectUrl);
+      try {
+        const { data } = await vfs.read(selectedNode.id);
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(new Blob([data], { type: selectedNode.mime }));
+        setUrl(objectUrl);
+      } catch (error) {
+        // A file the desktop lists but cannot open is a state worth showing on the stage. Left
+        // unhandled it was an unhandled rejection and an empty black rectangle.
+        if (!cancelled) {
+          setUrl(null);
+          setUnreadable(error instanceof Error ? error.message : 'This video could not be opened');
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -427,6 +438,8 @@ export default function VideoApp({ args }: AppProps) {
                 onLoadedMetadata={onLoaded}
                 onTimeUpdate={onTimeUpdate}
               />
+            ) : unreadable ? (
+              <p className={styles.stageEmpty}>{unreadable}</p>
             ) : (
               <p className={styles.stageEmpty}>Select a video, or make the sample one.</p>
             )}

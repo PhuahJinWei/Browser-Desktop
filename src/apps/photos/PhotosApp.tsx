@@ -511,10 +511,16 @@ function Preview({ node }: { node: VfsNode }) {
     let objectUrl: string | null = null;
     let cancelled = false;
     void (async () => {
-      const { data } = await vfs.read(node.id);
-      if (cancelled) return;
-      objectUrl = URL.createObjectURL(new Blob([data], { type: node.mime }));
-      setUrl(objectUrl);
+      try {
+        const { data } = await vfs.read(node.id);
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(new Blob([data], { type: node.mime }));
+        setUrl(objectUrl);
+      } catch {
+        // The grid already draws a stored thumbnail for this file; a preview that cannot be read
+        // just stays empty rather than rejecting into the console.
+        if (!cancelled) setUrl(null);
+      }
     })();
     return () => {
       cancelled = true;

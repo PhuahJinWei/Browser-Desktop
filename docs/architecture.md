@@ -214,3 +214,12 @@ repair. Reads now raise a `MissingContentError` that names the file, and **Setti
 walks every record and lists the ones whose content is absent. The desktop cannot repair them —
 the bytes are gone — but a system that can tell you exactly which files are damaged is a different
 thing from one that fails a file at a time and says nothing useful.
+
+Eviction is the other half of that problem, and the cheaper half to address. Browser storage is
+"best-effort" unless an origin asks otherwise, so boot calls `navigator.storage.persist()` once
+(`src/kernel/persistence.ts`). It is not awaited: Firefox answers by prompting, and a desktop that
+will not finish starting until someone resolves a dialog about storage policy is a worse desktop
+than one that asks quietly and carries on. The answer is mostly not ours to give — Chromium decides
+from engagement heuristics and normally declines on a first visit — so About reports what the
+browser actually said rather than what was hoped for. It prevents future eviction; it cannot
+recover bytes already gone.

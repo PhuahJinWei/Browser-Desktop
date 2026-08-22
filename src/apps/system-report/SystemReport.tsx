@@ -9,6 +9,7 @@ import type {
   OpfsBenchResult,
 } from '../../services/bench/client';
 import { useCapabilities } from '../../shell/capabilitiesContext';
+import { usePersistence } from '../../kernel/persistence';
 import styles from './SystemReport.module.css';
 
 /**
@@ -68,6 +69,10 @@ export function SystemReport() {
   const [opfs, setOpfs] = useState<OpfsBenchResult | BenchFailure | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
+
+  // Live rather than from the capability probe: the probe runs before boot asks for persistence,
+  // so it would report "best-effort" for the rest of the session however the browser answered.
+  const persistence = usePersistence();
 
   // Inside the desktop the probe has already run at boot, so reuse it rather than paying for a
   // second GPU adapter request and a second reload check. Standalone, it probes for itself.
@@ -289,7 +294,14 @@ export function SystemReport() {
               <Row label="IndexedDB" value={yes(caps.storage.indexedDB)} />
               <Row
                 label="Persistent"
-                value={yes(caps.storage.persisted, 'granted', 'best-effort')}
+                value={yes(persistence.persisted, 'granted', 'best-effort')}
+                {...(persistence.persisted
+                  ? {}
+                  : {
+                      note: persistence.supported
+                        ? 'asked at boot; the browser decides, and usually says no until a site is used often'
+                        : 'this browser cannot be asked',
+                    })}
               />
               <Row label="Quota" value={formatBytes(caps.storage.quotaBytes)} />
               <Row label="Used" value={formatBytes(caps.storage.usageBytes)} />

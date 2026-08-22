@@ -63,12 +63,19 @@ Fixed
   success without moving.
 - Thumbnails kept showing the old picture after a file was overwritten: object URLs were pooled by
   file id and never invalidated.
+- **Storage is now asked to be durable at boot.** An origin's storage is "best-effort" by
+  default: the browser may clear it when a disk gets tight. This desktop holds the only copy of
+  everything imported into it, so it calls `navigator.storage.persist()` once per session — not
+  awaited, because Firefox answers by prompting and a desktop should not stall on a storage dialog.
+  The browser decides, and on a site it has not seen before it usually says no; About reports
+  whichever answer it gave rather than the one probed before the request went out.
 - A file whose stored bytes were missing rejected with the platform's own
   `NotFoundError` — no filename, no explanation, straight to the console as an unhandled
   rejection. It now throws a `MissingContentError` naming the file and saying what the repair is,
   and **Settings → Check files** lists every such file on demand. Metadata and content live in two
   stores that are not transactional with each other, so the state is possible; what was missing was
-  any way to see it.
+  any way to see it. Photos and Video no longer let that error escape as an unhandled rejection
+  either — the Video stage says what happened instead of showing a black rectangle.
 
 ## [Unreleased] — M3, the app platform
 

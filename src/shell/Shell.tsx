@@ -5,6 +5,7 @@ import { probeWorkerCapabilities, type WorkerCapabilities } from '../kernel/work
 import { applySettings, settingsStore, updateSettings } from '../kernel/settings';
 import { notifyError } from '../kernel/notifications';
 import { vfs } from '../kernel/vfs/client';
+import { ensurePersistentStorage } from '../kernel/persistence';
 import { startIndexer } from '../services/index/client';
 import { refreshModelStates } from '../kernel/models';
 import { CapabilitiesProvider } from './capabilitiesContext';
@@ -87,6 +88,11 @@ export function Shell() {
         await vfs.init();
         if (cancelled) return;
         update(2, { state: 'done', detail: 'Origin private file system mounted' });
+
+        // Ask the browser not to evict what the user puts here. Deliberately not awaited: the
+        // answer is the browser's to give on its own schedule, Firefox gives it by prompting, and
+        // nothing below depends on it. About reports whatever it decides.
+        void ensurePersistentStorage();
 
         update(3, { state: 'running' });
         const backend =
