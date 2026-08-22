@@ -1,6 +1,7 @@
 # 5. The language model is optional; non-LLM models are the foundation
 
-Status: accepted (M0)
+Status: accepted (M0) · extended by [ADR 14](./0014-no-text-generation.md) (M4), which closes the
+optional tier for good
 
 ## Context
 
@@ -26,3 +27,16 @@ feature still works.
 - Low-end machines get a complete product rather than a degraded one.
 - M5 stays genuinely optional: it is gated on M1–M3 being finished, and CI must pass with the
   plug-in absent.
+
+## Afterword (M4)
+
+This decision held, and then went further than it was written to go. M1–M4 shipped semantic search,
+photo search, transcription, video moment search, near-duplicate detection and OCR, and not one of
+them wanted a language model — the plan's own headline aspiration, "find the video where I showed
+my red keyboard and extract that section", turned out to be a retrieval problem with a retrieval
+answer.
+
+So the optional tier was never built, and [ADR 14](./0014-no-text-generation.md) records the
+decision not to build it. Nothing above is retracted: "nothing requires a language model" is still
+the rule. What changed is that the escape hatch it left open has been closed deliberately rather
+than left ajar indefinitely.

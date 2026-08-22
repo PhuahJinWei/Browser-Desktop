@@ -7,6 +7,11 @@ Windows, files, notes and a task manager, with machine-learning models running o
 hardware as system services — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
+It sees, hears and reads: photos by description, speech to text, video by the moment you remember,
+printed pages into searchable words. It does **not** generate text, and it is not going to — every
+answer it gives is a pointer into one of your own files, at an offset or a timestamp you can open
+and check. [ADR 14](./docs/adr/0014-no-text-generation.md) says why.
+
 > **Status: M4 — more senses.** The desktop, search, photos, transcription and sandboxed
 > third-party apps of M1–M3, plus search _inside_ video: describe a moment and get the section it
 > is in. See
@@ -144,12 +149,12 @@ Design notes worth the click:
 
 ## Browser support
 
-| Browser               | Status                                                                           |
-| --------------------- | -------------------------------------------------------------------------------- |
-| Chrome / Edge desktop | Primary target. Folder picker, persisted directory handles, optional built-in AI |
-| Firefox 147+ desktop  | Supported. Drag-and-drop and file-picker import; no folder picker                |
-| Safari 26 (macOS)     | Supported. Drag-and-drop and file-picker import; no folder picker                |
-| Mobile                | Best effort. Tiny models only                                                    |
+| Browser               | Status                                                            |
+| --------------------- | ----------------------------------------------------------------- |
+| Chrome / Edge desktop | Primary target. Folder picker, persisted directory handles        |
+| Firefox 147+ desktop  | Supported. Drag-and-drop and file-picker import; no folder picker |
+| Safari 26 (macOS)     | Supported. Drag-and-drop and file-picker import; no folder picker |
+| Mobile                | Best effort. Tiny models only                                     |
 
 Desktop-first and Chromium-first, degrading explicitly rather than silently.
 

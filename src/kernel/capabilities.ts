@@ -323,12 +323,15 @@ export async function probeCapabilities(): Promise<Capabilities> {
   };
 }
 
+/**
+ * Every kind of inference this desktop runs.
+ *
+ * There is no text generation on the list, and there is not going to be — see ADR 14. Every task
+ * here answers a question about something the user already has, which is why none of them can
+ * invent an answer.
+ */
 export type InferenceTask =
-  | 'text-embedding'
-  | 'image-text-embedding'
-  | 'speech-recognition'
-  | 'text-recognition'
-  | 'generation';
+  'text-embedding' | 'image-text-embedding' | 'speech-recognition' | 'text-recognition';
 
 /**
  * Which backend to schedule a task on.
@@ -338,8 +341,8 @@ export type InferenceTask =
  * 14.4 ms, reproducibly, with the GPU warm. For a 22 MB encoder over short sentences the per-
  * dispatch overhead dominates, and 4 SIMD threads simply win.
  *
- * So: small text embeddings prefer threaded WASM; the heavier models (vision towers, Whisper,
- * any generation) still prefer the GPU, and those numbers get measured in M2 rather than assumed.
+ * So: small text embeddings prefer threaded WASM; the heavier models (vision towers, Whisper)
+ * still prefer the GPU, and those numbers get measured in M2 rather than assumed.
  * See docs/benchmarks/.
  *
  * M4 added text recognition, and it went the same way as the embeddings for the same reason. TrOCR

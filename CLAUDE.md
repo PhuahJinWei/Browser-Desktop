@@ -24,7 +24,9 @@ made — read the relevant ADR before changing anything it covers.
 1. **No backend.** No servers, accounts, sync, telemetry or analytics.
 2. **Two hosts only.** The serving origin, and `huggingface.co` for consent-gated model weights.
    Never add a third-party script, font or CDN.
-3. **Nothing requires a language model.** Text generation is an optional plug-in (ADR 5).
+3. **There is no text generation, and none is planned.** ADR 5 made the language model optional;
+   ADR 14 removed the option. Do not add generative models, a chat surface, or an `os.ai` method
+   that returns prose — every answer this desktop gives points into a file the user already has.
 4. **Static hosting limits apply**: no response headers, 1 GB site, 100 GB/month soft bandwidth,
    100 MB per file in git.
 5. **Measure before choosing.** Backend and model decisions cite benchmark numbers (ADR 8). If a

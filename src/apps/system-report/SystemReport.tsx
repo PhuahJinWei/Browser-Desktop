@@ -321,7 +321,9 @@ export function SystemReport() {
               <Row label="WebNN" value={yes(caps.webnn, 'present', 'absent')} />
             </dl>
             <p className={styles.cardNote}>
-              Optional everywhere. Nothing in Tabula requires a language model.
+              Reported because this machine has them, not because Tabula uses them: it has no text
+              generation and is not getting any. Every model here answers a question about a file
+              you already have, so none of them can invent an answer.
             </p>
           </article>
 

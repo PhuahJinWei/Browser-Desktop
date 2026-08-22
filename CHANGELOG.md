@@ -37,6 +37,12 @@ Verified
 
 Changed
 
+- **The optional LLM tier is removed from the roadmap**, not deferred. M5 planned conversational
+  search, summaries, a tool-calling agent and generated apps; it was never started, and four
+  milestones of features turned out to be retrieval problems rather than generation ones — the
+  headline "find the video where I showed my red keyboard" included. Nothing shipped is lost: the
+  only source change was deleting an unused member of a type union. Reasoning in ADR 14; ADR 5,
+  which made the language model optional, is extended rather than reversed.
 - **Text recognition runs on the CPU, not the GPU**, because that is what the measurement said:
   3.1 s against 18.4 s for the same page, and more accurate with it. TrOCR's decoder emits about a
   dozen tokens per line, and a dozen tiny sequential dispatches cost more to launch than to

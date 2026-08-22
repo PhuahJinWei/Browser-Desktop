@@ -26,6 +26,9 @@ There is deliberately no network capability at all.
 - The SDK has two adapters (direct call, postMessage client) and one type definition.
 - Deciding this now keeps the door open for LLM-generated apps in M5 without re-architecting,
   while committing to nothing about whether that milestone happens.
+  _M4 note:_ that milestone does not happen — [ADR 14](./0014-no-text-generation.md) removed it —
+  so this particular benefit never came due. The decision stands on the two reasons that were
+  always load-bearing: a real permission boundary, and one readable file per app.
 - One question is deferred to an M3 spike: `srcdoc` and `blob:` documents inherit the parent CSP,
   so the app runner is either a same-origin page loaded in a sandboxed iframe with app code
   delivered as `blob:` scripts, or a second Pages origin with its own policy.

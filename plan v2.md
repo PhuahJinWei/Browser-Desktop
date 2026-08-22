@@ -8,7 +8,7 @@
 
 ## 0. What this is (one paragraph)
 
-A **genuine desktop environment** — windows, files, apps, settings, a task manager — that runs entirely inside a browser tab, delivered as **static files from GitHub Pages at zero cost**, with no backend, no accounts and no third-party services. Its system services include **local machine-learning models** (text/image embeddings, speech recognition, vision) running on the user's GPU via WebGPU, so the OS can search photos by what's in them, documents by meaning and audio by what was said — and nothing the user drops in ever leaves the tab. An **LLM is an optional plug-in, not a dependency.**
+A **genuine desktop environment** — windows, files, apps, settings, a task manager — that runs entirely inside a browser tab, delivered as **static files from GitHub Pages at zero cost**, with no backend, no accounts and no third-party services. Its system services include **local machine-learning models** (text/image embeddings, speech recognition, vision) running on the user's GPU via WebGPU, so the OS can search photos by what's in them, documents by meaning and audio by what was said — and nothing the user drops in ever leaves the tab. It sees, hears and reads; it **does not generate text**, and no feature is waiting for a language model ([ADR 14](./docs/adr/0014-no-text-generation.md)).
 
 **Portfolio thesis:** _"In 2026 a complete, offline-capable, GPU-accelerated AI desktop is just static files."_
 
@@ -16,10 +16,10 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 
 - Vision → execution plan: goals/non-goals, support matrix, architecture, model catalogue, milestones with definitions of done, quality bar, risks, conventions.
 - The desktop is the **genuine centrepiece** (full/most functionality), not a skin; window manager built from scratch; original design.
-- AI is split into **foundation (non-LLM models: deterministic, small, fast)** and **optional LLM tier (M5)**. Nothing depends on the LLM.
-- **Hybrid app model** decided up front: system apps in-process, third-party/generated apps in sandboxed iframes, one SDK.
+- AI means **perception models: deterministic, small, fast** — embeddings, vision, speech, recognition. v2 put text generation in an optional M5 tier; M4 closed that tier without building it, because four milestones of features turned out to be retrieval problems. See [ADR 14](./docs/adr/0014-no-text-generation.md).
+- **Hybrid app model** decided up front: system apps in-process, third-party apps in sandboxed iframes, one SDK.
 - Hosting constraints baked in: GitHub Pages only, weights policy in tiers, cross-origin isolation via service worker, CSP via meta, self-hosted runtime.
-- Stack references updated to 2026 (Transformers.js v4 WebGPU runtime; WebGPU baseline in all major browsers; WebNN/Prompt API as progressive enhancements).
+- Stack references updated to 2026 (Transformers.js v4 WebGPU runtime; WebGPU baseline in all major browsers; WebNN as a progressive enhancement).
 
 ---
 
@@ -36,7 +36,7 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 **Non-goals**
 
 - No servers, accounts, sync, telemetry, analytics, or third-party scripts/fonts/CDNs.
-- No cloud AI by default; no dependence on an LLM for any core feature.
+- No cloud AI, and no text generation at all — local or otherwise.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
 - No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot except consented model downloads.
 - Mobile is best-effort, not a milestone gate. Single user per browser profile.
@@ -47,9 +47,9 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 
 - **P1 Local-first, verifiable privacy** — network monitor in Task Manager; "airplane mode" demo.
 - **P2 Zero-cost static** — GitHub Pages; Hugging Face only for consented optional weights; nothing else.
-- **P3 Progressive enhancement** — detect capabilities at boot (WebGPU → WASM; File System Access where available; Prompt API optional); never hard-fail.
+- **P3 Progressive enhancement** — detect capabilities at boot (WebGPU → WASM; File System Access where available); never hard-fail.
 - **P4 Polished subsets per milestone** — every milestone is a shippable portfolio state.
-- **P5 Deterministic demo first** — the first 30 seconds never wait on a download or an LLM.
+- **P5 Deterministic demo first** — the first 30 seconds never wait on a download, and no answer the desktop gives is generated prose: every result points into a file you can open and check.
 - **P6 The OS metaphor is real** — processes, kernel services, permissions, task manager, installation — not cosmetic.
 - **P7 Keyboard-first, accessible, original design.**
 - **P8 Minimal dependencies in the desktop core** — libraries for ML, PDF and media only.
@@ -81,7 +81,7 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 
 | Browser                                | Import                                      | Re-link real folders        | WebGPU                               | AI                            | Status                                    |
 | -------------------------------------- | ------------------------------------------- | --------------------------- | ------------------------------------ | ----------------------------- | ----------------------------------------- |
-| Chrome / Edge desktop                  | drag-drop, `webkitdirectory`, folder picker | **yes** (persisted handles) | yes                                  | full (+ optional Prompt API)  | **primary target**                        |
+| Chrome / Edge desktop                  | drag-drop, `webkitdirectory`, folder picker | **yes** (persisted handles) | yes                                  | full                          | **primary target**                        |
 | Firefox desktop 147+                   | drag-drop, `webkitdirectory`                | no (re-import)              | yes on Windows/macOS (Linux pending) | full                          | supported                                 |
 | Safari 26 macOS                        | drag-drop, `webkitdirectory`                | no                          | yes                                  | full (verify OPFS throughput) | supported                                 |
 | Mobile (Chrome Android, iOS 26 Safari) | limited                                     | no                          | yes, memory-tight                    | tiny models only              | best-effort; show a "limited mode" banner |
@@ -112,8 +112,8 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 │   capability/permission broker                                                           │
 │                                                                                          │
 │ SERVICES (workers)                                                                       │
-│   inference workers (WebGPU | WASM | [WebNN] | [Prompt API]) · indexer · file-IO (OPFS   │
-│   sync access handles) · media (thumbnails, decode, WebCodecs) · pdf (pdf.js)            │
+│   inference workers (WebGPU | WASM | [WebNN]) · indexer · file-IO (OPFS sync access      │
+│   handles) · media (thumbnails, decode, WebCodecs) · pdf (pdf.js)                        │
 │                                                                                          │
 │ STORAGE                                                                                  │
 │   OPFS: content-addressed blobs · derived data · index shards · model cache              │
@@ -128,7 +128,7 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 - **System apps** are React components registered with a manifest and run in-process for rich integration (drag-drop, theming, instant IPC). They still use only the SDK/kernel APIs — no back doors — so the SDK stays the single API.
 - **Sandboxed apps** (third-party, user-installed, later generated) run in `<iframe sandbox="allow-scripts">` (no `allow-same-origin` → opaque origin → no access to the OS's storage or DOM). All capabilities go through postMessage RPC with a per-instance capability token. The permission broker prompts on first use of each capability. **There is no network capability at all.**
 - **One SDK surface for both:** `os.fs`, `os.windows`, `os.ai`, `os.events`, `os.clipboard`, `os.notify`, `os.settings`, `os.apps` (Appendix B). Adapter layer: direct call (in-process) vs postMessage client (sandboxed).
-- **App manifest:** id, name, icon, entry, permissions, file associations (open-with), window defaults, (M5) tool manifest.
+- **App manifest:** id, name, icon, entry, permissions, file associations (open-with), window defaults.
 - **CSP/sandbox detail to spike in M3:** `srcdoc`/`blob:` documents inherit the parent CSP, so the app runner is a same-origin HTML page loaded in a sandboxed iframe with app code delivered as `blob:` scripts (parent `script-src` gains `blob:` only then), _or_ the runner is hosted on a second free GitHub Pages origin (different org) for a fully independent CSP. Decide with a spike.
 
 ### 5.3 Threads and workers
@@ -182,7 +182,7 @@ The README states the exact host list. The Task Manager's network monitor lists 
 - **Cross-origin isolation** via `coi-serviceworker` (credentialless mode) → `SharedArrayBuffer`/threads. Every cross-origin fetch must be CORS (Hugging Face is).
 - **Sandboxed apps:** `sandbox="allow-scripts"` only; opaque origin; child CSP with no `connect-src`; capability tokens random per instance; messages schema-validated; grants persisted and revocable in Settings → Apps; folder-scoped file capabilities.
 - **OS code:** no `eval`, no third-party scripts, sanitized Markdown rendering.
-- **Future LLM (M5):** file content is untrusted input; mutating tools require confirmation; no auto-execution of model output.
+- **No model output is ever executed**, because no model here produces anything executable. The tool-calling agent that would have needed that rule was removed with the M5 tier ([ADR 14](./docs/adr/0014-no-text-generation.md)); file content is still treated as untrusted input everywhere it is parsed.
 
 ### 5.9 Multi-tab
 
@@ -201,24 +201,28 @@ Web Locks `os-leader`; non-leader tabs offer "take over" or run read-only; Broad
 
 ## 6. Model catalogue (initial picks — sizes ~, q8 unless noted; benchmark in M0)
 
-| Task                  | Candidate(s)                                                                                    | ~Size                     | Tier                 | Notes                                              |
-| --------------------- | ----------------------------------------------------------------------------------------------- | ------------------------- | -------------------- | -------------------------------------------------- |
-| Text embeddings       | `Xenova/all-MiniLM-L6-v2` (384-d)                                                               | ~23 MB                    | bundled              | English; very fast; size verified                  |
-|                       | `bge-small-en-v1.5` · `multilingual-e5-small`                                                   | ~34 · ~120 MB             | on-demand            | higher quality · multilingual                      |
-| Image–text            | `clip-vit-base-patch32`                                                                         | ~150 MB total             | on-demand            | baseline                                           |
-|                       | MobileCLIP-S0/S1 ONNX · SigLIP-base                                                             | small · ~200+ MB          | bundled? · on-demand | MobileCLIP may fit Tier 0 — measure                |
-| Visual similarity     | CLIP image embeddings (reuse) · DINOv2-small                                                    | 0 · ~25 MB                | on-demand            | DINOv2 better for near-duplicates                  |
-| ASR                   | `whisper-tiny` / `base` / `small`                                                               | ~40 / ~75 / ~250 MB       | bundled? / on-demand | multilingual; WebGPU-optimised variants are larger |
-|                       | Moonshine tiny/base                                                                             | ~30–60 MB                 | alternative          | English, fast                                      |
-| Diarization           | pyannote segmentation-3.0 ONNX                                                                  | ~6 MB                     | optional             | check license/gating                               |
-| Document text         | pdf.js text layer                                                                               | library                   | core                 | scanned → OCR                                      |
-| OCR                   | tesseract.js (WASM) · TrOCR · Florence-2-base                                                   | ~15 · ~65 · ~250 MB       | M4                   | tesseract = pragmatic, deterministic               |
-| Detection / auto-tags | yolos-tiny · detr-resnet-50                                                                     | ~25 · ~42 MB              | M4                   | photo tags                                         |
-| Background removal    | MODNet · BiRefNet · RMBG-1.4                                                                    | ~25 · ~200+ · ~45 MB      | M4                   | **check licenses** (RMBG-1.4 is non-commercial)    |
-| Translation           | opus-mt pairs · NLLB-600M · Chrome Translator API                                               | ~80 MB/pair · ~600 MB · 0 | M4                   |                                                    |
-| TTS                   | Kokoro-82M ONNX                                                                                 | ~90–330 MB                | M4                   | read-aloud                                         |
-| Captioning / VLM      | SmolVLM-256M/500M · Florence-2                                                                  | ~250–500 MB               | M5 (optional)        | "describe this photo"                              |
-| LLM (optional)        | Chrome Prompt API (Gemini Nano) · Qwen3 0.6B–4B / Qwen3.5 0.8B via Transformers.js v4 or WebLLM | 0 · ~0.5–2.5 GB           | M5                   | **never required**                                 |
+| Task                  | Candidate(s)                                      | ~Size                     | Tier                 | Notes                                              |
+| --------------------- | ------------------------------------------------- | ------------------------- | -------------------- | -------------------------------------------------- |
+| Text embeddings       | `Xenova/all-MiniLM-L6-v2` (384-d)                 | ~23 MB                    | bundled              | English; very fast; size verified                  |
+|                       | `bge-small-en-v1.5` · `multilingual-e5-small`     | ~34 · ~120 MB             | on-demand            | higher quality · multilingual                      |
+| Image–text            | `clip-vit-base-patch32`                           | ~150 MB total             | on-demand            | baseline                                           |
+|                       | MobileCLIP-S0/S1 ONNX · SigLIP-base               | small · ~200+ MB          | bundled? · on-demand | MobileCLIP may fit Tier 0 — measure                |
+| Visual similarity     | CLIP image embeddings (reuse) · DINOv2-small      | 0 · ~25 MB                | on-demand            | DINOv2 better for near-duplicates                  |
+| ASR                   | `whisper-tiny` / `base` / `small`                 | ~40 / ~75 / ~250 MB       | bundled? / on-demand | multilingual; WebGPU-optimised variants are larger |
+|                       | Moonshine tiny/base                               | ~30–60 MB                 | alternative          | English, fast                                      |
+| Diarization           | pyannote segmentation-3.0 ONNX                    | ~6 MB                     | optional             | check license/gating                               |
+| Document text         | pdf.js text layer                                 | library                   | core                 | scanned → OCR                                      |
+| OCR                   | tesseract.js (WASM) · TrOCR · Florence-2-base     | ~15 · ~65 · ~250 MB       | M4                   | tesseract = pragmatic, deterministic               |
+| Detection / auto-tags | yolos-tiny · detr-resnet-50                       | ~25 · ~42 MB              | M4                   | photo tags                                         |
+| Background removal    | MODNet · BiRefNet · RMBG-1.4                      | ~25 · ~200+ · ~45 MB      | M4                   | **check licenses** (RMBG-1.4 is non-commercial)    |
+| Translation           | opus-mt pairs · NLLB-600M · Chrome Translator API | ~80 MB/pair · ~600 MB · 0 | M4                   |                                                    |
+| TTS                   | Kokoro-82M ONNX                                   | ~90–330 MB                | M4                   | read-aloud                                         |
+
+**Not in this catalogue, deliberately:** language models and vision-language captioners — Gemini
+Nano through the Chrome Prompt API, Qwen via Transformers.js or WebLLM, SmolVLM, Florence-2. v2
+listed them as an optional M5 tier. M4 closed that tier without building it; the reasoning is in
+[ADR 14](./docs/adr/0014-no-text-generation.md). Every model above answers a question about a file
+the user already has, which is why none of them can invent an answer.
 
 ---
 
@@ -228,7 +232,7 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 
 ### M0 — Foundations (~1 FTE-week)
 
-**Scope:** repo scaffold (Vite + React + TypeScript strict); GitHub Actions → Pages deploy with base path; `coi-serviceworker`; CSP meta; PWA skeleton; design tokens + light/dark theme + placeholder name/logo; capability probe (WebGPU adapter, device memory, OPFS, File System Access, Prompt API); **benchmark harness page** (load + run candidate models on WASM and WebGPU; sizes, load time, throughput; OPFS read/write throughput); pick the Tier-0 bundle within budget; ADRs 01–05.
+**Scope:** repo scaffold (Vite + React + TypeScript strict); GitHub Actions → Pages deploy with base path; `coi-serviceworker`; CSP meta; PWA skeleton; design tokens + light/dark theme + placeholder name/logo; capability probe (WebGPU adapter, device memory, OPFS, File System Access); **benchmark harness page** (load + run candidate models on WASM and WebGPU; sizes, load time, throughput; OPFS read/write throughput); pick the Tier-0 bundle within budget; ADRs 01–05.
 **Done when:** `crossOriginIsolated === true` on the deployed Pages site; benchmark JSON from ≥ 2 machines (your dev box + a weaker iGPU laptop or throttled profile) committed under `docs/benchmarks/`; `models.json` v0; open decisions in §13 resolved and recorded.
 
 ### M1 — A real desktop · v0.1 · first public portfolio state (~5–7 FTE-weeks)
@@ -253,7 +257,7 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 **Platform:** SDK package (types + in-process adapter + postMessage client); sandboxed iframe runtime (after the CSP spike in §5.2); app manifests; capability broker + permission prompts + Settings → Apps (grants, revoke, uninstall); install apps from a local folder/zip or a URL-fragment package (no backend); file associations/open-with; clipboard service; inter-app events; optional: linked folders re-sync (Chromium), terminal/console app (power-user VFS shell).
 **Apps:** 2–3 sample third-party apps built **only** against the SDK (e.g. Calculator, a "Gallery wall" using `os.ai.embed`, a markdown tool) to prove the API.
 **Done when:** a sandboxed app demonstrably cannot touch OPFS/IndexedDB/DOM (tested); permission prompts and revocation work; a sample app installed from a file runs offline; SDK docs published with an API-stability note; tagged `v0.3.0`.
-**Out:** LLM, generated apps.
+**Out:** LLM, video, OCR.
 
 ### M4 — More senses · pool (pick by value; ~1–2 FTE-weeks each)
 
@@ -284,13 +288,24 @@ Measured: all ten lines of the sample scanned page found and read with **zero ch
 
 Photos tools beyond duplicates (background removal, auto-tags), translation, read-aloud, WebNN, WebGPU compute-shader vector search. Each remains a self-contained addition behind its own consented download.
 
-### M5 — Optional intelligence (only after M1–M3 DoD are met; ~4+ FTE-weeks)
+### M5 — Optional intelligence · **removed, not deferred**
 
-LLM service plug-in with backends Chrome Prompt API / downloaded small model / sideloaded; Assistant: conversational search (RAG over the index with citations to files/offsets), summaries; tool-calling agent across apps using manifests (read-only tools auto-run; mutating tools confirm; file content untrusted); app generation via template + patch with an auto-test loop (render in hidden sandbox, capture errors, retry) and a pre-generated gallery for the demo.
-**Done when:** the OS is 100 % functional with the plug-in absent (CI runs without it); every LLM feature degrades visibly and gracefully; prompt-injection test suite passes.
+v2 planned an LLM plug-in here: conversational search over the index, summaries, a tool-calling
+agent across apps, and app generation with an auto-test loop. It was always gated on M1–M3 and was
+never started. At the end of M4 it was **removed from the roadmap** rather than left open.
 
-**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4/M5 add depth.
-**Calendar reality:** M0–M3 ≈ 14–18 FTE-weeks → ~3.5–4.5 months full-time, ~9–12 months at ~15 h/week. Each milestone is publicly valuable on its own, so value accrues even if the project stops early.
+The short version: nothing wanted it. Every feature that looked like it needed generation turned
+out to be retrieval — including the plan's own headline aspiration, "find the video where I showed
+my red keyboard and extract that section", which M4 answered with embeddings, a score floor and a
+grouping rule. A 0.5–2.5 GB model would also have been the one workload WASM cannot rescue on a
+machine without WebGPU, and the only part of the system that can answer differently twice. Full
+reasoning: [ADR 14](./docs/adr/0014-no-text-generation.md).
+
+What this removes is a promise, not a feature: no code was written for it, and the only change to
+the source was deleting one unused member of a type union.
+
+**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4 adds depth.
+**Calendar reality:** M0–M3 ≈ 14–18 FTE-weeks → ~3.5–4.5 months full-time, ~9–12 months at ~15 h/week, plus M4 as a pool of self-contained additions. Each milestone is publicly valuable on its own, so value accrues even if the project stops early.
 
 ---
 
@@ -309,7 +324,7 @@ LLM service plug-in with backends Chrome Prompt API / downloaded small model / s
 ## 9. Portfolio deliverables
 
 - **README:** hero GIF; "what is running in your tab right now"; exact host list; quick demo; support matrix; **limitations**.
-- **`docs/architecture.md`** (diagram, data flows, threading, storage) + **ADRs** (hybrid app model; LLM-optional; content-addressed OPFS; brute-force vector search first; hosting constraints; weights tiers).
+- **`docs/architecture.md`** (diagram, data flows, threading, storage) + **ADRs** (hybrid app model; no text generation; content-addressed OPFS; brute-force vector search first; hosting constraints; weights tiers).
 - **`docs/benchmarks.md`** auto-exported from the in-app Stats panel, hardware listed.
 - 60–90 s video; blog post outline _"Static files, real OS"_.
 - Talking points per audience: frontend/platform (WM, state, a11y, perf), systems (scheduler, workers, storage, sandboxing), ML (local inference, indexing, hybrid retrieval, backends).
@@ -320,7 +335,7 @@ LLM service plug-in with backends Chrome Prompt API / downloaded small model / s
 
 | Risk                                | Impact                  | Mitigation                                                                            |
 | ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| Scope creep (genuine desktop)       | never ships             | milestone DoD gates; M4/M5 optional; polish over breadth                              |
+| Scope creep (genuine desktop)       | never ships             | milestone DoD gates; M4 a pool, not a list; polish over breadth                       |
 | Time-to-first-result (downloads)    | visitors bounce         | Tier-0 bundled models; demo data; lazy everything; progress UI                        |
 | Memory/VRAM exhaustion              | crashes                 | registry memory budget; LRU unload; quantized models; one model per task              |
 | WebGPU driver bugs / device lost    | broken demo             | WASM fallback; device-lost recovery; tested matrix                                    |
@@ -331,7 +346,7 @@ LLM service plug-in with backends Chrome Prompt API / downloaded small model / s
 | Pages bandwidth spike               | throttling              | lean bundle; SW caching; Tier 0 ≤ ~80 MB; optional second site/org for models         |
 | Design/polish time                  | looks amateur           | design tokens early; one original visual language; empty/loading/error states written |
 | Accessibility debt                  | senior reviewers notice | keyboard-first from M1, not retrofitted                                               |
-| LLM rabbit hole                     | delays core             | M5 gated on M1–M3; LLM-optional architecture                                          |
+| LLM rabbit hole                     | delays core             | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)             |
 | Licences (models/assets)            | takedown/embarrassment  | `THIRD_PARTY_NOTICES.md`; CC0/public-domain demo assets; check every model licence    |
 
 ---
@@ -370,13 +385,13 @@ LLM service plug-in with backends Chrome Prompt API / downloaded small model / s
 
 - **D01** Browser-only, static, GitHub Pages, $0, no backend or other services (Hugging Face only for consented optional weights).
 - **D02** Genuine desktop; window manager from scratch; original design (no Microsoft/Apple assets).
-- **D03** Local AI as system services; non-LLM models are the foundation; LLM is an optional plug-in (M5); nothing depends on it.
-- **D04** Hybrid app model: system apps in-process, third-party/generated apps in sandboxed iframes, one SDK.
-- **D05** Weights tiers: bundled ≤ ~80 MB / on-demand Hugging Face with consent + integrity / built-in (Prompt API) / sideload.
+- **D03** Local AI as system services; perception models are the whole of it. _Revised at M4:_ the optional LLM tier is removed, not deferred (ADR 14) — the desktop sees, hears and reads, and does not generate text.
+- **D04** Hybrid app model: system apps in-process, third-party apps in sandboxed iframes, one SDK.
+- **D05** Weights tiers: bundled ≤ ~80 MB / on-demand Hugging Face with consent + integrity / sideload.
 - **D06** Chromium-first, desktop-first; graceful degradation elsewhere; mobile best-effort.
 - **D07** `coi-serviceworker` for cross-origin isolation; CSP via meta; self-hosted runtime (no jsDelivr).
 - **D08** Content-addressed OPFS blobs + IndexedDB tree; brute-force vector search in a worker first.
-- **D09** Polished subsets per milestone; the demo is never gated on downloads or an LLM.
+- **D09** Polished subsets per milestone; the demo is never gated on a download, and never answers with generated prose.
 - **D10** No telemetry; privacy verifiable in-app.
 - **D11** Authorship: owner only; no AI co-author trailers or generated-with footers.
 
