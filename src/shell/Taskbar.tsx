@@ -14,7 +14,7 @@ import { useUnreadCount } from '../kernel/notifications';
 import { useOnlineStatus } from '../kernel/network';
 import { useCapabilities } from './capabilitiesContext';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
-import { Icon } from './Icon';
+import { AppIcon } from './PixelIcon';
 import { NotificationCenter } from './Notifications';
 import styles from './Taskbar.module.css';
 
@@ -87,12 +87,12 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         aria-expanded={launcherOpen}
         aria-label="Open the app launcher"
       >
-        <Icon name="apps" size={17} />
+        <AppIcon name="apps" size={17} />
         <span className={styles.launcherLabel}>Apps</span>
       </button>
 
       <button type="button" className={styles.search} onClick={onOpenPalette}>
-        <Icon name="search" size={15} />
+        <AppIcon name="search" size={15} />
         <span>Search commands…</span>
         <kbd className={styles.kbd}>Ctrl K</kbd>
       </button>
@@ -115,7 +115,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
               aria-pressed={active}
               title={window.title}
             >
-              <Icon name={app?.icon ?? 'file'} size={15} />
+              <AppIcon name={app?.icon ?? 'file'} size={15} />
               <span className={styles.taskLabel}>{window.title}</span>
             </button>
           );
@@ -138,7 +138,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
             className={`${styles.chip} ${styles.chipOffline}`}
             title="Offline — everything still works"
           >
-            <Icon name="offline" size={13} />
+            <AppIcon name="offline" size={13} />
             offline
           </span>
         ) : null}
@@ -153,7 +153,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
               : 'Probing hardware…'
           }
         >
-          <Icon name={capabilities?.backend === 'webgpu' ? 'bolt' : 'cpu'} size={13} />
+          <AppIcon name={capabilities?.backend === 'webgpu' ? 'bolt' : 'cpu'} size={13} />
           {capabilities?.backend ?? '…'}
         </span>
 
@@ -164,7 +164,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
           aria-expanded={notificationsOpen}
           aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         >
-          <Icon name="bell" size={13} />
+          <AppIcon name="bell" size={13} />
           {unread > 0 ? <span className={styles.badge}>{unread}</span> : null}
         </button>
 

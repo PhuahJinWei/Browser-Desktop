@@ -1,19 +1,20 @@
 import { useId } from 'react';
-import type { IconName } from './Icon';
-import { PIXEL_ART, PIXEL_PALETTE, PIXEL_SIZE, type PixelKey } from './pixelIcons';
+import { useSetting } from '../kernel/settings';
+import { Icon, type IconName } from './Icon';
+import { PIXEL_ART_16, PIXEL_ART_32, PIXEL_PALETTE, type PixelKey } from './pixelIcons';
 
 /**
  * Pixel-art icons for the classic skin.
  *
- * The line icons in `Icon.tsx` are the modern set: a 1.75 stroke with round caps, drawn white on
- * the desktop. Nothing tokens can do makes that look like 1995 — the artwork is the tell. These
- * are 32×32 bitmaps in a sixteen-colour palette, which is what the era's desktop icons were.
+ * The line icons in `Icon.tsx` are the modern set: a 1.75 stroke with round caps. Nothing tokens
+ * can do makes that look like 1995 — the artwork is the tell. These are bitmaps in a sixteen-colour
+ * palette, which is what the era's icons were.
  *
  * They are stored as text (`pixelIcons.ts`), one character per pixel, and rasterised here into one
  * SVG path per colour: each horizontal run of a colour becomes a 1-unit-tall rectangle. With
- * `shape-rendering: crispEdges` and integer geometry the browser paints them pixel-exact at 32px,
- * and at 2× on a high-density display each art pixel is a clean 2×2 block. No image files, no
- * new hosts, and the art is reviewable in a diff.
+ * `shape-rendering: crispEdges` and integer geometry the browser paints them pixel-exact, and at 2×
+ * on a high-density display each art pixel is a clean 2×2 block. No image files, no new hosts, and
+ * the art is reviewable in a diff.
  *
  * Selection is the era's: a 50% dither of the selection navy over the icon's own pixels — not a
  * square around it — done by painting the same paths a second time with a 2×2 pattern fill.
@@ -49,44 +50,59 @@ export function layersFor(art: string): Layer[] {
   return [...runs].map(([fill, d]) => ({ fill, d: d.join('') }));
 }
 
-const cache = new Map<IconName, Layer[]>();
+/**
+ * Which of the two drawings to use.
+ *
+ * The era shipped a 16 and a 32 per icon rather than scaling one, because halving a bitmap throws
+ * away the pixel it was placed on. The boundary is 24: below it the chrome drawing, at or above it
+ * the desktop drawing.
+ */
+function gridFor(size: number): { grid: number; art: Partial<Record<IconName, string>> } {
+  return size < 24 ? { grid: 16, art: PIXEL_ART_16 } : { grid: 32, art: PIXEL_ART_32 };
+}
 
-function layers(name: IconName): Layer[] | null {
-  const art = PIXEL_ART[name];
-  if (!art) return null;
-  let result = cache.get(name);
-  if (!result) cache.set(name, (result = layersFor(art)));
+const cache = new Map<string, Layer[]>();
+
+function layers(name: IconName, grid: number, art: Partial<Record<IconName, string>>) {
+  const source = art[name];
+  if (!source) return null;
+  const key = `${grid}:${name}`;
+  let result = cache.get(key);
+  if (!result) cache.set(key, (result = layersFor(source)));
   return result;
 }
 
-export function hasPixelIcon(name: IconName): boolean {
-  return name in PIXEL_ART;
+/** Whether there is a drawing for this name at the size that would be used. */
+export function hasPixelIcon(name: IconName, size = 32): boolean {
+  return name in gridFor(size).art;
 }
 
 interface PixelIconProps {
   name: IconName;
-  size?: number;
+  size?: number | undefined;
   /** Paints the era's navy dither over the icon's own pixels. */
-  selected?: boolean;
-  className?: string;
+  selected?: boolean | undefined;
+  className?: string | undefined;
 }
 
-export function PixelIcon({
-  name,
-  size = PIXEL_SIZE,
-  selected = false,
-  className,
-}: PixelIconProps) {
+export function PixelIcon({ name, size = 32, selected = false, className }: PixelIconProps) {
   // Pattern ids must be unique per instance; React's ids carry punctuation that is not safe in a
   // url() fragment, so keep only the characters that are.
   const id = `px-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const art = layers(name);
-  if (!art) return null;
+  const { grid, art } = gridFor(size);
+  const paths = layers(name, grid, art);
+  if (!paths) return null;
+
+  // Snapped to a whole multiple of the grid. A 16-pixel drawing shown at 15px or 22px is resampled
+  // and the crispness — the entire point — is lost, so the call site's size is a request for a
+  // scale rather than an exact box.
+  const rendered = Math.max(1, Math.floor(size / grid)) * grid;
+
   return (
     <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${PIXEL_SIZE} ${PIXEL_SIZE}`}
+      width={rendered}
+      height={rendered}
+      viewBox={`0 0 ${grid} ${grid}`}
       shapeRendering="crispEdges"
       className={className}
       aria-hidden="true"
@@ -99,12 +115,34 @@ export function PixelIcon({
           </pattern>
         </defs>
       ) : null}
-      {art.map((layer) => (
+      {paths.map((layer) => (
         <path key={layer.fill} d={layer.d} fill={layer.fill} />
       ))}
       {selected
-        ? art.map((layer) => <path key={`${layer.fill}-dither`} d={layer.d} fill={`url(#${id})`} />)
+        ? paths.map((layer) => (
+            <path key={`${layer.fill}-dither`} d={layer.d} fill={`url(#${id})`} />
+          ))
         : null}
     </svg>
   );
+}
+
+/**
+ * An icon as the current skin draws it: pixel art under classic, the line icon otherwise.
+ *
+ * One component rather than a skin branch at each call site, because the title bar, the taskbar,
+ * the launcher and the desktop all draw the same app icon and four copies of the same condition
+ * drift apart.
+ *
+ * `size` is the modern size. The classic side snaps it to a whole multiple of whichever grid it
+ * picks, so a single number covers both: 15 in a title bar becomes the 16 drawing at 16px, and 24
+ * on the desktop becomes the 32 drawing at 32px, which is the pairing the era used at those two
+ * places anyway.
+ */
+export function AppIcon({ name, size, selected, className }: PixelIconProps & { size: number }) {
+  const skin = useSetting('skin');
+  if (skin === 'classic' && hasPixelIcon(name, size)) {
+    return <PixelIcon name={name} size={size} selected={selected} className={className} />;
+  }
+  return <Icon name={name} size={size} className={className} />;
 }

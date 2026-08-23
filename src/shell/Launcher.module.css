@@ -118,3 +118,12 @@
 :global([data-skin='classic']) .app:focus-visible .appIcon {
   color: #ffffff;
 }
+
+/* No tile behind the icon. A menu of this era set the icon straight onto the menu face; the pale
+   rounded square is a modern affordance, and once the palette goes grey it reads as a stray box
+   rather than as a container. The column is `auto`, so narrowing it just moves the text across. */
+:global([data-skin='classic']) .appIcon {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+}

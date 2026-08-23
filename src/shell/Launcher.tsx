@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { launcherApps, launchApp, launchInstalledApp } from '../kernel/apps';
 import { useInstalledApps } from '../kernel/installedApps';
-import { Icon } from './Icon';
+import { hideIcon, isIconHidden, showIcon } from '../kernel/desktop';
+import { ContextMenu, separator, useContextMenu } from './ContextMenu';
+import { AppIcon } from './PixelIcon';
 import styles from './Launcher.module.css';
 
 /**
@@ -16,6 +18,19 @@ export function Launcher({ onClose }: { onClose: () => void }) {
   const [index, setIndex] = useState(0);
   const apps = launcherApps();
   const installed = useInstalledApps();
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
+
+  /* The launcher is where an app that was removed from the desktop can be put back. */
+  const appMenu = (id: string, name: string, run: () => void) => {
+    const hidden = isIconHidden(id);
+    return [
+      { id: 'launch.open', label: `Open ${name}`, run },
+      separator('launch.s1'),
+      hidden
+        ? { id: 'launch.add', label: 'Add to desktop', run: () => showIcon(id) }
+        : { id: 'launch.remove', label: 'Remove from desktop', run: () => hideIcon(id) },
+    ];
+  };
 
   useEffect(() => {
     panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -73,9 +88,15 @@ export function Launcher({ onClose }: { onClose: () => void }) {
             className={styles.app}
             onClick={() => open(app.id)}
             onFocus={() => setIndex(position)}
+            onContextMenu={(event) =>
+              openMenu(
+                event,
+                appMenu(app.id, app.name, () => open(app.id)),
+              )
+            }
           >
             <span className={styles.appIcon}>
-              <Icon name={app.icon} size={22} />
+              <AppIcon name={app.icon} size={22} />
             </span>
             <span className={styles.appName}>{app.name}</span>
             <span className={styles.appDescription}>{app.description}</span>
@@ -103,7 +124,7 @@ export function Launcher({ onClose }: { onClose: () => void }) {
                 }}
               >
                 <span className={styles.appIcon}>
-                  <Icon name="apps" size={22} />
+                  <AppIcon name="apps" size={22} />
                 </span>
                 <span className={styles.appName}>{app.manifest.name}</span>
                 <span className={styles.appDescription}>{app.manifest.description}</span>
@@ -112,6 +133,8 @@ export function Launcher({ onClose }: { onClose: () => void }) {
           </div>
         </>
       ) : null}
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

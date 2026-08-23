@@ -25,6 +25,12 @@ Added
   `pixelIcons.ts`) and rasterised to crisp SVG at render time: no image files, no new hosts, and
   the art is reviewable in a diff. Original drawings of generic objects in the period idiom.
   Selection dithers the icon's own pixels navy, as the era did, rather than only the label.
+- **A 16×16 set for the chrome**, drawn separately rather than scaled: title bars, the taskbar
+  (task buttons, launcher, search and the status chips) and the launcher menu. Halving a bitmap
+  throws away the pixel it was placed on, so the era shipped two drawings per icon and so does
+  this; `AppIcon` picks the grid and snaps the box to a whole multiple of it, because a 16-pixel
+  drawing shown at 15px is resampled and the crispness is the whole point. The launcher also drops
+  its rounded icon tile, which is a modern affordance that reads as a stray box in one grey.
 - **Legible window controls.** Minimise, maximise, restore and close are pixel glyphs under
   Classic — one box-shadow per pixel, crisp by construction. The line icons rendered at under a
   pixel wide inside the 18×16 buttons and were close to invisible.

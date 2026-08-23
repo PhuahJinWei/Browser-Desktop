@@ -14,6 +14,7 @@ import {
 } from '../kernel/windows';
 import { ContextMenu, isMenuKey, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { Icon } from './Icon';
+import { AppIcon } from './PixelIcon';
 import styles from './WindowFrame.module.css';
 
 /**
@@ -338,7 +339,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
         onContextMenu={(event) => openMenu(event, windowMenu())}
       >
         <span className={styles.titleIcon}>
-          <Icon name={app?.icon ?? 'file'} size={15} />
+          <AppIcon name={app?.icon ?? 'file'} size={15} />
         </span>
         <span className={styles.title}>{win.title}</span>
         <div className={styles.controls}>

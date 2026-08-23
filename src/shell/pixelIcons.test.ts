@@ -1,53 +1,53 @@
 import { describe, expect, it } from 'vitest';
-import { PIXEL_ART, PIXEL_PALETTE, PIXEL_SIZE } from './pixelIcons';
+import { PIXEL_ART_16, PIXEL_ART_32, PIXEL_PALETTE } from './pixelIcons';
 import { layersFor } from './PixelIcon';
+import { APPS } from '../kernel/apps';
 
 /**
- * The art is text, so the things that can go wrong are textual: a row one character short, a
- * typo outside the palette, a stray space. A wrong pixel is a matter of taste; a malformed grid
- * is a bug, and it is cheap to catch here rather than as a silently misdrawn icon.
+ * The art is text, so the things that can go wrong are textual: a row one character short, a typo
+ * outside the palette, a stray space. A wrong pixel is a matter of taste; a malformed grid is a
+ * bug, and it is cheap to catch here rather than as a silently misdrawn icon.
  */
 describe('pixel icons', () => {
-  const names = Object.keys(PIXEL_ART) as (keyof typeof PIXEL_ART)[];
+  const grids = [
+    { size: 16, art: PIXEL_ART_16 },
+    { size: 32, art: PIXEL_ART_32 },
+  ] as const;
 
-  it('has at least the desktop set', () => {
-    expect(names).toEqual(
-      expect.arrayContaining([
-        'folder',
-        'search',
-        'note',
-        'image',
-        'music',
-        'video',
-        'apps',
-        'link',
-        'gauge',
-        'settings',
-        'info',
-      ]),
-    );
+  it('draws every app on the desktop at both sizes', () => {
+    // The desktop uses the 32 grid and the chrome the 16 one, so a missing drawing at either size
+    // silently falls back to a line icon in one skin — the exact inconsistency this set exists to
+    // remove. `file` is the title bar's fallback when a window has no app behind it.
+    const needed = [...new Set(APPS.map((app) => app.icon))];
+    expect(Object.keys(PIXEL_ART_32)).toEqual(expect.arrayContaining(needed));
+    expect(Object.keys(PIXEL_ART_16)).toEqual(expect.arrayContaining([...needed, 'file']));
   });
 
-  it.each(names)('%s is a %ix%i grid in the palette', (name) => {
-    const rows = (PIXEL_ART[name] as string).replace(/^\n/, '').replace(/\n$/, '').split('\n');
-    expect(rows).toHaveLength(PIXEL_SIZE);
-    for (const row of rows) {
-      expect(row).toHaveLength(PIXEL_SIZE);
-      for (const ch of row) expect(ch === '.' || ch in PIXEL_PALETTE).toBe(true);
-    }
-  });
+  for (const { size, art } of grids) {
+    describe(`${size}x${size}`, () => {
+      const names = Object.keys(art) as (keyof typeof art)[];
 
-  it.each(names)('%s rasterises with a black outline and fits inside the grid', (name) => {
-    const layers = layersFor(PIXEL_ART[name] as string);
-    expect(layers.length).toBeGreaterThan(1);
-    expect(layers.some((layer) => layer.fill === '#000000')).toBe(true);
-    // Every run starts inside the grid and does not run off its right edge.
-    for (const layer of layers) {
-      for (const [, x, , w] of layer.d.matchAll(/M(\d+) (\d+)h(\d+)/g)) {
-        expect(Number(x) + Number(w)).toBeLessThanOrEqual(PIXEL_SIZE);
-      }
-    }
-  });
+      it.each(names)(`%s is a ${size}-row grid in the palette`, (name) => {
+        const rows = (art[name] as string).replace(/^\n/, '').replace(/\n$/, '').split('\n');
+        expect(rows).toHaveLength(size);
+        for (const row of rows) {
+          expect(row).toHaveLength(size);
+          for (const ch of row) expect(ch === '.' || ch in PIXEL_PALETTE).toBe(true);
+        }
+      });
+
+      it.each(names)('%s rasterises with an outline and stays inside the grid', (name) => {
+        const layers = layersFor(art[name] as string);
+        expect(layers.length).toBeGreaterThan(1);
+        expect(layers.some((layer) => layer.fill === '#000000')).toBe(true);
+        for (const layer of layers) {
+          for (const [, x, , w] of layer.d.matchAll(/M(\d+) (\d+)h(\d+)/g)) {
+            expect(Number(x) + Number(w)).toBeLessThanOrEqual(size);
+          }
+        }
+      });
+    });
+  }
 
   it('merges horizontal runs rather than emitting one rect per pixel', () => {
     const layers = layersFor('\nkkkk\n....\nk.kk\n');
