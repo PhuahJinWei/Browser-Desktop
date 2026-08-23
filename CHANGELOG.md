@@ -20,6 +20,18 @@ Added
   because a row can be focused without being selected. Files, Photos, Notes, Audio, Video, Search,
   Task Manager and the command palette.
 
+Fixed
+
+- **Hover no longer eats the selection.** A rule like `.row:hover` is one pseudo-class more
+  specific than `.rowSelected`, so moving the pointer over a selected row repainted it as merely
+  hovered — the selection vanished under the cursor that was pointing at it, and came back when you
+  moved away. It affected both skins and predates them: Files, Photos, Notes, Audio, Video, the
+  Task Manager tabs, the Settings segments, the Files view toggle and the taskbar, where hovering a
+  latched button flattened its dither. Hover states are now written `:hover:not(.theSelectedClass)`
+  so the two cannot compete.
+- The current line in Audio's transcript now inverts as its own comment claimed, instead of taking
+  a grey one shade off the hover colour.
+
 Two deliberate departures from the period, both because inaccessible detail is not authenticity
 worth shipping: focus stays a visible dotted outline rather than the near-invisible original, and
 the inactive title bar is two shades darker than the era's `#808080` — at the original grey its

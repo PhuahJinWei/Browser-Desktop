@@ -116,7 +116,7 @@
   cursor: pointer;
 }
 
-.iconButton:hover:not(:disabled) {
+.iconButton:hover:not(:disabled):not(.iconButtonActive) {
   background: var(--surface-1);
   color: var(--text-primary);
 }
@@ -167,7 +167,7 @@
   border-left: 2px solid transparent;
 }
 
-.row:hover {
+.row:hover:not(.rowSelected) {
   background: var(--surface-1);
 }
 
@@ -239,7 +239,7 @@
   cursor: pointer;
 }
 
-.tile:hover {
+.tile:hover:not(.tileSelected) {
   background: var(--surface-1);
 }
 
@@ -331,15 +331,13 @@
 
 /* A list view of this era had no hover state at all. A faint one is kept because it costs nothing
    and says the row is live — but it has to lose to selection, which the order below settles. */
-:global([data-skin='classic']) .row:hover,
-:global([data-skin='classic']) .tile:hover {
+:global([data-skin='classic']) .row:hover:not(.rowSelected),
+:global([data-skin='classic']) .tile:hover:not(.tileSelected) {
   background: #ebebeb;
 }
 
 :global([data-skin='classic']) .rowSelected,
-:global([data-skin='classic']) .rowSelected:hover,
-:global([data-skin='classic']) .tileSelected,
-:global([data-skin='classic']) .tileSelected:hover {
+:global([data-skin='classic']) .tileSelected {
   border-color: #000080;
   background: #000080;
   color: #ffffff;

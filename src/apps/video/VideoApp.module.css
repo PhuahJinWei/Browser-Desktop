@@ -232,7 +232,7 @@
   color: var(--text-muted);
 }
 
-.videoItem:hover {
+.videoItem:hover:not(.videoItemSelected) {
   background: var(--surface-2);
 }
 
@@ -388,12 +388,11 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .videoItem:hover {
+:global([data-skin='classic']) .videoItem:hover:not(.videoItemSelected) {
   background: #ebebeb;
 }
 
-:global([data-skin='classic']) .videoItemSelected,
-:global([data-skin='classic']) .videoItemSelected:hover {
+:global([data-skin='classic']) .videoItemSelected {
   border-color: #000080;
   background: #000080;
   color: #ffffff;

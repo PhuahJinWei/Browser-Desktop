@@ -174,7 +174,7 @@
   cursor: pointer;
 }
 
-.cell:hover {
+.cell:hover:not(.cellSelected) {
   background: var(--surface-1);
 }
 
@@ -342,12 +342,11 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .cell:hover {
+:global([data-skin='classic']) .cell:hover:not(.cellSelected) {
   background: #ebebeb;
 }
 
-:global([data-skin='classic']) .cellSelected,
-:global([data-skin='classic']) .cellSelected:hover {
+:global([data-skin='classic']) .cellSelected {
   border-color: #000080;
   background: #000080;
 }

@@ -99,7 +99,7 @@
   cursor: pointer;
 }
 
-.listItem:hover {
+.listItem:hover:not(.listItemActive) {
   background: var(--surface-3);
 }
 
@@ -282,7 +282,7 @@
 }
 
 .chapter:hover,
-.segment:hover {
+.segment:hover:not(.segmentActive) {
   background: var(--surface-1);
 }
 
@@ -339,12 +339,11 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .listItem:hover {
+:global([data-skin='classic']) .listItem:hover:not(.listItemActive) {
   background: #ebebeb;
 }
 
-:global([data-skin='classic']) .listItemActive,
-:global([data-skin='classic']) .listItemActive:hover {
+:global([data-skin='classic']) .listItemActive {
   background: #000080;
   color: #ffffff;
 }
@@ -357,13 +356,18 @@
 /* Chapters and the transcript are read, not browsed, so they keep the panel grey and mark the
    current line by inverting it alone — a white well behind running text would be a page, not a
    list, and the distinction is the whole point of the well elsewhere. */
-:global([data-skin='classic']) .segmentActive,
 :global([data-skin='classic']) .chapter:hover,
-:global([data-skin='classic']) .segment:hover {
+:global([data-skin='classic']) .segment:hover:not(.segmentActive) {
   background: #dfdfdf;
+}
+
+/* The line being spoken inverts. Hover is a plain grey above it, so the two never read as the
+   same state, which they did while both were #dfdfdf. */
+:global([data-skin='classic']) .segmentActive {
+  background: #000080;
 }
 
 :global([data-skin='classic']) .segmentActive .segmentText,
 :global([data-skin='classic']) .segmentActive .segmentTime {
-  color: #000000;
+  color: #ffffff;
 }

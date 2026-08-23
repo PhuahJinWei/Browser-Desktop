@@ -64,7 +64,7 @@
   cursor: pointer;
 }
 
-.listItem:hover {
+.listItem:hover:not(.listItemActive) {
   background: var(--surface-3);
 }
 
@@ -151,12 +151,11 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .listItem:hover {
+:global([data-skin='classic']) .listItem:hover:not(.listItemActive) {
   background: #ebebeb;
 }
 
-:global([data-skin='classic']) .listItemActive,
-:global([data-skin='classic']) .listItemActive:hover {
+:global([data-skin='classic']) .listItemActive {
   background: #000080;
 }
 

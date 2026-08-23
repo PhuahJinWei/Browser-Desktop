@@ -67,7 +67,7 @@
   white-space: nowrap;
 }
 
-.segment:hover {
+.segment:hover:not(.segmentActive) {
   color: var(--text-primary);
 }
 

@@ -106,7 +106,7 @@
   white-space: nowrap;
 }
 
-.task:hover {
+.task:hover:not(.taskActive) {
   background: var(--surface-3);
   color: var(--text-primary);
 }
@@ -292,8 +292,7 @@
 :global([data-skin='classic']) .launcherOpen,
 :global([data-skin='classic']) .taskActive {
   box-shadow: var(--bevel-sunken);
-  background:
-    repeating-conic-gradient(#c0c0c0 0% 25%, #dfdfdf 0% 50%) 0 0 / 2px 2px;
+  background: repeating-conic-gradient(#c0c0c0 0% 25%, #dfdfdf 0% 50%) 0 0 / 2px 2px;
   color: #000000;
 }
 
@@ -301,9 +300,9 @@
   color: #404040;
 }
 
-:global([data-skin='classic']) .launcher:hover,
+:global([data-skin='classic']) .launcher:hover:not(.launcherOpen),
 :global([data-skin='classic']) .search:hover,
-:global([data-skin='classic']) .task:hover,
+:global([data-skin='classic']) .task:hover:not(.taskActive),
 :global([data-skin='classic']) .chipButton:hover {
   background: #c0c0c0;
   color: #000000;

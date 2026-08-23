@@ -135,12 +135,11 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .item:hover {
+:global([data-skin='classic']) .item:hover:not(.itemActive) {
   background: #ebebeb;
 }
 
-:global([data-skin='classic']) .itemActive,
-:global([data-skin='classic']) .itemActive:hover {
+:global([data-skin='classic']) .itemActive {
   background: #000080;
   color: #ffffff;
 }
