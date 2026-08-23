@@ -264,12 +264,44 @@
  * ---------------------------------------------------------------------------------------------- */
 
 :global([data-skin='classic']) .bar {
+  /* 28px of bar plus the 2px raised edge above it, which is the era's measurement. */
   height: 30px;
   padding: 2px;
   gap: 3px;
   background: #c0c0c0;
-  border-top: 1px solid #ffffff;
+  /* A raised edge, not a white line: the bar is a panel standing above the desktop, and the
+     bottom-right shadow is what stops it reading as a flat strip of grey. */
+  border-top: 0;
+  box-shadow: var(--bevel-thin-raised);
   backdrop-filter: none;
+}
+
+/* The Start button is the tallest thing on the bar and the only bold one, which is most of how it
+   reads as the way in rather than as the first of a row of tasks. */
+:global([data-skin='classic']) .launcher {
+  height: 22px;
+  padding: 0 5px 0 3px;
+  gap: 4px;
+  font-weight: 700;
+}
+
+/* Task buttons are wider and flat-topped, and their text sits left where a title would. */
+:global([data-skin='classic']) .task {
+  height: 22px;
+  min-width: 140px;
+  justify-content: flex-start;
+  padding: 0 6px;
+}
+
+:global([data-skin='classic']) .search {
+  height: 22px;
+}
+
+/* The tray: one sunken well holding the chips and the clock, rather than each floating alone. */
+:global([data-skin='classic']) .status {
+  gap: 2px;
+  padding: 1px 2px;
+  box-shadow: var(--bevel-thin-sunken);
 }
 
 :global([data-skin='classic']) .launcher,

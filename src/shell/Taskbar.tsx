@@ -18,6 +18,7 @@ import { useUnreadCount } from '../kernel/notifications';
 import { useOnlineStatus } from '../kernel/network';
 import { useCapabilities } from './capabilitiesContext';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
+import { useSetting } from '../kernel/settings';
 import { AppIcon } from './PixelIcon';
 import { NotificationCenter } from './Notifications';
 import styles from './Taskbar.module.css';
@@ -67,6 +68,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
   const unread = useUnreadCount();
   const online = useOnlineStatus();
   const capabilities = useCapabilities();
+  const launcherLabel = useSetting('skin') === 'classic' ? 'Start' : 'Apps';
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
@@ -128,10 +130,15 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         className={`${styles.launcher} ${launcherOpen ? styles.launcherOpen : ''}`}
         onClick={onToggleLauncher}
         aria-expanded={launcherOpen}
-        aria-label="Open the app launcher"
+        aria-label={`${launcherLabel}: open the app launcher`}
       >
         <AppIcon name="apps" size={17} />
-        <span className={styles.launcherLabel}>Apps</span>
+        {/*
+          "Start" under the classic skin, and the accessible name follows the visible one rather
+          than being set once and left to drift — a button labelled one thing and announced another
+          is the failure mode this is avoiding, not a detail.
+        */}
+        <span className={styles.launcherLabel}>{launcherLabel}</span>
       </button>
 
       <button type="button" className={styles.search} onClick={onOpenPalette}>

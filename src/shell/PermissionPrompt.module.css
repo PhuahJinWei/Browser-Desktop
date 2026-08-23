@@ -119,3 +119,31 @@
 .allow:hover {
   background: var(--accent-hover);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The one place the era's grammar fits exactly: this is a modal dialog, and a modal dialog is what
+   Windows of this period did best. Raised, square, grey, with the buttons on the right. */
+:global([data-skin='classic']) .dialog {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .overlay {
+  backdrop-filter: none;
+  background: rgb(0 0 0 / 25%);
+}
+
+/* The affirmative and the refusal are the same bevelled button; which one is safe is said by
+   focus order and by Escape, not by colour. */
+:global([data-skin='classic']) .allow,
+:global([data-skin='classic']) .deny,
+:global([data-skin='classic']) .ask {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-raised);
+}

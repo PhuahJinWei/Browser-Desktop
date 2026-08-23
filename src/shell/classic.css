@@ -111,6 +111,52 @@
   background: #c0c0c0;
 }
 
+/* -- Scrollbar buttons ------------------------------------------------------------------------- */
+
+/*
+ * The arrows at each end. A scrollbar of this era is a trough between two bevelled buttons, and a
+ * bar without them reads as modern however it is coloured — it is the single most-seen control on
+ * screen, so it is worth the four data URIs.
+ *
+ * The triangles are stacked 1px rectangles rather than a polygon, so each one lands on a whole
+ * pixel at 16px instead of being antialiased into a grey smudge. `data:` is already permitted by
+ * the CSP's img-src, so this adds no host and no file.
+ */
+[data-skin='classic'] ::-webkit-scrollbar-button {
+  display: none;
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #000000;
+  background-color: #c0c0c0;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button:active {
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' fill='%23000000'><rect x='8' y='6' width='1' height='1'/><rect x='7' y='7' width='3' height='1'/><rect x='6' y='8' width='5' height='1'/><rect x='5' y='9' width='7' height='1'/></svg>");
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' fill='%23000000'><rect x='8' y='9' width='1' height='1'/><rect x='7' y='8' width='3' height='1'/><rect x='6' y='7' width='5' height='1'/><rect x='5' y='6' width='7' height='1'/></svg>");
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button:horizontal:decrement {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' fill='%23000000'><rect x='6' y='8' width='1' height='1'/><rect x='7' y='7' width='1' height='3'/><rect x='8' y='6' width='1' height='5'/><rect x='9' y='5' width='1' height='7'/></svg>");
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-button:single-button:horizontal:increment {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' fill='%23000000'><rect x='9' y='8' width='1' height='1'/><rect x='8' y='7' width='1' height='3'/><rect x='7' y='6' width='1' height='5'/><rect x='6' y='5' width='1' height='7'/></svg>");
+}
+
 /* -- Text selection ---------------------------------------------------------------------------- */
 
 [data-skin='classic'] ::selection {

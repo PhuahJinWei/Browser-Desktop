@@ -78,3 +78,69 @@
     padding: var(--space-3) var(--space-2);
   }
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * A menu of the era: a raised grey panel with no rounding and no shadow, rows that highlight edge
+ * to edge in the selection navy, and separators etched rather than drawn as a single grey line.
+ *
+ * The shortcut column keeps its own colour until the row is highlighted, when everything in the row
+ * has to go white together — a shortcut left grey on navy is the detail that gives a reproduction
+ * away, and it is also simply unreadable.
+ */
+:global([data-skin='classic']) .menu {
+  padding: 2px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .item {
+  padding: 3px var(--space-2);
+  border-radius: 0;
+  color: #000000;
+}
+
+:global([data-skin='classic']) .item:hover:not(:disabled),
+:global([data-skin='classic']) .item:focus-visible {
+  background: #000080;
+  color: #ffffff;
+  outline: none;
+}
+
+:global([data-skin='classic']) .item:hover:not(:disabled) .shortcut,
+:global([data-skin='classic']) .item:focus-visible .shortcut,
+:global([data-skin='classic']) .item:hover:not(:disabled) .check,
+:global([data-skin='classic']) .item:focus-visible .check {
+  color: #ffffff;
+}
+
+/* Disabled text was embossed — grey with a white shadow a pixel down and right. Kept at a readable
+   grey with the emboss as a hint rather than the whole effect, for the reason in classic.css. */
+:global([data-skin='classic']) .item:disabled {
+  color: #808080;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+:global([data-skin='classic']) .danger {
+  color: #000000;
+}
+
+:global([data-skin='classic']) .danger:hover:not(:disabled),
+:global([data-skin='classic']) .danger:focus-visible {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .check {
+  color: #000000;
+}
+
+:global([data-skin='classic']) .separator {
+  height: 0;
+  margin: 3px 1px;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #ffffff;
+}

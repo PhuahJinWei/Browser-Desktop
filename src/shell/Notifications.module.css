@@ -213,3 +213,56 @@
   font-size: 10px;
   color: var(--text-muted);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * Notifications are not a period artefact — the era had modal dialogs and nothing else — so they
+ * borrow the grammar rather than imitate an object that never existed: a raised panel, square, with
+ * the level shown by a coloured square instead of a tinted left edge.
+ */
+:global([data-skin='classic']) .toast,
+:global([data-skin='classic']) .center {
+  border: 1px solid #000000;
+  border-left-width: 1px;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+  animation: none;
+}
+
+:global([data-skin='classic']) .toastTitle,
+:global([data-skin='classic']) .listTitle {
+  color: #000000;
+  font-weight: 700;
+}
+
+:global([data-skin='classic']) .toastText,
+:global([data-skin='classic']) .listText,
+:global([data-skin='classic']) .listTime {
+  color: #000000;
+}
+
+/* The close box is a real bevelled button, the same one the title bar uses. */
+:global([data-skin='classic']) .toastClose {
+  width: 16px;
+  height: 14px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .toastClose:active {
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .listItem:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}

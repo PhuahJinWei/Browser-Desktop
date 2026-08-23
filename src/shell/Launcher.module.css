@@ -80,11 +80,24 @@
 }
 
 /* -- Classic skin ------------------------------------------------------------------------------ *
- * The launcher becomes a menu panel: raised bevel, square, and each entry highlights by filling
- * with the selection navy rather than by tinting.
+ * The Start menu.
+ *
+ * The single most recognisable object of the era, and almost all of it is achievable without
+ * touching the markup: the grid becomes one column, the cards become menu rows, the descriptions
+ * go, and the panel grows a gradient banner down its left edge.
+ *
+ * The banner reads "Tabula". That is the point of the exercise stated in one word — the shape,
+ * the geometry and the colours are a design language anyone may reproduce; the name on the banner
+ * is where an homage would turn into someone else's product (ADR 1).
  * ---------------------------------------------------------------------------------------------- */
 
 :global([data-skin='classic']) .panel {
+  left: 0;
+  /* Flush to the top of the taskbar, which is 30px including its raised edge. */
+  bottom: 30px;
+  width: 208px;
+  /* The banner occupies the left edge, so the rows start after it. */
+  padding: 2px 2px 2px 24px;
   border: 1px solid #000000;
   border-radius: 0;
   background: #c0c0c0;
@@ -92,38 +105,90 @@
   backdrop-filter: none;
 }
 
-:global([data-skin='classic']) .heading {
-  color: #000000;
+:global([data-skin='classic']) .panel::before {
+  content: 'Tabula';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 21px;
+  /* Dark at the foot, lighter at the head — the gradient everyone remembers. */
+  background: linear-gradient(to top, #000080 0%, #1084d0 100%);
+  color: #c0c0c0;
   font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  /* Bottom-to-top, which is why it is a rotation and not just a vertical writing mode. */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-bottom: 6px;
+}
+
+/*
+ * The first heading goes; the rest become the era's etched separator — one grey line with a white
+ * one beneath it, which is how every menu of the period divided a list. The label survives for a
+ * screen reader rather than being deleted, because the grouping is real even where it is not drawn.
+ */
+:global([data-skin='classic']) .heading {
+  margin: 3px 1px;
+  height: 0;
+  font-size: 0;
+  letter-spacing: normal;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #ffffff;
+}
+
+:global([data-skin='classic']) .heading:first-of-type {
+  display: none;
+}
+
+:global([data-skin='classic']) .grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 :global([data-skin='classic']) .app {
-  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
 
+/* A menu row highlights by filling edge to edge, not by tinting a card. */
 :global([data-skin='classic']) .app:hover,
 :global([data-skin='classic']) .app:focus-visible {
   background: #000080;
   color: #ffffff;
+  outline: none;
 }
 
 :global([data-skin='classic']) .app:hover .appName,
-:global([data-skin='classic']) .app:focus-visible .appName,
-:global([data-skin='classic']) .app:hover .appDescription,
-:global([data-skin='classic']) .app:focus-visible .appDescription,
-:global([data-skin='classic']) .app:hover .appIcon,
-:global([data-skin='classic']) .app:focus-visible .appIcon {
+:global([data-skin='classic']) .app:focus-visible .appName {
   color: #ffffff;
 }
 
-/* No tile behind the icon. A menu of this era set the icon straight onto the menu face; the pale
-   rounded square is a modern affordance, and once the palette goes grey it reads as a stray box
-   rather than as a container. The column is `auto`, so narrowing it just moves the text across. */
+/* The description is what makes it a card rather than a menu; a menu row is an icon and a name. */
+:global([data-skin='classic']) .appDescription {
+  display: none;
+}
+
+:global([data-skin='classic']) .appName {
+  font-weight: 400;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* No tile behind the icon: a menu of this era set the icon straight onto the menu face. */
 :global([data-skin='classic']) .appIcon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   background: transparent;
 }
