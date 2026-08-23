@@ -1,0 +1,15 @@
+# The vendored model is data, not source.
+#
+# `public/models/` holds the embedding model the desktop ships with (ADR 3, ADR 15). One of its
+# files, `tokenizer.json`, is a 30,000-token vocabulary pretty-printed as JSON — 30,685 lines. Left
+# unmarked it dwarfs everything written by hand here: GitHub's language bar reads the repository as
+# 52% JSON against 35% TypeScript, and every diff that touches the model shows tens of thousands of
+# lines of "changes" nobody wrote or reviewed.
+#
+# `linguist-vendored` keeps it out of the language statistics. `-diff` makes git treat it as binary,
+# so diffs collapse instead of printing a vocabulary. Neither affects the build: the files are
+# served verbatim either way, and their integrity is checked against the SHA-256 digests in
+# `models.json` by `tools/sync-model.mjs` rather than by reading the diff.
+public/models/** linguist-vendored
+public/models/** -diff
+public/models/**/*.onnx binary

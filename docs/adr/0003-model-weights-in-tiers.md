@@ -6,6 +6,19 @@ this origin. Weights are fetched and digest-checked at build time by `tools/sync
 instead of at runtime, so the consent dialog and the download manager described below are gone —
 there is nothing left to consent to or to download.
 
+### A note on repository size and shape
+
+Vendoring costs 23 MB in git, of which 22 MB is one `.onnx` file that git correctly treats as
+binary. The awkward one is `tokenizer.json`: a 30,000-token vocabulary pretty-printed as JSON,
+which git counts as 30,685 lines of text. Unmarked, it made GitHub read the repository as 52% JSON
+against 35% TypeScript, and put tens of thousands of unreviewed lines into any diff that touched
+the model.
+
+`.gitattributes` marks `public/models/**` as `linguist-vendored` and `-diff`, which keeps it out
+of the language statistics and collapses it in diffs. Neither changes what is served or how it is
+checked — integrity comes from the digests in `models.json`, enforced by `tools/sync-model.mjs`,
+not from reading the diff.
+
 ## Context
 
 Models are the payload. Bundling everything makes the first visit enormous and burns the Pages

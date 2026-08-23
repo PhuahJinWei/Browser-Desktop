@@ -18,3 +18,16 @@ public/runtime/
 .claude/settings.local.json
 public/app-runner.html
 .app-runner-hash
+
+# Tool caches and logs (generated; never reviewed)
+*.tsbuildinfo
+.eslintcache
+*.log
+npm-debug.log*
+yarn-error.log*
+.vite-inspect/
+
+# Editor / OS droppings
+.idea/
+*.swp
+desktop.ini
