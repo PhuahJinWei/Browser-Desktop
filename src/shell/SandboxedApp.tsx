@@ -201,7 +201,9 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
         />
       ) : null}
 
-      {status === 'starting' ? <div className={styles.starting}>Starting {app.manifest.name}…</div> : null}
+      {status === 'starting' ? (
+        <div className={styles.starting}>Starting {app.manifest.name}…</div>
+      ) : null}
     </div>
   );
 }

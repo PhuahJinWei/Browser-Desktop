@@ -6,6 +6,7 @@ import {
   useNotifications,
   type Notification,
 } from '../kernel/notifications';
+import { ContextMenu, separator, useContextMenu } from './ContextMenu';
 import { Icon, type IconName } from './Icon';
 import styles from './Notifications.module.css';
 
@@ -20,6 +21,7 @@ const ICONS: Record<Notification['level'], IconName> = {
 export function NotificationLayer() {
   const items = useNotifications();
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   useEffect(() => {
     for (const item of items) {
@@ -51,7 +53,34 @@ export function NotificationLayer() {
     // `role=status` with a polite live region: announced, but never interrupting.
     <div className={styles.toasts} role="status" aria-live="polite">
       {toasts.map((item) => (
-        <div key={item.id} className={`${styles.toast} ${styles[item.level]}`}>
+        <div
+          key={item.id}
+          className={`${styles.toast} ${styles[item.level]}`}
+          onContextMenu={(event) =>
+            openMenu(event, [
+              item.action && {
+                id: 'toast.action',
+                label: item.action.label,
+                run: () => {
+                  item.action?.run();
+                  dismissNotification(item.id);
+                },
+              },
+              {
+                id: 'toast.copy',
+                label: 'Copy message',
+                run: () => {
+                  void navigator.clipboard.writeText(
+                    [item.title, item.body].filter(Boolean).join(' — '),
+                  );
+                },
+              },
+              separator('toast.s1'),
+              { id: 'toast.dismiss', label: 'Dismiss', run: () => dismissNotification(item.id) },
+              { id: 'toast.clear', label: 'Clear all', run: clearNotifications },
+            ])
+          }
+        >
           <span className={styles.toastIcon}>
             <Icon name={ICONS[item.level]} size={16} />
           </span>
@@ -81,6 +110,8 @@ export function NotificationLayer() {
           </button>
         </div>
       ))}
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

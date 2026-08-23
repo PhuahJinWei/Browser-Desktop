@@ -371,6 +371,23 @@ export function cycleFocus(direction: 1 | -1 = 1): void {
   focusWindow(next.id);
 }
 
+/**
+ * Minimises everything — "show desktop".
+ *
+ * Distinct from closing: the windows and their state survive, which is the whole difference
+ * between wanting a look at the wallpaper and wanting to be done.
+ */
+export function minimizeAllWindows(): void {
+  windowStore.set((current) => {
+    if (current.windows.every((window) => window.minimized)) return current;
+    return {
+      ...current,
+      windows: current.windows.map((window) => ({ ...window, minimized: true })),
+      focusedId: null,
+    };
+  });
+}
+
 export function closeAllWindows(): void {
   windowStore.set((current) => ({ ...current, windows: [], focusedId: null }));
 }

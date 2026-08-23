@@ -24,10 +24,20 @@ boot, and proves it with a network panel that stays empty. An app that loads arb
 turns the headline property into "no network requests, except when you use the app whose entire
 purpose is network requests."
 
-**The page's own policy forbids it.** `frame-src 'self' blob:` is part of the CSP that buys
-cross-origin isolation, which is what WebGPU and threaded WASM depend on
-([ADR 2](./0002-cross-origin-isolation-via-service-worker.md)). Loosening it to embed third-party
-origins would cost capabilities that are not negotiable.
+**Cross-origin isolation blocks it.** The desktop runs under COOP and COEP so that
+`crossOriginIsolated` is true, which is what threaded WASM depends on
+([ADR 2](./0002-cross-origin-isolation-via-service-worker.md)). Under COEP, a cross-origin frame is
+refused unless its own response opts in with a COEP header — and almost no site does, including
+every site a visitor would actually type. (The CSP's `frame-src 'self' blob:` is merely this
+project's own allowlist; it could be widened in a line. COEP is the wall.) The one way through is
+Chromium's `<iframe credentialless>`, which loads the frame in a throwaway, cookie-less context:
+Chromium-only, and always logged out. Dropping COEP instead would cost threads for the whole
+desktop, which is not negotiable.
+
+_Corrected after the fact:_ the first version of this record attributed the block to the CSP.
+That was wrong in a way that mattered, because a CSP line is cheap to change and COEP is not.
+The M7 plan for a YouTube **player** — one embed frame, via `credentialless` — is the exact
+carve-out this paragraph leaves open, and the reason the general browser stays refused.
 
 **It would not work anyway.** Most sites worth linking to — GitHub, Google, anything with a login —
 refuse to be framed with `X-Frame-Options` or `frame-ancestors`. What could actually be built is not

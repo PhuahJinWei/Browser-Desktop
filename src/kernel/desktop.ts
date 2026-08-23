@@ -199,6 +199,16 @@ export function hideIcon(appId: string): void {
   updateSettings({ hiddenIcons: [...current.hiddenIcons, appId], iconPositions: positions });
 }
 
+export function showIcon(appId: string): void {
+  const current = settingsStore.get();
+  if (!current.hiddenIcons.includes(appId)) return;
+  updateSettings({ hiddenIcons: current.hiddenIcons.filter((id) => id !== appId) });
+}
+
+export function isIconHidden(appId: string): boolean {
+  return settingsStore.get().hiddenIcons.includes(appId);
+}
+
 export function showAllIcons(): void {
   updateSettings({ hiddenIcons: [] });
 }

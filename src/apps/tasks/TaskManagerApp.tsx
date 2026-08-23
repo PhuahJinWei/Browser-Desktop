@@ -4,7 +4,9 @@ import { useVfsStats } from '../../kernel/vfs/client';
 import { formatBytes } from '../../kernel/vfs/types';
 import { useIndexStats, useIndexerState } from '../../services/index/client';
 import { useCapabilities } from '../../shell/capabilitiesContext';
+import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { copyText } from '../../shell/nodeMenu';
 import { getNetworkLog, useNetworkLog } from '../../kernel/network';
 import styles from './TaskManagerApp.module.css';
 
@@ -25,6 +27,7 @@ export default function TaskManagerApp() {
   const [tab, setTab] = useState<'jobs' | 'system' | 'network'>('jobs');
 
   const active = jobs.filter((job) => job.status === 'running' || job.status === 'queued');
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   return (
     <div className={styles.app}>
@@ -61,7 +64,36 @@ export default function TaskManagerApp() {
           ) : (
             <ul className={styles.jobs}>
               {jobs.map((job) => (
-                <li key={job.id} className={styles.job}>
+                <li
+                  key={job.id}
+                  className={styles.job}
+                  onContextMenu={(event) =>
+                    openMenu(event, [
+                      {
+                        id: 'job.cancel',
+                        label: 'Cancel this job',
+                        disabled: job.status !== 'running' && job.status !== 'queued',
+                        danger: true,
+                        run: () => cancelJob(job.id),
+                      },
+                      {
+                        id: 'job.copy',
+                        label: 'Copy job details',
+                        run: () =>
+                          copyText(
+                            [job.label, job.detail, job.error].filter(Boolean).join(' — '),
+                            'Job details copied',
+                          ),
+                      },
+                      separator('job.s1'),
+                      {
+                        id: 'job.clear',
+                        label: 'Clear finished jobs',
+                        run: () => clearFinishedJobs(),
+                      },
+                    ])
+                  }
+                >
                   <span className={`${styles.status} ${styles[job.status]}`}>{job.status}</span>
                   <div className={styles.jobBody}>
                     <p className={styles.jobLabel}>{job.label}</p>
@@ -139,7 +171,6 @@ export default function TaskManagerApp() {
             </dl>
           </section>
 
-
           <section className={styles.section}>
             <h3>Storage</h3>
             <dl className={styles.grid}>
@@ -180,7 +211,30 @@ export default function TaskManagerApp() {
           ) : (
             <ul className={styles.requests}>
               {network.map((entry, index) => (
-                <li key={index} className={styles.request}>
+                <li
+                  key={index}
+                  className={styles.request}
+                  onContextMenu={(event) =>
+                    openMenu(event, [
+                      {
+                        id: 'req.copy',
+                        label: 'Copy request URL',
+                        run: () => copyText(entry.origin + entry.path, 'Request URL copied'),
+                      },
+                      {
+                        id: 'req.copyAll',
+                        label: 'Copy the whole log',
+                        run: () =>
+                          copyText(
+                            getNetworkLog()
+                              .map((row) => row.origin + row.path)
+                              .join('\n'),
+                            'Network log copied',
+                          ),
+                      },
+                    ])
+                  }
+                >
                   <span className={`${styles.origin} ${entry.thirdParty ? styles.thirdParty : ''}`}>
                     {entry.origin}
                   </span>
@@ -194,6 +248,8 @@ export default function TaskManagerApp() {
           )}
         </div>
       ) : null}
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

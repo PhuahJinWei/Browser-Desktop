@@ -12,7 +12,14 @@ import {
   type SnapZone,
   type WindowState,
 } from '../kernel/windows';
-import { ContextMenu, isMenuKey, separator, useContextMenu, type MenuSpec } from './ContextMenu';
+import {
+  ContextMenu,
+  isMenuKey,
+  keepsNativeMenu,
+  separator,
+  useContextMenu,
+  type MenuSpec,
+} from './ContextMenu';
 import { Icon } from './Icon';
 import { AppIcon } from './PixelIcon';
 import styles from './WindowFrame.module.css';
@@ -373,7 +380,18 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
         </div>
       </div>
 
-      <div className={styles.body}>
+      {/*
+        The app's own content. Anything inside it that wants a menu handles the event and stops it;
+        what reaches here is the part of the window no app claimed, and it answers with the window's
+        own menu rather than with silence.
+      */}
+      <div
+        className={styles.body}
+        onContextMenu={(event) => {
+          if (keepsNativeMenu(event)) return;
+          openMenu(event, windowMenu());
+        }}
+      >
         <Suspense fallback={<div className={styles.loading}>Loading {app?.name ?? 'app'}…</div>}>
           {AppComponent ? (
             <AppComponent windowId={win.id} args={win.args} />

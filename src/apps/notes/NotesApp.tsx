@@ -4,7 +4,9 @@ import { setWindowTitle } from '../../kernel/windows';
 import { notifyError } from '../../kernel/notifications';
 import { useDirectory, vfs } from '../../kernel/vfs/client';
 import { ROOT_ID } from '../../kernel/vfs/types';
+import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './NotesApp.module.css';
 
 /**
@@ -37,6 +39,7 @@ export default function NotesApp({ windowId, args }: AppProps) {
   const loadedId = useRef<string | null>(null);
   /** What is known to be on disk for each note, so an unchanged draft is not written again. */
   const savedText = useRef(new Map<string, string>());
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   /* Find or create the Notes folder once. */
   useEffect(() => {
@@ -217,6 +220,20 @@ export default function NotesApp({ windowId, args }: AppProps) {
                 type="button"
                 className={`${styles.listItem} ${note.id === activeId ? styles.listItemActive : ''}`}
                 onClick={() => setActiveId(note.id)}
+                onContextMenu={(event) =>
+                  openMenu(event, [
+                    { id: 'note.open', label: 'Open', run: () => setActiveId(note.id) },
+                    separator('note.s1'),
+                    { id: 'note.new', label: 'New note', run: () => void newNote() },
+                    separator('note.s2'),
+                    // The note is a file like any other, so it gets the file menu too — minus
+                    // "Open", which the entry above already is.
+                    ...nodeMenuItems(note, {
+                      omitOpen: true,
+                      onTrashed: () => note.id === activeId && setActiveId(null),
+                    }),
+                  ])
+                }
               >
                 <span className={styles.listName}>{note.name.replace(/\.md$/, '')}</span>
                 <span className={styles.listDate}>
@@ -261,6 +278,8 @@ export default function NotesApp({ windowId, args }: AppProps) {
           </div>
         )}
       </main>
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

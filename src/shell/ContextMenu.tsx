@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { isTypingTarget } from '../kernel/commands';
 import { Icon } from './Icon';
 import styles from './ContextMenu.module.css';
 
@@ -229,6 +230,20 @@ export function useContextMenu(): ContextMenuController {
   const close = useCallback(() => setMenu(null), []);
 
   return { menu, open, close };
+}
+
+/**
+ * Whether the browser's own menu should be left alone.
+ *
+ * Editable text and selected text are the two places where ours is strictly worse: cut, paste,
+ * spell-check, look-up and translate are things a page cannot offer, and replacing them with
+ * "Minimise / Maximise / Close" takes function away in exchange for consistency nobody asked for.
+ * A desktop-wide menu is right everywhere else, and wrong here.
+ */
+export function keepsNativeMenu(event: React.MouseEvent): boolean {
+  if (isTypingTarget(event.target)) return true;
+  const selection = globalThis.getSelection();
+  return Boolean(selection && !selection.isCollapsed && selection.toString().trim().length > 0);
 }
 
 /** True for the keystrokes that mean "open the context menu here". */

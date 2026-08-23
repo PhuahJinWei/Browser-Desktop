@@ -5,7 +5,9 @@ import { notify, notifyError } from '../../kernel/notifications';
 import { vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
 import { decodeToMono16k, formatTimestamp, waveformPeaks } from '../../services/audio/waveform';
+import { ContextMenu, keepsNativeMenu, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './AudioApp.module.css';
 
 /**
@@ -54,6 +56,7 @@ export default function AudioApp({ windowId, args }: AppProps) {
   }, [load]);
 
   const activeNode = clips.find((clip) => clip.id === activeId) ?? null;
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   useEffect(() => {
     setWindowTitle(windowId, activeNode ? `${activeNode.name} — Audio` : 'Audio');
@@ -158,7 +161,14 @@ export default function AudioApp({ windowId, args }: AppProps) {
   const canRecord =
     typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
   return (
-    <div className={styles.app}>
+    <div
+      className={styles.app}
+      onContextMenu={(event) => {
+        if (!activeNode || keepsNativeMenu(event)) return;
+        openMenu(event, nodeMenuItems(activeNode, { omitOpen: true }));
+      }}
+    >
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <span>Audio</span>

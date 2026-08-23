@@ -31,7 +31,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 
 - **G1 — A real desktop.** Window management, file system, app lifecycle, settings, notifications, clipboard, keyboard-first UX, session restore. Judged on polish.
 - **G2 — Local AI as a system service.** Text embeddings as a kernel service any app can call; background indexing; instant search. _Narrowed after M4:_ image, speech and text-recognition services were built and removed (ADR 15); embeddings remain.
-- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.)
+- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.) _Planned exception, M7:_ the **Watch** app shows a YouTube frame, only while a video the user pasted is loaded, with a live chip on the window and an entry in the monitor — the claim becomes "nothing, except the one thing you asked for, and here it is."
 - **G4 — Portfolio-grade.** 30-second demo with bundled sample data; Stats panel; architecture write-up with ADRs; benchmarks with hardware listed; honest limitations.
 - **G5 — A platform.** Apps are built against an SDK; third-party apps run sandboxed with capability-based permissions.
 
@@ -41,7 +41,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 - No cloud AI, and no text generation at all — local or otherwise.
 - **Nothing downloaded on demand.** No consent dialogs, no "enable this feature", no weights fetched at runtime. What the page can do, it can do the moment it loads.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
-- No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot, with no exceptions. The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)).
+- No networking apps (browser-in-browser, chat clients). The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)). The one planned exception is narrow and named: a **YouTube player**, not a browser — one embed frame, user-initiated, visible (M7).
 - Mobile is best-effort, not a milestone gate, and not a second repository ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)). Single user per browser profile.
 
 ---
@@ -67,7 +67,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 1. Open the URL → desktop boots in < 2 s on a repeat visit; sample files are already there ("Sample data — clear anytime").
 2. Press the launcher key (or click Search) → type _"invoice for the monitor"_ → ranked results with highlighted passages from the sample PDFs → Enter opens the PDF at that page.
 3. Open **Video → Sample** → the desktop draws and encodes a short film in front of you, then save the frame you are looking at or cut ten seconds out of it. No model, no download.
-4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."**
+4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."** _(After M7, one more beat: open Watch, paste a link, and point at the one new entry — and at the chip on the window that says so.)_
 5. Switch the OS's airplane-mode toggle (or the browser offline) → search again → **still works, semantic half included** (verified with the server stopped).
 
 **5-minute path (engineer)**
@@ -334,9 +334,8 @@ G1 says the desktop is judged on polish, and this is the milestone that takes th
 
 **Platform:** desktop icons become a real selection model — click selects, double click opens
 ([ADR 16](./docs/adr/0016-one-click-selects-two-clicks-open.md)), multi-select, drag to arrange,
-positions stored as grid cells that survive a resize; one context-menu component behind every
-surface that can be acted on (desktop, icon, taskbar button, window title bar, file row, folder
-background), reachable by `Shift+F10` as well as by right-click; wallpaper from any picture in the
+positions stored as grid cells that survive a resize; one context-menu component behind **every**
+surface, reachable by `Shift+F10` as well as by right-click — see the rule below; wallpaper from any picture in the
 file system, with a fit setting; desktop setup export and import as a JSON file the user carries
 ([ADR 17](./docs/adr/0017-customisation-is-a-file.md)); a compact layout below 720 px with a stated
 limited mode ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)).
@@ -346,16 +345,147 @@ to "put a browser in the desktop", and the reasoning for the answer being no is
 [ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md).
 
 **Done when:** an arrangement survives a reload, a resize and a round trip through an exported
-file; every actionable surface has a context menu reachable from the keyboard; a setup file written
+file; **every** surface answers a right-click — including the ones with nothing specific to say —
+and every menu is reachable from the keyboard, while text fields still get the browser's own; a setup file written
 by hand cannot put an invalid value into the settings store (tested); the desktop is usable on a
 390 px viewport with the limitation stated rather than discovered; `npm run verify` green.
+
+#### The context-menu rule (applies to everything built from here on)
+
+**Every surface answers a right-click. No surface is silent.** A desktop where the gesture works on
+some things and not others is worse than one where it never works: each miss unteaches what the
+last hit taught. The first pass covered the shell only — desktop, icons, title bars, taskbar
+buttons, Files — and the gap was obvious the moment anyone right-clicked a photo.
+
+Three rules, in order of precedence:
+
+1. **Editable text and selected text keep the browser's own menu.** Cut, paste, spell-check,
+   look-up and translate are things a page cannot reproduce, and replacing them with
+   "Minimise / Maximise / Close" removes function in exchange for consistency nobody asked for.
+   `keepsNativeMenu(event)` in `shell/ContextMenu.tsx` is the single test; every handler that could
+   sit over text calls it first.
+2. **The most specific surface wins.** A menu raised on a file row is the file's; on the window
+   body it is the window's. `useContextMenu().open()` stops propagation, so specificity falls out
+   of the DOM rather than being coordinated.
+3. **Whatever is left answers anyway.** The window body and the taskbar strip carry fallback menus,
+   so an app that has not been given one — Settings, About, anything new — still responds with
+   something true rather than nothing.
+
+**A file's menu is written once.** `shell/nodeMenu.ts` builds it from a `VfsNode`: open, open with
+each app that claims the type, show in Files, copy name, set as wallpaper when it is an image, move
+to trash. Files, Photos, Search, Notes, Viewer, Audio and Video all use it, so a file behaves the
+same wherever it is shown and gaining a verb is one edit rather than seven.
+
+**New surfaces are not done until they have one.** The check belongs with the accessibility check
+it doubles as: the shared component takes `Shift+F10` and the menu key, so "every surface has a
+menu" is also "every menu is reachable without a mouse."
 
 **Out:** anything that fetches. The Portfolio app draws its own initials rather than favicons, for
 the same reason everything else here does not phone home.
 
 ---
 
-**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4 adds depth; M6 makes it yours.
+### M7 — Watch · v0.6 (~1 FTE-week) · **planned, gated on a spike**
+
+**What it is.** A YouTube player in a window, and deliberately not a browser. The distinction is
+the whole design: a browser-in-browser fails the first time a visitor types `google.com` (sites
+refuse to be framed, and our cross-origin isolation blocks any frame that does not opt in — see
+[ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)), whereas YouTube's **embed** endpoint
+exists to be framed, and plays any video by id. Paste a link; it plays. That is a demo that works
+every time someone tries it, which is the only kind worth building.
+
+**Why do it at all, given G3.** Because "a desktop that plays video in a window" is legible to a
+recruiter in two seconds in a way threaded WASM never will be, and because the one-host claim
+survives it in a stronger form: _zero requests, except the one you just asked for — and here it is,
+in the network panel, while you watch._ A privacy claim tested in the place it looks most likely
+to break is worth more than one that is never tested.
+
+**What it is not.**
+
+- **No YouTube feed, no search, no recommendations.** Those pages refuse framing, and the only
+  other route is the Data API: a key sitting in a public static site for anyone to lift, a second
+  Google host, and Google's ranking inside a desktop whose thesis is that nothing is chosen _for_
+  you. The home page is **yours** — Saved and Recent — and playlists pasted in play through with the
+  player's own next/previous. Distraction-free by construction; that is the feature, not the cost.
+- **No thumbnails.** Each is a request to Google's image host fired the moment the app opens,
+  before the user chose anything. The rule of this app is _every network contact is one you just
+  asked for._ Text rows, the way Portfolio draws its own initials.
+- **No third-party script in our origin.** Title and channel come from the embed's own
+  `postMessage` protocol once it loads — no `iframe_api` script, no `script-src` change.
+- **Not named "YouTube".** The app is **Watch**; its description says YouTube. Someone else's
+  trademark on the launcher is the same problem as Windows assets (ADR 1).
+
+**The frame.** `https://www.youtube-nocookie.com/embed/<id>` in `<iframe credentialless>`. The
+`credentialless` attribute is what makes this possible under COEP without YouTube opting in: the
+frame loads in a throwaway, cookie-less context. It is also why the frame is always logged out —
+no account, no history, no subscriptions — which is the privacy story as much as the limitation.
+
+**How it looks.** Title bar → a single paste bar ("YouTube link or video id" · Play) → sidebar
+(**Saved**, **Recent**; text rows of title · channel · when; right-click for play/save/copy/remove)
+→ stage (the player, 16:9, letterboxed) → a row under it: title, channel, Save ★, Copy link,
+Open on YouTube ↗, Stop. An **amber chip in the window's title bar — "talking to
+youtube-nocookie.com" — that is live**: present while a frame is loaded, gone on Stop or close.
+Closing the window tears the frame down; minimising keeps playing.
+
+**States.**
+
+- _Empty:_ "Paste a link to start. This is the only window in Tabula that talks to another site —
+  youtube.com — and only while something is loaded."
+- _First use:_ one consent card in the permission-prompt style, remembered, reversible in
+  Settings: "Watch plays videos from YouTube. While a video is loaded, this window talks to
+  youtube-nocookie.com and Google sees the request — no cookies, no account. Nothing else in Tabula
+  changes."
+- _Not Chromium:_ the stage explains that showing YouTube inside the desktop needs a credentialless
+  frame, and offers Open on YouTube ↗. Saved and Recent still work as a list that opens outward.
+- _Playing:_ as above.
+
+**Where the data lives.** `Videos/Watched.md` — an ordinary Markdown file with `## Saved` and
+`## Recent` sections, one line per video. So it is visible in Files, searchable by meaning with
+everything else ("that talk about Rust" finds the title), deletable like anything else, and carried
+by the setup export for free. The app is a view over a file, which is the rule everywhere else.
+
+**What it changes, stated rather than smuggled.** G3 and D01 gain one exception, named; CLAUDE.md's
+"two hosts" rule gains the same one (_one third-party frame, one app, user-initiated, visible_);
+the CSP gains `frame-src https://www.youtube-nocookie.com` — `connect-src` stays empty, which is
+the point: the desktop itself still cannot talk to anyone, it can only show a frame that does.
+README paragraph one is rewritten to say so. A new ADR supersedes the YouTube half of ADR 19 and
+keeps the browser half.
+
+**Honest limits.**
+
+1. **Chromium-only** — _assumption until the spike:_ Firefox and Safari have not shipped
+   credentialless frames, and the alternative (dropping COEP) would cost threaded WASM for the whole
+   desktop, which is not on the table.
+2. **The network monitor sees the frame, not inside it.** Our document makes one request — the
+   embed page. YouTube's player then makes dozens of its own within the frame, which Resource Timing
+   cannot show us. The monitor's entry says so in as many words rather than implying it saw
+   everything.
+3. **Some videos will not play.** Owners can disable embedding ("watch on YouTube"); playlists skip
+   those.
+4. **Always logged out**, by construction of the frame.
+
+**Order of work.**
+
+1. **Spike, one hour, before anything else:** does the embed load _and play_ inside
+   `<iframe credentialless>` under our COOP/COEP, on the dev server and in the Pages-simulation
+   build? The project decides by measurement (ADR 8), and if this fails there is no fallback — COEP
+   cannot be dropped for one window — so it is better to know in an hour than after a day. Record
+   the result, pass or fail, in §13.
+2. The app (~1 day): the Watch component, the consent card, the history file, the live chip, the
+   Task Manager entry wording, the Chromium gate.
+3. The documents: README, G3/D01, CLAUDE.md, CSP appendix, ADR 20.
+
+**Done when:** paste a link → plays, on Chromium, in a fresh profile; the title-bar chip and the
+Task Manager entry appear while a frame is loaded and disappear on Stop; Saved/Recent survive a
+reload and round-trip through the setup export; on Firefox the app states its limitation and still
+opens outward; the consent card shows once and is reversible; `npm run verify` green.
+
+**Out:** anything beyond the embed — search, comments, feed, thumbnails, accounts — and a general
+browser, which stays refused.
+
+---
+
+**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4 adds depth; M6 makes it yours; M7 lets it play.
 **Calendar reality:** M0–M3 ≈ 14–18 FTE-weeks → ~3.5–4.5 months full-time, ~9–12 months at ~15 h/week, plus M4 as a pool of self-contained additions. Each milestone is publicly valuable on its own, so value accrues even if the project stops early.
 
 ---
@@ -364,9 +494,10 @@ the same reason everything else here does not phone home.
 
 - **Performance:** 60 fps window operations with ≥ 8 windows; interactions < 100 ms; no main-thread task > 50 ms during indexing; repeat-visit boot < 2 s; shell JS budget ~300 KB gzipped excluding the lazily loaded ML runtime.
 - **Robustness:** every job cancellable; errors surface as notifications with retry; WebGPU device-lost recovery; quota errors handled; 5k-file import without jank.
-- **Accessibility:** keyboard-only completion of the demo script; visible focus; ARIA roles for windows/menus/lists; reduced-motion and colour-scheme respected; axe clean on main surfaces.
+- **Accessibility:** keyboard-only completion of the demo script; visible focus; ARIA roles for windows/menus/lists; reduced-motion and colour-scheme respected; axe clean on main surfaces; every context menu also opens on `Shift+F10`.
+- **Context menus:** every surface answers a right-click, editable and selected text excepted (they keep the browser's own). A new app or panel is not finished until it does — see the rule under M6.
 - **Offline:** repeat visit fully works with the network off.
-- **Privacy:** network monitor shows **zero requests post-boot, with no exceptions**; CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
+- **Privacy:** network monitor shows **zero requests post-boot** — the single planned exception, a Watch frame, is user-initiated, labelled on the window and listed in the monitor (M7); CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
 - **Tests:** unit (window-manager reducers, VFS ops, scheduler); service tests in Node (Transformers.js v4 WASM path); Playwright smoke on the WASM path in CI; performance marks asserted.
 - **Docs per milestone:** README, `docs/architecture.md`, ADRs, benchmarks, CHANGELOG, tagged release.
 
@@ -384,21 +515,23 @@ the same reason everything else here does not phone home.
 
 ## 10. Risks and mitigations
 
-| Risk                                | Impact                  | Mitigation                                                                            |
-| ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
-| Scope creep (genuine desktop)       | never ships             | milestone DoD gates; M4 a pool, not a list; polish over breadth                       |
-| Time-to-first-result (downloads)    | visitors bounce         | **closed:** nothing is downloaded at all — the one model is in the build (ADR 15)     |
-| Memory/VRAM exhaustion              | crashes                 | largely moot with one 23 MB quantized model resident                                  |
-| WebGPU driver bugs / device lost    | broken demo             | WASM fallback; device-lost recovery; tested matrix                                    |
-| Cross-browser gaps (FSA, OPFS perf) | confusing UX            | capability detection + explicit "limited mode" banner; Chromium-first messaging       |
-| OPFS quota/eviction                 | data-loss fear          | `persist()`; usage UI; "Export all (zip)"                                             |
-| Hugging Face outage / rate limit    | download fails          | **closed:** not contacted at runtime; only `npm run sync:weights` touches it          |
-| COI service-worker quirks           | broken first load       | tested paths; single-thread fallback; WebGPU path does not require COI                |
-| Pages bandwidth spike               | throttling              | lean bundle; SW caching; 23 MB of weights per first visit, well inside the budget     |
-| Design/polish time                  | looks amateur           | design tokens early; one original visual language; empty/loading/error states written |
-| Accessibility debt                  | senior reviewers notice | keyboard-first from M1, not retrofitted                                               |
-| LLM rabbit hole                     | delays core             | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)             |
-| Licences (models/assets)            | takedown/embarrassment  | one Apache-2.0 model, redistributable; demo data is drawn by the app, not sourced     |
+| Risk                                  | Impact                     | Mitigation                                                                                                                       |
+| ------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Scope creep (genuine desktop)         | never ships                | milestone DoD gates; M4 a pool, not a list; polish over breadth                                                                  |
+| Time-to-first-result (downloads)      | visitors bounce            | **closed:** nothing is downloaded at all — the one model is in the build (ADR 15)                                                |
+| Memory/VRAM exhaustion                | crashes                    | largely moot with one 23 MB quantized model resident                                                                             |
+| WebGPU driver bugs / device lost      | broken demo                | WASM fallback; device-lost recovery; tested matrix                                                                               |
+| Cross-browser gaps (FSA, OPFS perf)   | confusing UX               | capability detection + explicit "limited mode" banner; Chromium-first messaging                                                  |
+| OPFS quota/eviction                   | data-loss fear             | `persist()`; usage UI; "Export all (zip)"                                                                                        |
+| Watch (M7) muddies the one-host claim | credibility                | one frame, one app, user-initiated; live chip on the window; monitor entry; consent once; nothing fetched before the user pastes |
+| Watch works only on Chromium          | "broken" on Firefox/Safari | stated on the stage, not discovered; Open on YouTube ↗ as the fallback; spike before building                                    |
+| Hugging Face outage / rate limit      | download fails             | **closed:** not contacted at runtime; only `npm run sync:weights` touches it                                                     |
+| COI service-worker quirks             | broken first load          | tested paths; single-thread fallback; WebGPU path does not require COI                                                           |
+| Pages bandwidth spike                 | throttling                 | lean bundle; SW caching; 23 MB of weights per first visit, well inside the budget                                                |
+| Design/polish time                    | looks amateur              | design tokens early; one original visual language; empty/loading/error states written                                            |
+| Accessibility debt                    | senior reviewers notice    | keyboard-first from M1, not retrofitted                                                                                          |
+| LLM rabbit hole                       | delays core                | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)                                                        |
+| Licences (models/assets)              | takedown/embarrassment     | one Apache-2.0 model, redistributable; demo data is drawn by the app, not sourced                                                |
 
 ---
 
@@ -448,6 +581,8 @@ the same reason everything else here does not phone home.
 - **D12** The desktop is arrangeable, and the arrangement is a file the user can read and carry — no account, no sync (ADR 17). Icons select on one click and open on two (ADR 16).
 - **D13** No browser inside the browser, ever: it would break the one-host claim, need a CSP that costs cross-origin isolation, and be refused by most sites anyway. Links open in the real browser (ADR 19).
 - **D14** A permission answer is remembered by default, and the prompt does not come back. Being asked the same question repeatedly trains people to stop reading it, and a re-askable denial is one a hostile app can raise in a loop until it gets its way. The two things that make that fair: Escape denies without remembering, and a call refused by a remembered "no" announces itself once with a route to Settings → Apps.
+- **D15** _Planned (M7), pending the spike:_ a YouTube **player**, not a browser — one `credentialless` embed frame, user-initiated, visible on the window and in the monitor, history in a file the user owns. D13 stands: the general case stays refused.
+- **D16** Right-click is answered everywhere, by one component, with the browser's own menu left alone over editable and selected text. Partial coverage is worse than none: each surface that stays silent unteaches the gesture. A file's menu is built once from its node, so it is identical in every app that shows it.
 
 ---
 
@@ -463,6 +598,7 @@ Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behi
 6. **Open.** Limited-mode wording for Safari/Firefox — needs the M1 import UI to exist first.
 7. **Open.** Large-file hashing. Deferred to M1 with the import pipeline; OPFS measured at ~591 MB/s write, so hashing, not I/O, will be the bottleneck.
 8. **Open, as planned.** Sandboxed-app runner placement — spike lands in M3.
+9. **Open — the M7 gate.** Does `youtube-nocookie.com/embed/<id>` load _and play_ inside `<iframe credentialless>` under this desktop's COOP/COEP, on the dev server and in the Pages-simulation build? One hour, pass or fail, recorded here before a line of the Watch app is written. Also to record: which of Firefox and Safari ship credentialless frames today (assumed: neither).
 
 ### Also settled by M0, having overturned an assumption in this plan
 
@@ -536,7 +672,7 @@ img-src 'self' blob: data:;
 media-src 'self' blob:;
 font-src 'self';
 style-src 'self';                               /* React sets styles via CSSOM; add 'unsafe-inline' only if a dependency needs it */
-frame-src 'self' blob:;                         /* sandboxed app iframes */
+frame-src 'self' blob:;                         /* sandboxed app iframes; M7 adds https://www.youtube-nocookie.com — the only third-party origin, and only as a frame */
 object-src 'none'; base-uri 'none'; form-action 'none';
 ```
 

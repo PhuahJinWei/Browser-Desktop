@@ -1,5 +1,7 @@
 import { useOnlineStatus } from '../../kernel/network';
+import { ContextMenu, useContextMenu, type MenuSpec } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { copyText } from '../../shell/nodeMenu';
 import { PORTFOLIO_LINKS, type PortfolioLink } from './links';
 import styles from './LinksApp.module.css';
 
@@ -17,6 +19,7 @@ import styles from './LinksApp.module.css';
  */
 export default function LinksApp() {
   const online = useOnlineStatus();
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   return (
     <div className={styles.app}>
@@ -38,10 +41,12 @@ export default function LinksApp() {
       <ul className={styles.list}>
         {PORTFOLIO_LINKS.map((link) => (
           <li key={link.id}>
-            <LinkCard link={link} />
+            <LinkCard link={link} onMenu={openMenu} />
           </li>
         ))}
       </ul>
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
 
       <footer className={styles.footer}>
         <Icon name="info" size={13} />
@@ -53,7 +58,13 @@ export default function LinksApp() {
   );
 }
 
-function LinkCard({ link }: { link: PortfolioLink }) {
+function LinkCard({
+  link,
+  onMenu,
+}: {
+  link: PortfolioLink;
+  onMenu: (event: React.MouseEvent, items: MenuSpec) => void;
+}) {
   const host = hostOf(link.url);
 
   return (
@@ -63,6 +74,16 @@ function LinkCard({ link }: { link: PortfolioLink }) {
       target="_blank"
       // noreferrer as well as noopener: the destination has no business knowing which page sent you.
       rel="noopener noreferrer"
+      onContextMenu={(event) =>
+        onMenu(event, [
+          {
+            id: 'link.open',
+            label: 'Open in a new tab',
+            run: () => globalThis.open(link.url, '_blank', 'noopener,noreferrer'),
+          },
+          { id: 'link.copy', label: 'Copy link', run: () => copyText(link.url, 'Link copied') },
+        ])
+      }
     >
       <span className={styles.badge} aria-hidden>
         {link.kind === 'source' ? (

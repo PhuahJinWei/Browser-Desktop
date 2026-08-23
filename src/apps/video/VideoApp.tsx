@@ -9,7 +9,9 @@ import {
   isSampleVideoSupported,
   recordSampleVideo,
 } from '../../shell/sampleVideo';
+import { ContextMenu, keepsNativeMenu, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './VideoApp.module.css';
 
 /**
@@ -58,6 +60,7 @@ export default function VideoApp({ args }: AppProps) {
   }, [load]);
 
   const selectedNode = videos.find((node) => node.id === selected) ?? null;
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   /* Making the sample film -------------------------------------------------------------------- */
 
@@ -154,7 +157,14 @@ export default function VideoApp({ args }: AppProps) {
   }, [selectedNode, position, clipLength]);
 
   return (
-    <div className={styles.app}>
+    <div
+      className={styles.app}
+      onContextMenu={(event) => {
+        if (!selectedNode || keepsNativeMenu(event)) return;
+        openMenu(event, nodeMenuItems(selectedNode, { omitOpen: true }));
+      }}
+    >
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
       <div className={styles.toolbar}>
         <span className={styles.count}>
           {videos.length} video{videos.length === 1 ? '' : 's'}

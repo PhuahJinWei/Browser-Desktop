@@ -3,7 +3,9 @@ import type { AppProps } from '../../kernel/apps';
 import { vfs } from '../../kernel/vfs/client';
 import { categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
 import { thumbnailUrl } from '../../services/index/thumbnails';
+import { ContextMenu, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './PhotosApp.module.css';
 
 /**
@@ -47,6 +49,7 @@ export default function PhotosApp({ args }: AppProps) {
   }, [photos, filter]);
 
   const selectedNode = photos.find((node) => node.id === selected) ?? null;
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   return (
     <div className={styles.app}>
@@ -85,6 +88,10 @@ export default function PhotosApp({ args }: AppProps) {
                 node={node}
                 selected={node.id === selected}
                 onSelect={() => setSelected(node.id)}
+                onMenu={(event) => {
+                  setSelected(node.id);
+                  openMenu(event, nodeMenuItems(node, { onTrashed: () => setSelected(null) }));
+                }}
               />
             ))
           )}
@@ -111,6 +118,8 @@ export default function PhotosApp({ args }: AppProps) {
           </aside>
         ) : null}
       </div>
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }
@@ -120,10 +129,12 @@ function Thumb({
   node,
   selected,
   onSelect,
+  onMenu,
 }: {
   node: VfsNode;
   selected: boolean;
   onSelect: () => void;
+  onMenu: (event: React.MouseEvent) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -161,6 +172,7 @@ function Thumb({
       type="button"
       className={`${styles.cell} ${selected ? styles.cellSelected : ''}`}
       onClick={onSelect}
+      onContextMenu={onMenu}
       title={node.name}
     >
       {url ? (

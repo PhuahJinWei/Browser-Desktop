@@ -4,7 +4,9 @@ import { launchApp } from '../../kernel/apps';
 import { vfs } from '../../kernel/vfs/client';
 import { search, useIndexStats, useIndexerState, warmUpModel } from '../../services/index/client';
 import type { SearchHit } from '../../services/index/client';
+import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
 import { Icon, iconForFile } from '../../shell/Icon';
+import { copyText, nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './SearchApp.module.css';
 
 /**
@@ -79,6 +81,8 @@ export default function SearchApp({ args }: AppProps) {
       title: node.name,
     });
   }, []);
+
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   const indexedCount = stats?.documents ?? 0;
 
@@ -167,7 +171,29 @@ export default function SearchApp({ args }: AppProps) {
             <ul className={styles.list}>
               {results.map((hit, index) => (
                 <li key={`${hit.fileId}-${hit.chunkIndex}-${index}`}>
-                  <button type="button" className={styles.hit} onClick={() => void openHit(hit)}>
+                  <button
+                    type="button"
+                    className={styles.hit}
+                    onClick={() => void openHit(hit)}
+                    onContextMenu={(event) => {
+                      void vfs.stat(hit.fileId).then((node) => {
+                        openMenu(event, [
+                          {
+                            id: 'hit.open',
+                            label: 'Open at this passage',
+                            run: () => void openHit(hit),
+                          },
+                          {
+                            id: 'hit.copy',
+                            label: 'Copy passage',
+                            run: () => copyText(hit.snippet, 'Passage copied'),
+                          },
+                          separator('hit.s1'),
+                          ...(node ? nodeMenuItems(node, { omitTrash: true }) : []),
+                        ]);
+                      });
+                    }}
+                  >
                     <div className={styles.hitHeader}>
                       <Icon
                         name={iconForFile({ kind: 'file', mime: hit.mime, name: hit.fileName })}
@@ -192,6 +218,8 @@ export default function SearchApp({ args }: AppProps) {
           </>
         )}
       </div>
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

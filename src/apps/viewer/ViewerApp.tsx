@@ -3,7 +3,9 @@ import type { AppProps } from '../../kernel/apps';
 import { setWindowTitle } from '../../kernel/windows';
 import { vfs } from '../../kernel/vfs/client';
 import { categoryOf, formatBytes, type VfsNode } from '../../kernel/vfs/types';
+import { ContextMenu, keepsNativeMenu, useContextMenu } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
+import { nodeMenuItems } from '../../shell/nodeMenu';
 import { renderMarkdown } from './markdown';
 import styles from './ViewerApp.module.css';
 
@@ -24,6 +26,7 @@ interface ViewerArgs {
 export default function ViewerApp({ windowId, args }: AppProps) {
   const { fileId, highlight } = (args as ViewerArgs | undefined) ?? {};
   const [node, setNode] = useState<VfsNode | null>(null);
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
   const [content, setContent] = useState<ArrayBuffer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +78,13 @@ export default function ViewerApp({ windowId, args }: AppProps) {
   }
 
   return (
-    <div className={styles.app}>
+    <div
+      className={styles.app}
+      onContextMenu={(event) => {
+        if (keepsNativeMenu(event)) return;
+        openMenu(event, nodeMenuItems(node, { omitOpen: true }));
+      }}
+    >
       <div className={styles.bar}>
         <span className={styles.name}>{node.name}</span>
         <span className={styles.meta}>
@@ -85,6 +94,8 @@ export default function ViewerApp({ windowId, args }: AppProps) {
       <div className={styles.content}>
         <Body node={node} data={content} highlight={highlight ?? null} />
       </div>
+
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }
