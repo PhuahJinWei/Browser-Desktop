@@ -29,6 +29,28 @@ function readJson(relative: string): Record<string, unknown> | null {
   }
 }
 
+/**
+ * Reads a built file back off disk, so its *content* can be folded into the build id.
+ *
+ * Only `index.html` needs this. Every JS and CSS asset is content-hashed, so a change to app code
+ * moves a filename and the id follows. `index.html` is not hashed: a change confined to it — the
+ * CSP meta tag, say — left the id identical, so the service worker saw no update and kept serving
+ * the previous copy. Found by tightening the CSP and watching the old policy come back. Read here
+ * rather than in `generateBundle` because the CSP is injected by a later hook, and Vite does not
+ * put the html in this plugin’s bundle object at all.
+ */
+function readEmitted(names: string[]): string {
+  return names
+    .map((name) => {
+      try {
+        return readFileSync(fileURLToPath(new URL('../dist/' + name, import.meta.url)), 'utf8');
+      } catch {
+        return '';
+      }
+    })
+    .join(' ');
+}
+
 export function serviceWorkerPlugin(options: { base: string }): Plugin {
   let emitted: string[] = [];
 
@@ -50,13 +72,19 @@ export function serviceWorkerPlugin(options: { base: string }): Plugin {
         `${options.base}icon.svg`,
       ];
       const precache = [...new Set([...staticAssets, ...emitted])].sort();
-      const buildId = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12);
+      const buildId = createHash('sha256')
+        .update(precache.join('\n'))
+        .update(readEmitted(['index.html']))
+        .digest('hex')
+        .slice(0, 12);
 
       // The runtime and the weights get cache names of their own, keyed by their own versions:
       // upgrading onnxruntime or repinning the model should invalidate them, and shipping a CSS
       // tweak should not.
       const runtimeId = (readJson('public/runtime/RUNTIME.json')?.version as string) ?? 'unknown';
-      const digests = ((readJson('models.json')?.models ?? []) as { files?: { sha256: string }[] }[])
+      const digests = (
+        (readJson('models.json')?.models ?? []) as { files?: { sha256: string }[] }[]
+      )
         .flatMap((model) => model.files ?? [])
         .map((file) => file.sha256)
         .join(String.fromCharCode(10));

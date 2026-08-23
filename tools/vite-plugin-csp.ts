@@ -13,39 +13,35 @@ import type { Plugin } from 'vite';
  *    WASM compilation only, not JavaScript eval().
  *  - worker-src allows blob: because the ONNX runtime spawns workers from blob URLs.
  *  - connect-src is the important one: it is the allowlist of every host this app may ever talk
- *    to. Only the model CDN is listed, and only for consent-gated weight downloads.
+ *    to, and it now lists no host at all beyond 'self'. The model CDN used to be here for
+ *    consent-gated weight downloads; the weights are in the build (ADR 15), so the browser now
+ *    enforces the one-host claim rather than the app merely honouring it. Anything that tried to
+ *    phone home — a dependency, a mistake, an injected script — would be blocked rather than
+ *    logged after the fact.
  *  - There is deliberately no 'unsafe-inline' anywhere.
  */
-const policy = () => [
-  "default-src 'self'",
-  "base-uri 'none'",
-  "object-src 'none'",
-  "form-action 'none'",
-  // No `frame-ancestors`: browsers ignore it in a <meta> policy and log an error for it. Clickjacking
-  // protection needs a real header, which GitHub Pages cannot send — noted as a known limitation.
-  // Sandboxed app frames inherit this policy (their origin is opaque, and CSP is inherited
-  // precisely so sandboxing cannot escape a policy), so it has to permit the sandbox bootstrap
-  // and the blob: scripts that carry app code. The bootstrap is allowed by hash — one exact
-  // script — rather than by opening the desktop to inline script in general.
-  `script-src 'self' 'wasm-unsafe-eval' blob: '${runnerHash()}'`,
-  "worker-src 'self' blob:",
-  "style-src 'self'",
-  "img-src 'self' blob: data:",
-  "font-src 'self'",
-  "media-src 'self' blob:",
-  "manifest-src 'self'",
-  "frame-src 'self' blob:",
+const policy = () =>
   [
-    'connect-src',
-    "'self'",
-    'blob:',
-    'data:',
-    'https://huggingface.co',
-    'https://*.huggingface.co',
-    'https://*.hf.co',
-  ].join(' '),
-].join('; ');
-
+    "default-src 'self'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "form-action 'none'",
+    // No `frame-ancestors`: browsers ignore it in a <meta> policy and log an error for it. Clickjacking
+    // protection needs a real header, which GitHub Pages cannot send — noted as a known limitation.
+    // Sandboxed app frames inherit this policy (their origin is opaque, and CSP is inherited
+    // precisely so sandboxing cannot escape a policy), so it has to permit the sandbox bootstrap
+    // and the blob: scripts that carry app code. The bootstrap is allowed by hash — one exact
+    // script — rather than by opening the desktop to inline script in general.
+    `script-src 'self' 'wasm-unsafe-eval' blob: '${runnerHash()}'`,
+    "worker-src 'self' blob:",
+    "style-src 'self'",
+    "img-src 'self' blob: data:",
+    "font-src 'self'",
+    "media-src 'self' blob:",
+    "manifest-src 'self'",
+    "frame-src 'self' blob:",
+    ['connect-src', "'self'", 'blob:', 'data:'].join(' '),
+  ].join('; ');
 
 /**
  * The digest of the sandbox bootstrap, written by tools/build-app-runner.mjs.

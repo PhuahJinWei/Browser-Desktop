@@ -8,16 +8,17 @@
 
 ## 0. What this is (one paragraph)
 
-A **genuine desktop environment** — windows, files, apps, settings, a task manager — that runs entirely inside a browser tab, delivered as **static files from GitHub Pages at zero cost**, with no backend, no accounts and no third-party services. Its system services include **local machine-learning models** (text/image embeddings, speech recognition, vision) running on the user's GPU via WebGPU, so the OS can search photos by what's in them, documents by meaning and audio by what was said — and nothing the user drops in ever leaves the tab. It sees, hears and reads; it **does not generate text**, and no feature is waiting for a language model ([ADR 14](./docs/adr/0014-no-text-generation.md)).
+A **genuine desktop environment** — windows, files, apps, settings, a task manager — that runs entirely inside a browser tab, delivered as **static files from GitHub Pages at zero cost**, with no backend, no accounts and no third-party services. One local machine-learning model is a kernel service: it turns documents into vectors so the OS can search them by meaning rather than by filename, and it **ships inside the build**. Nothing the user drops in ever leaves the tab, and nothing the desktop does waits on a download.
 
-**Portfolio thesis:** _"In 2026 a complete, offline-capable, GPU-accelerated AI desktop is just static files."_
+The plan below aimed wider — image, speech and text-recognition models, fetched on demand with consent. All of that was built, measured, and then removed; §6 and §7 keep the record. What survives is the part that needs nothing but the page you already loaded.
+
+**Portfolio thesis:** _"In 2026 a complete, offline-capable, GPU-accelerated desktop is just static files."_
 
 ### Changes from v1 (`initial plan.txt`)
 
 - Vision → execution plan: goals/non-goals, support matrix, architecture, model catalogue, milestones with definitions of done, quality bar, risks, conventions.
 - The desktop is the **genuine centrepiece** (full/most functionality), not a skin; window manager built from scratch; original design.
-- AI means **perception models: deterministic, small, fast** — embeddings, vision, speech, recognition. v2 put text generation in an optional M5 tier; M4 closed that tier without building it, because four milestones of features turned out to be retrieval problems. See [ADR 14](./docs/adr/0014-no-text-generation.md).
-- **Superseded after M4:** the on-demand models were removed too, and with them photo search, video moment search, near-duplicate detection, transcription and OCR. Everything below describing them is a record of what was planned and built, not of what ships. One model remains — the bundled embedding model that document search runs on — and no feature waits on a download. See [ADR 15](./docs/adr/0015-no-on-demand-models.md).
+- **Superseded, twice over.** v2 split AI into perception models (small, deterministic) plus an optional LLM tier in M5. M4 closed the LLM tier without building it, because four milestones of features turned out to be retrieval problems ([ADR 14](./docs/adr/0014-no-text-generation.md)). The perception models went next: photo search, video moment search, near-duplicate detection, transcription and OCR were built, measured and then **removed**, because a page that opens with "Download a model? 150 MB" is asking a visitor for a commitment they have no reason to make ([ADR 15](./docs/adr/0015-no-on-demand-models.md)). **One model remains, and it is in the repository.** Everything below describing the others is a record of what was planned and built, not of what ships.
 - **Hybrid app model** decided up front: system apps in-process, third-party apps in sandboxed iframes, one SDK.
 - Hosting constraints baked in: GitHub Pages only, weights policy in tiers, cross-origin isolation via service worker, CSP via meta, self-hosted runtime.
 - Stack references updated to 2026 (Transformers.js v4 WebGPU runtime; WebGPU baseline in all major browsers; WebNN as a progressive enhancement).
@@ -29,17 +30,18 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 **Goals**
 
 - **G1 — A real desktop.** Window management, file system, app lifecycle, settings, notifications, clipboard, keyboard-first UX, session restore. Judged on polish.
-- **G2 — Local AI as system services.** Embeddings, image–text, ASR, vision as kernel services any app can call; background indexing; instant search.
-- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; the only hosts ever contacted are `github.io` (code, tiny models, demo data) and, only on explicit consent, `huggingface.co` (optional larger weights). A network monitor inside the OS proves it.
+- **G2 — Local AI as a system service.** Text embeddings as a kernel service any app can call; background indexing; instant search. _Narrowed after M4:_ image, speech and text-recognition services were built and removed (ADR 15); embeddings remain.
+- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.)
 - **G4 — Portfolio-grade.** 30-second demo with bundled sample data; Stats panel; architecture write-up with ADRs; benchmarks with hardware listed; honest limitations.
-- **G5 — A platform.** Apps are built against an SDK; third-party (and later generated) apps run sandboxed with capability-based permissions.
+- **G5 — A platform.** Apps are built against an SDK; third-party apps run sandboxed with capability-based permissions.
 
 **Non-goals**
 
 - No servers, accounts, sync, telemetry, analytics, or third-party scripts/fonts/CDNs.
 - No cloud AI, and no text generation at all — local or otherwise.
+- **Nothing downloaded on demand.** No consent dialogs, no "enable this feature", no weights fetched at runtime. What the page can do, it can do the moment it loads.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
-- No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot except consented model downloads.
+- No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot, with no exceptions.
 - Mobile is best-effort, not a milestone gate. Single user per browser profile.
 
 ---
@@ -47,7 +49,7 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 ## 2. Principles
 
 - **P1 Local-first, verifiable privacy** — network monitor in Task Manager; "airplane mode" demo.
-- **P2 Zero-cost static** — GitHub Pages; Hugging Face only for consented optional weights; nothing else.
+- **P2 Zero-cost static** — GitHub Pages, and nothing else: the model is part of the build rather than something fetched from a second host.
 - **P3 Progressive enhancement** — detect capabilities at boot (WebGPU → WASM; File System Access where available); never hard-fail.
 - **P4 Polished subsets per milestone** — every milestone is a shippable portfolio state.
 - **P5 Deterministic demo first** — the first 30 seconds never wait on a download, and no answer the desktop gives is generated prose: every result points into a file you can open and check.
@@ -64,14 +66,14 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 
 1. Open the URL → desktop boots in < 2 s on a repeat visit; sample files are already there ("Sample data — clear anytime").
 2. Press the launcher key (or click Search) → type _"invoice for the monitor"_ → ranked results with highlighted passages from the sample PDFs → Enter opens the PDF at that page.
-3. (M2+) type _"cat on a sofa"_ → photo results; drag a photo onto Search → visually similar photos.
-4. Open Task Manager → models resident, GPU backend, **"Network: 0 requests since boot."**
-5. Switch the OS's airplane-mode toggle (or the browser offline) → search again → still works.
+3. Open **Video → Sample** → the desktop draws and encodes a short film in front of you, then save the frame you are looking at or cut ten seconds out of it. No model, no download.
+4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."**
+5. Switch the OS's airplane-mode toggle (or the browser offline) → search again → **still works, semantic half included** (verified with the server stopped).
 
 **5-minute path (engineer)**
 
 - About/Stats: GPU adapter, backend, model sizes, load times, embeddings/sec, search latency.
-- DevTools → Network: empty after boot (except consented downloads). → Application: OPFS, IndexedDB, service worker.
+- DevTools → Network: empty after boot, no exceptions. → Application: OPFS, IndexedDB, service worker, and the caches holding the runtime and the weights.
 - Import your own folder (Chromium: folder picker; others: drag-drop) → watch jobs queue with priorities and progress, cancel one, search while indexing continues.
 - Open ≥ 8 windows, snap, keyboard window switcher; reload → session restored.
 - Read `docs/architecture.md` and the ADRs; skim `models.json` and the CSP.
@@ -85,13 +87,15 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 | Chrome / Edge desktop                  | drag-drop, `webkitdirectory`, folder picker | **yes** (persisted handles) | yes                                  | full                          | **primary target**                        |
 | Firefox desktop 147+                   | drag-drop, `webkitdirectory`                | no (re-import)              | yes on Windows/macOS (Linux pending) | full                          | supported                                 |
 | Safari 26 macOS                        | drag-drop, `webkitdirectory`                | no                          | yes                                  | full (verify OPFS throughput) | supported                                 |
-| Mobile (Chrome Android, iOS 26 Safari) | limited                                     | no                          | yes, memory-tight                    | tiny models only              | best-effort; show a "limited mode" banner |
+| Mobile (Chrome Android, iOS 26 Safari) | limited                                     | no                          | yes, memory-tight                    | works; 23 MB model            | best-effort; show a "limited mode" banner |
 
-**Hardware tiers** (probed at boot from `navigator.gpu` adapter limits + `navigator.deviceMemory`; user-overridable in Settings):
+**Hardware tiers** (probed at boot from `navigator.gpu` adapter limits + `navigator.deviceMemory`; user-overridable in Settings). These were written to decide **which models a machine could afford**. With one 23 MB model left they no longer gate anything, and survive as a reported capability class and a throttling hint:
 
-- **Tier A** — discrete GPU / Apple Silicon, ≥ 8 GB RAM: all bundled models + on-demand models allowed by default (e.g. Whisper small, CLIP base).
-- **Tier B** — integrated GPU with WebGPU: bundled models; smaller on-demand variants (Whisper base, MobileCLIP-class).
-- **Tier C** — no WebGPU (WASM only): embeddings + Whisper tiny; background indexing throttled; speed warning shown.
+- **Tier A** — discrete GPU / Apple Silicon, ≥ 8 GB RAM.
+- **Tier B** — integrated GPU with WebGPU.
+- **Tier C** — no WebGPU (WASM only): background indexing throttled; speed warning shown.
+
+Worth noting that the tier barely matters for the surviving model: M0 measured threaded WASM beating WebGPU by 2.2× on it, so a Tier C machine runs document search on the path the others also prefer.
 
 ---
 
@@ -119,9 +123,9 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 │ STORAGE                                                                                  │
 │   OPFS: content-addressed blobs · derived data · index shards · model cache              │
 │   IndexedDB: VFS tree + metadata · settings · permission grants · job log                │
-│   Cache API (service worker): app shell · runtime · bundled models · demo data           │
+│   Cache API (service worker): app shell · ONNX runtime · weights (keyed by version)      │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
-     ▲ github.io — code, runtime, tiny models, demo data        ▲ huggingface.co — optional weights, on consent only
+     ▲ github.io — code, runtime, the model, demo data. There is no second arrow: nothing else is contacted.
 ```
 
 ### 5.2 App model — hybrid (decision D04)
@@ -152,35 +156,33 @@ A **genuine desktop environment** — windows, files, apps, settings, a task man
 
 ### 5.5 Index
 
-- **Text:** extract (txt/md direct; PDF via pdf.js text layer; scanned → OCR in M4) → chunk (~200–300 tokens, ~15 % overlap, keep char offsets) → embed (normalized) → shard per modality as typed arrays in OPFS, held in memory for search. Plus a **full-text/BM25 index** for exact terms ("Samsung"). **Hybrid ranking** = reciprocal rank fusion of semantic + BM25. Snippets and highlights from offsets.
-- **Images:** CLIP-family image embeddings (text query → text embedding → cosine). Similar images = image→image cosine (optionally DINOv2 for near-duplicates).
-- **Audio:** ASR → timestamped segments → chunk → text embeddings; chapters by embedding-shift segmentation + keyphrases; transcript stored as derived data.
-- **Video (M4):** sampled frames (WebCodecs or video+canvas) → CLIP embeddings with timestamps.
+- **Text:** extract (txt/md direct; PDF via pdf.js text layer; a scanned page has no text layer and, since OCR was removed, stays unsearchable) → chunk (~200–300 tokens, ~15 % overlap, keep char offsets) → embed (normalized) → shard per modality as typed arrays in OPFS, held in memory for search. Plus a **full-text/BM25 index** for exact terms ("Samsung"). **Hybrid ranking** = reciprocal rank fusion of semantic + BM25. Snippets and highlights from offsets.
+- ~~**Images / Audio / Video.**~~ All three were built — CLIP image embeddings, Whisper transcription with chaptering, sampled video frames in the image index — and all three were removed with their models (ADR 15). Pictures now get a thumbnail and nothing more; the index holds documents only.
 - **Search:** brute-force dot product in the indexer worker over typed arrays — target < 100 ms for ~50k vectors; upgrade path: WebGPU compute-shader search (depth pocket) or HNSW-in-WASM beyond ~200k.
 - **Incremental:** per-file index state (pending/done/failed/modelVersion); re-index on model version change; pause/resume; background priority below interactive work.
 
 ### 5.6 Inference kernel
 
-- **Backends:** `webgpu` (primary), `wasm` (single-thread, or multi-thread when `crossOriginIsolated` — the service worker in §5.10 makes this true), `webnn` (experimental toggle, off by default; origin-trial token via meta tag while it lasts), `builtin` (Chrome Prompt/Summarizer/Translator APIs — optional tasks only), `sideload`.
+- **Backends:** `wasm` (multi-thread when `crossOriginIsolated` — the service worker in §5.10 makes this true — and the measured default for the one model here), `webgpu` (fallback when threads are unavailable), `webnn` (experimental toggle, off by default). The `builtin` and `sideload` backends were never built and are not planned: the first meant Chrome's Prompt/Summarizer APIs (ADR 14 rules out generation) and the second meant users installing models (ADR 15 rules out installing anything).
 - **Scheduler:** priority queue (interactive 0 · user batch 1 · background indexing 2); one GPU job per model at a time; batching for embeddings; cancellation tokens; progress events; yields between batches to keep the UI fluid; throttles when the tab is hidden (configurable).
-- **Model registry (`models.json`):** id, task, tier/source, files + sizes + sha256, license, min hardware tier, memory estimate. Lifecycle cold → loading → ready → idle → unloaded; **LRU unload by memory budget** derived from device memory/adapter limits; Task Manager shows all of it. **Integrity:** verify sha256 of every downloaded file against the manifest (pins versions; defends against CDN tampering).
-- **Transformers.js v4 configuration:** self-hosted runtime/WASM under `/runtime/` (no jsDelivr); browser/WASM caches on; custom `env.fetch` for consent, progress, resume (Range) and integrity; models resolved by the registry (same-origin path for bundled; Hugging Face URL for on-demand).
+- **Model registry (`models.json`):** id, task, source, files + sizes + sha256, license. It described a download manager — lifecycle, LRU unload by memory budget, per-file integrity at runtime — and is now a description of what ships: one model, verified at **build** time by `tools/sync-model.mjs` against the same digests.
+- **Transformers.js v4 configuration:** self-hosted runtime/WASM under `/runtime/` (no jsDelivr), and self-hosted weights under `/models/` with `allowRemoteModels: false`, so a missing file is a 404 against our own origin rather than a silent fetch from someone else's. The service worker caches both on first use, keyed by the runtime version and by a digest of the model digests.
 
 ### 5.7 Weights policy (decision D05)
 
-| Tier            | Source                                                                 | Rule                                                                                                                                                                                                                                                  |
-| --------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 Bundled**   | in repo, same-origin                                                   | target total ≤ ~80 MB (bandwidth maths: 100 GB/month soft limit ≈ 1,200 first-time visitors at 80 MB). Contents decided in M0 by measured sizes (embeddings for sure; ASR/CLIP variant if they fit).                                                  |
-| **1 On-demand** | Hugging Face Hub (public files; no account/key; CORS + Range verified) | explicit consent dialog (size, license, host) → progress → resumable → cached → integrity-checked. Anonymous limit 3,000 file requests / 5 min / IP; a model is ~5–20 requests; repeat visits make zero requests. Retries honour `RateLimit` headers. |
-| **2 Built-in**  | Chrome Prompt / Summarizer / Translator APIs                           | zero download by us; desktop Chrome only; optional tasks only.                                                                                                                                                                                        |
-| **3 Sideload**  | user drops model files into the OS                                     | fully air-gapped; "install a model like an app".                                                                                                                                                                                                      |
+| Tier            | Source                                      | Rule                                                                                                                                                                                                                                                     |
+| --------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 Bundled**   | in repo, same-origin                        | **The only tier.** 22.6 MB against the ~80 MB budget. Fetched and digest-checked at build time by `tools/sync-model.mjs`, committed, served from this origin, and marked `linguist-vendored` so 30k lines of tokenizer vocabulary do not read as source. |
+| ~~1 On-demand~~ | ~~Hugging Face Hub~~                        | **Removed (ADR 15.)** Consent dialog, progress, resume, runtime integrity checking — all built, all deleted with the models they served.                                                                                                                 |
+| ~~2 Built-in~~  | ~~Chrome Prompt / Summarizer / Translator~~ | **Never built; ruled out** by ADR 14.                                                                                                                                                                                                                    |
+| ~~3 Sideload~~  | ~~user drops model files in~~               | **Never built.** "Install a model like an app" is the thing ADR 15 exists to prevent.                                                                                                                                                                    |
 
-The README states the exact host list. The Task Manager's network monitor lists every request.
+The README states the host list: one. The Task Manager's network monitor lists every request.
 
 ### 5.8 Security
 
-- **CSP via `<meta http-equiv>`** (GitHub Pages cannot set headers) — draft in Appendix C; includes `'wasm-unsafe-eval'` for WebAssembly, `connect-src` limited to self + Hugging Face.
-- **Cross-origin isolation** via `coi-serviceworker` (credentialless mode) → `SharedArrayBuffer`/threads. Every cross-origin fetch must be CORS (Hugging Face is).
+- **CSP via `<meta http-equiv>`** (GitHub Pages cannot set headers) — draft in Appendix C; includes `'wasm-unsafe-eval'` for WebAssembly, and `connect-src` can now be `'self'` alone.
+- **Cross-origin isolation** via the app's own service worker (credentialless mode) → `SharedArrayBuffer`/threads. There are no cross-origin fetches left to satisfy.
 - **Sandboxed apps:** `sandbox="allow-scripts"` only; opaque origin; child CSP with no `connect-src`; capability tokens random per instance; messages schema-validated; grants persisted and revocable in Settings → Apps; folder-scoped file capabilities.
 - **OS code:** no `eval`, no third-party scripts, sanitized Markdown rendering.
 - **No model output is ever executed**, because no model here produces anything executable. The tool-calling agent that would have needed that rule was removed with the M5 tier ([ADR 14](./docs/adr/0014-no-text-generation.md)); file content is still treated as untrusted input everywhere it is parsed.
@@ -192,7 +194,7 @@ Web Locks `os-leader`; non-leader tabs offer "take over" or run read-only; Broad
 ### 5.10 Offline, PWA and hosting specifics
 
 - Bundler `base: '/<repo>/'`; hash routing; service-worker scope `/<repo>/`.
-- Service worker precaches shell + runtime + bundled models (+ demo data); "Restart OS to update" flow; `navigator.storage.persist()`; storage usage in Settings.
+- Service worker precaches the shell; the runtime (13 MB) and the weights (23 MB) are cached on first use instead, because 36 MB during install would make a first visit pay for an inference stack it may never use. "Restart OS to update" flow; `navigator.storage.persist()` at boot; storage usage in Settings.
 - **`coi-serviceworker`** (one automatic reload on first visit; app works single-threaded if registration fails).
 - GitHub Actions builds and deploys (bypasses the 10-builds/hour limit); Pages limits: 1 GB site, 100 GB/month soft bandwidth, 100 MB per file in git.
 - **Shared origin:** all project sites live on `user.github.io` → storage namespace and quota are shared with any other page you host. Namespace keys, or publish from a free GitHub organization (`org.github.io`) for a dedicated origin (decide in M0).
@@ -200,32 +202,45 @@ Web Locks `os-leader`; non-leader tabs offer "take over" or run read-only; Broad
 
 ---
 
-## 6. Model catalogue (initial picks — sizes ~, q8 unless noted; benchmark in M0)
+## 6. Model catalogue
 
-| Task                  | Candidate(s)                                      | ~Size                     | Tier                 | Notes                                              |
-| --------------------- | ------------------------------------------------- | ------------------------- | -------------------- | -------------------------------------------------- |
-| Text embeddings       | `Xenova/all-MiniLM-L6-v2` (384-d)                 | ~23 MB                    | bundled              | English; very fast; size verified                  |
-|                       | `bge-small-en-v1.5` · `multilingual-e5-small`     | ~34 · ~120 MB             | on-demand            | higher quality · multilingual                      |
-| Image–text            | `clip-vit-base-patch32`                           | ~150 MB total             | on-demand            | baseline                                           |
-|                       | MobileCLIP-S0/S1 ONNX · SigLIP-base               | small · ~200+ MB          | bundled? · on-demand | MobileCLIP may fit Tier 0 — measure                |
-| Visual similarity     | CLIP image embeddings (reuse) · DINOv2-small      | 0 · ~25 MB                | on-demand            | DINOv2 better for near-duplicates                  |
-| ASR                   | `whisper-tiny` / `base` / `small`                 | ~40 / ~75 / ~250 MB       | bundled? / on-demand | multilingual; WebGPU-optimised variants are larger |
-|                       | Moonshine tiny/base                               | ~30–60 MB                 | alternative          | English, fast                                      |
-| Diarization           | pyannote segmentation-3.0 ONNX                    | ~6 MB                     | optional             | check license/gating                               |
-| Document text         | pdf.js text layer                                 | library                   | core                 | scanned → OCR                                      |
-| OCR                   | tesseract.js (WASM) · TrOCR · Florence-2-base     | ~15 · ~65 · ~250 MB       | M4                   | tesseract = pragmatic, deterministic               |
-| Detection / auto-tags | yolos-tiny · detr-resnet-50                       | ~25 · ~42 MB              | M4                   | photo tags                                         |
-| Background removal    | MODNet · BiRefNet · RMBG-1.4                      | ~25 · ~200+ · ~45 MB      | M4                   | **check licenses** (RMBG-1.4 is non-commercial)    |
-| Translation           | opus-mt pairs · NLLB-600M · Chrome Translator API | ~80 MB/pair · ~600 MB · 0 | M4                   |                                                    |
-| TTS                   | Kokoro-82M ONNX                                   | ~90–330 MB                | M4                   | read-aloud                                         |
+### What ships
 
-**Not in this catalogue, deliberately:** language models and vision-language captioners — Gemini
+| Task            | Model                             | Size    | Tier    | Notes                                                                               |
+| --------------- | --------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------- |
+| Text embeddings | `Xenova/all-MiniLM-L6-v2` (384-d) | 22.6 MB | bundled | English; in the repository; runs on threaded WASM, measured 2.2× faster than WebGPU |
+
+That is the whole catalogue. One model, one task, in the build.
+
+### What was considered, built, and removed
+
+The original catalogue listed candidates for eight more tasks. Three of them shipped and were then
+removed with the on-demand tier ([ADR 15](./docs/adr/0015-no-on-demand-models.md)); the rest were
+never started. Kept here because the sizes are the argument — this is what "just add photo search"
+actually costs a visitor.
+
+| Task                     | Candidates considered                                    | ~Size                 | Outcome                                                                                                                            |
+| ------------------------ | -------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Image–text               | `clip-vit-base-patch32` · MobileCLIP-S0/S1 · SigLIP-base | 150 MB · small · 200+ | **Built, removed.** CLIP chosen by measurement over MobileCLIP ([ADR 10](./docs/adr/0010-model-choices-are-tested-not-assumed.md)) |
+| Visual similarity        | CLIP image embeddings (reuse) · DINOv2-small             | 0 · ~25 MB            | **Built, removed.** Reused CLIP; no second model needed                                                                            |
+| ASR                      | `whisper-tiny`/`base`/`small` · Moonshine                | 40–250 MB · 30–60 MB  | **Built, removed.** whisper-tiny, fp16 decoder                                                                                     |
+| OCR                      | tesseract.js · TrOCR · Florence-2-base                   | 15 · 65 · 250 MB      | **Built, removed.** TrOCR chosen over tesseract ([ADR 13](./docs/adr/0013-ocr.md))                                                 |
+| Diarization              | pyannote segmentation-3.0                                | ~6 MB                 | Never started                                                                                                                      |
+| Detection / auto-tags    | yolos-tiny · detr-resnet-50                              | 25 · 42 MB            | Never started                                                                                                                      |
+| Background removal       | MODNet · BiRefNet · RMBG-1.4                             | 25 · 200+ · 45 MB     | Never started (RMBG-1.4 is non-commercial)                                                                                         |
+| Translation              | opus-mt · NLLB-600M · Chrome Translator API              | 80 MB/pair · 600 MB   | Never started                                                                                                                      |
+| TTS                      | Kokoro-82M                                               | 90–330 MB             | Never started                                                                                                                      |
+| Higher-quality embedding | `bge-small-en-v1.5` · `multilingual-e5-small`            | 34 · 120 MB           | Never started; MiniLM is good enough at a third the size                                                                           |
+
+**Never in this catalogue, deliberately:** language models and vision-language captioners — Gemini
 Nano through the Chrome Prompt API, Qwen via Transformers.js or WebLLM, SmolVLM, Florence-2. v2
-listed them as an optional M5 tier. M4 closed that tier without building it; the reasoning is in
-[ADR 14](./docs/adr/0014-no-text-generation.md). Every model above answers a question about a file
-the user already has, which is why none of them can invent an answer.
+listed them as an optional M5 tier; M4 closed it without building it
+([ADR 14](./docs/adr/0014-no-text-generation.md)). The surviving model answers a question about a
+file the user already has, which is why it cannot invent an answer.
 
----
+**Document text** still comes from the pdf.js text layer, which is a library rather than a model. A
+scanned page has no text layer and — since OCR went — stays unsearchable. That is a real
+limitation, stated rather than papered over.
 
 ## 7. Milestones
 
@@ -245,14 +260,14 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 **Done when (measurable):** ≥ 8 windows dragged/resized at 60 fps (performance marks); keyboard-only run of the demo script; import of 1,000 files without UI jank (measured); search < 200 ms over 10k chunks; session restores after reload; PWA installable and fully functional offline on repeat visit; network monitor shows 0 requests post-boot; axe clean on shell/Files/Search; CI green (typecheck, lint, unit, Playwright smoke on WASM path); README with GIF, `docs/architecture.md` v1, ADRs; tagged `v0.1.0`.
 **Out:** photo/audio AI, sandboxed apps, LLM.
 
-### M2 — Sees and hears · v0.2 (~4–5 FTE-weeks)
+### M2 — Sees and hears · v0.2 (~4–5 FTE-weeks) · **the seeing and hearing has since been removed**
 
-**Platform:** model download manager for Tier 1 (consent, progress, resume, integrity); model lifecycle (LRU unload, memory budget); adaptive tier defaults + Settings override; derived-data store; drag-drop between apps (photo → Search, audio → Search).
+**Platform:** model download manager for Tier 1 (consent, progress, resume, integrity); model lifecycle (LRU unload, memory budget); adaptive tier defaults + Settings override; derived-data store; drag-drop between apps (photo → Search, audio → Search). _All of this was built and then deleted with the tier it served: with one model in the build there is nothing to download, consent to, or unload._
 **Apps:** **Photos** (virtualized grid, viewer, EXIF, albums/tags, natural-language search, similar images, "find in Search"); **Audio** (player with waveform, transcription with timestamps, click-to-seek transcript, transcript search, chapters, export .srt/.txt); Search upgraded to multimodal results.
 **AI:** CLIP-family image/text embeddings; Whisper tiny/base (small on Tier A); chaptering via embedding-shift segmentation + keyphrases; optional diarization.
 **Done when:** sample photos searchable by natural language on Tier B within a measured, documented time after boot; a 5-minute clip transcribes faster than real-time on Tier A and < 2× real-time on Tier B (measured); background indexing never drops the UI below 50 fps; every download consented and visible in Task Manager; offline still works after caching; tagged `v0.2.0`.
 **Out:** LLM, video, sandboxed apps.
-**Since removed:** everything in this milestone that needed a downloaded model — natural-language photo search, similar images, transcription, chapters, `.srt` export. Photos and Audio remain as a picture browser and a player/recorder ([ADR 15](./docs/adr/0015-no-on-demand-models.md)).
+**Since removed:** everything in this milestone that needed a downloaded model — natural-language photo search, similar images, transcription, chapters, `.srt` export — along with the download manager itself. Photos remains a picture browser with on-device thumbnails; Audio remains a player and recorder with a waveform ([ADR 15](./docs/adr/0015-no-on-demand-models.md)).
 
 ### M3 — Platform for apps · v0.3 (~4–5 FTE-weeks)
 
@@ -261,7 +276,7 @@ Effort is in **FTE-weeks** (~35–40 focused hours). Scale to your weekly hours 
 **Done when:** a sandboxed app demonstrably cannot touch OPFS/IndexedDB/DOM (tested); permission prompts and revocation work; a sample app installed from a file runs offline; SDK docs published with an API-stability note; tagged `v0.3.0`.
 **Out:** LLM, video, OCR.
 
-### M4 — More senses · pool (pick by value; ~1–2 FTE-weeks each)
+### M4 — More senses · pool (pick by value; ~1–2 FTE-weeks each) · **the senses have since been removed**
 
 Video moment search (WebCodecs frame sampling → CLIP index → clip export via WebCodecs encode/remux; fallback: export frame range); OCR (tesseract.js) for scanned PDFs/images; Photos tools (background removal, auto-tags, near-duplicate finder); translation (opus-mt or Chrome Translator API); read-aloud (Kokoro); WebNN experimental backend + benchmark; WebGPU compute-shader vector search (depth pocket). Each behind consented downloads with its own DoD.
 
@@ -288,7 +303,7 @@ Measured: all ten lines of the sample scanned page found and read with **zero ch
 
 ### Still in the pool, unpicked
 
-Photos tools beyond duplicates (background removal, auto-tags), translation, read-aloud, WebNN, WebGPU compute-shader vector search. Each remains a self-contained addition behind its own consented download.
+Photos tools (background removal, auto-tags), translation, read-aloud, WebNN, WebGPU compute-shader vector search. **None of these can be picked up as written**: every one needs a downloaded model, which ADR 15 rules out. WebGPU compute-shader vector search is the exception — it needs no model, and is the only item here still open.
 
 ### M5 — Optional intelligence · **removed, not deferred**
 
@@ -317,7 +332,7 @@ the source was deleting one unused member of a type union.
 - **Robustness:** every job cancellable; errors surface as notifications with retry; WebGPU device-lost recovery; quota errors handled; 5k-file import without jank.
 - **Accessibility:** keyboard-only completion of the demo script; visible focus; ARIA roles for windows/menus/lists; reduced-motion and colour-scheme respected; axe clean on main surfaces.
 - **Offline:** repeat visit fully works with the network off.
-- **Privacy:** network monitor shows zero requests post-boot except consented downloads; CSP enforced; no third-party scripts.
+- **Privacy:** network monitor shows **zero requests post-boot, with no exceptions**; CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
 - **Tests:** unit (window-manager reducers, VFS ops, scheduler); service tests in Node (Transformers.js v4 WASM path); Playwright smoke on the WASM path in CI; performance marks asserted.
 - **Docs per milestone:** README, `docs/architecture.md`, ADRs, benchmarks, CHANGELOG, tagged release.
 
@@ -338,18 +353,18 @@ the source was deleting one unused member of a type union.
 | Risk                                | Impact                  | Mitigation                                                                            |
 | ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
 | Scope creep (genuine desktop)       | never ships             | milestone DoD gates; M4 a pool, not a list; polish over breadth                       |
-| Time-to-first-result (downloads)    | visitors bounce         | Tier-0 bundled models; demo data; lazy everything; progress UI                        |
-| Memory/VRAM exhaustion              | crashes                 | registry memory budget; LRU unload; quantized models; one model per task              |
+| Time-to-first-result (downloads)    | visitors bounce         | **closed:** nothing is downloaded at all — the one model is in the build (ADR 15)     |
+| Memory/VRAM exhaustion              | crashes                 | largely moot with one 23 MB quantized model resident                                  |
 | WebGPU driver bugs / device lost    | broken demo             | WASM fallback; device-lost recovery; tested matrix                                    |
 | Cross-browser gaps (FSA, OPFS perf) | confusing UX            | capability detection + explicit "limited mode" banner; Chromium-first messaging       |
 | OPFS quota/eviction                 | data-loss fear          | `persist()`; usage UI; "Export all (zip)"                                             |
-| Hugging Face outage / rate limit    | download fails          | backoff honouring `RateLimit` headers; Range resume; caching; bundled tier unaffected |
+| Hugging Face outage / rate limit    | download fails          | **closed:** not contacted at runtime; only `npm run sync:weights` touches it          |
 | COI service-worker quirks           | broken first load       | tested paths; single-thread fallback; WebGPU path does not require COI                |
-| Pages bandwidth spike               | throttling              | lean bundle; SW caching; Tier 0 ≤ ~80 MB; optional second site/org for models         |
+| Pages bandwidth spike               | throttling              | lean bundle; SW caching; 23 MB of weights per first visit, well inside the budget     |
 | Design/polish time                  | looks amateur           | design tokens early; one original visual language; empty/loading/error states written |
 | Accessibility debt                  | senior reviewers notice | keyboard-first from M1, not retrofitted                                               |
 | LLM rabbit hole                     | delays core             | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)             |
-| Licences (models/assets)            | takedown/embarrassment  | `THIRD_PARTY_NOTICES.md`; CC0/public-domain demo assets; check every model licence    |
+| Licences (models/assets)            | takedown/embarrassment  | one Apache-2.0 model, redistributable; demo data is drawn by the app, not sourced     |
 
 ---
 
@@ -362,12 +377,12 @@ the source was deleting one unused member of a type union.
 ```
 /shell        desktop UI: window chrome, taskbar, launcher, palette, theming, boot
 /kernel       wm, vfs, apps, ipc, scheduler, models, settings, notifications, clipboard, locks, permissions
-/services     ai/ (embeddings, vision, asr, …) · index/ · media/ · pdf/
+/services     ai/ (runtime config) · index/ (embeddings, chunking, BM25) · audio/ · video/ · extract/
 /sdk          SDK types + in-process adapter + postMessage client
 /apps         system apps (files, viewer, notes, search, settings, taskman, about, photos, audio)
 /workers      worker entry points
 /public/runtime   self-hosted ML runtime (WASM etc.)
-/public/models    Tier-0 bundled models
+/public/models    the bundled model, committed (marked linguist-vendored)
 /public/demo      CC0 sample dataset + manifest
 /models.json      model registry manifest
 /docs             architecture.md, adr/, benchmarks/
@@ -385,11 +400,11 @@ the source was deleting one unused member of a type union.
 
 ## 12. Decision log
 
-- **D01** Browser-only, static, GitHub Pages, $0, no backend or other services (Hugging Face only for consented optional weights).
+- **D01** Browser-only, static, GitHub Pages, $0, no backend or other services. _Revised after M4:_ **one host**, full stop — the model is in the build, so Hugging Face is a build-time dependency and never contacted at runtime (ADR 15).
 - **D02** Genuine desktop; window manager from scratch; original design (no Microsoft/Apple assets).
-- **D03** Local AI as system services; perception models are the whole of it. _Revised at M4:_ the optional LLM tier is removed, not deferred (ADR 14) — the desktop sees, hears and reads, and does not generate text.
+- **D03** Local AI as a system service. _Revised twice:_ the optional LLM tier was removed rather than deferred (ADR 14), and then the perception models — image, speech, text recognition — were removed as well, because each cost a visitor a download before it would do anything (ADR 15). What remains is text embeddings for document search.
 - **D04** Hybrid app model: system apps in-process, third-party apps in sandboxed iframes, one SDK.
-- **D05** Weights tiers: bundled ≤ ~80 MB / on-demand Hugging Face with consent + integrity / sideload.
+- **D05** Weights tiers: **bundled only**, ≤ ~80 MB, verified by digest at build time. The on-demand, built-in and sideload tiers are removed or were never built (ADR 15).
 - **D06** Chromium-first, desktop-first; graceful degradation elsewhere; mobile best-effort.
 - **D07** `coi-serviceworker` for cross-origin isolation; CSP via meta; self-hosted runtime (no jsDelivr).
 - **D08** Content-addressed OPFS blobs + IndexedDB tree; brute-force vector search in a worker first.
@@ -403,7 +418,7 @@ the source was deleting one unused member of a type union.
 
 Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behind each.
 
-1. **Resolved.** Tier-0 bundle = all-MiniLM-L6-v2 int8 (22.6 MB, from M1) + Whisper tiny int8 (41.6 MB, from M2) = **64.2 MB of the 80 MB budget**, ~1,595 first-time visitors/month. MobileCLIP-S0 (52.1 MB) and CLIP ViT-B/32 (146.5 MB) are Tier 1, on demand. Sizes and SHA-256 digests generated into `models.json`.
+1. **Resolved, then simplified.** M0 set the Tier-0 bundle at all-MiniLM-L6-v2 int8 (22.6 MB) + Whisper tiny int8 (41.6 MB) = 64.2 MB of the 80 MB budget, with CLIP on demand. After M4 the bundle is **MiniLM alone, 22.6 MB**, and there is no on-demand tier to be outside it. Sizes and SHA-256 digests are still generated into `models.json`, and now enforced at build time by `tools/sync-model.mjs`.
 2. **Open.** Embedding precision (f32 vs f16) and shard format — decide with a real index in M1.
 3. **Resolved.** Hand-rolled store (~40 lines over `useSyncExternalStore`) and hand-rolled RPC (~90 lines, progress streaming built in). MiniSearch vs own BM25 still open until M1 has a corpus. See ADR 7.
 4. **Open.** A dedicated origin via a free GitHub organisation. Not blocking; decide before the first public link, since it changes the URL.
@@ -416,17 +431,19 @@ Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behi
 
 - **Backend choice is per task, not "GPU if available."** Threaded WASM measured ~2.2x faster than WebGPU for small int8 embeddings (6.54 vs 14.43 ms/chunk median). §5.6 assumed WebGPU primary; the code now follows the measurement and the heavier-model defaults are labelled as assumptions until M2 measures them. See ADR 8.
 - **Cross-origin isolation is solved with our own service worker**, not `coi-serviceworker` — one worker must do both isolation and caching, because a second registration at the same scope evicts the first. Verified with no COOP/COEP headers at all. See ADR 2.
-- **The runtime actually fetched is the asyncify ONNX build** (5.4 MB gzipped), not the smaller 3.2 MB one. First AI-using visit ≈ 28 MB.
+- **The runtime actually fetched is the asyncify ONNX build** (5.4 MB gzipped), not the smaller 3.2 MB one. First search ≈ 28 MB, all of it from this origin.
 - **`frame-ancestors` cannot be enforced** from a `<meta>` CSP; recorded as a known limitation rather than worked around.
 
 ---
 
 ## Appendix A — Demo dataset spec (~30–60 MB total; all CC0 / public domain / self-made; credits in `demo/manifest.json`)
 
-- 60–100 photos: animals (cats!), landscapes (sunsets, beaches), food, objects (a **red keyboard**), near-duplicates for "similar"; ≤ 1600 px, ~150–300 KB each; no identifiable people unless CC0 with release.
-- 8–12 documents: self-made synthetic invoices (one for a **monitor** purchase; one mentioning **Samsung**), a fictional résumé, `notes.md`, a few public-domain texts/PDFs, one scanned-style PDF (for OCR later).
-- 2–3 audio clips (1–3 min): public-domain speech (e.g. LibriVox) + one self-recorded "meeting" with clear topic shifts (for chaptering).
-- (M4) one 20–40 s self-made/CC0 video featuring the red keyboard.
+**What this became.** The spec called for 30–60 MB of sourced CC0 media. Not one byte of it ships: everything is **drawn or synthesised by the desktop on first boot**, which keeps the repository small, the licensing trivial and the two-host claim (now one-host) intact. Sizes below are what the app generates.
+
+- **8 pictures**, drawn to canvas — sunset over the sea, night sky, mountain lake, a red keyboard, a bar chart, a cup of coffee, a forest path, a tropical beach. A few kilobytes each. They exist to give Photos a grid worth looking at.
+- **7 documents**: two real PDFs written by the app itself (one invoice for a **monitor**, one mentioning **Samsung**), warranty terms, a statement of work, and three Markdown notes. These are what document search actually searches.
+- **A sample video**, recorded on demand rather than shipped: the desktop draws the eight pictures to a canvas and encodes 32 seconds of WebM with `MediaRecorder`, live, in about half a minute.
+- **Dropped with the models they served:** the near-duplicate pictures (duplicate finder), the scanned-style page (OCR), and the speech clips (transcription). The audio app now ships nothing and records from the microphone instead — a self-made speech sample was never possible without a voice model.
 - Auto-import on first boot; "Load sample data" and "Clear sample data" in Settings.
 
 ## Appendix B — SDK surface v0 (sketch)
@@ -445,10 +462,10 @@ interface OS {
   };
   windows: { open(opts: WindowOptions): WindowHandle; setTitle(t: string): void; close(): void };
   ai: {
-    embed(input: string[] | ImageRef[], opts?: EmbedOptions): Promise<Float32Array[]>;
-    search(query: string | ImageRef, opts?: SearchOptions): Promise<Hit[]>;
-    transcribe(audio: Id, opts?: AsrOptions): Job<Transcript>;
-    jobs: { cancel(id: JobId): void; progress(id: JobId): Progress };
+    // Text only. `ImageRef` inputs, `transcribe` and photo search went with their models (ADR 15);
+    // the shipped surface is `docs/sdk.md`, which is narrower than this sketch throughout.
+    embed(input: string[], opts?: EmbedOptions): Promise<Float32Array[]>;
+    search(query: string, opts?: SearchOptions): Promise<Hit[]>;
   };
   events: {
     on(topic: string, cb: Handler): Unsubscribe;
@@ -465,15 +482,19 @@ interface OS {
 }
 ```
 
-Capabilities: `fs:read:<scope>`, `fs:write:<scope>`, `ai:embeddings`, `ai:asr`, `ai:vision`, `clipboard`, `notifications`, `events:<topic>`. **No `net:*` capability exists.**
+Capabilities as shipped: `fs:read`, `fs:write`, `ai:embed`, `ai:search`, `clipboard`, `notifications`, `storage`. `ai:asr` and `ai:vision` were removed with the models behind them. **No `net:*` capability exists, and there will not be one.**
 
-## Appendix C — CSP draft (`<meta http-equiv="Content-Security-Policy">`; verify hosts and tighten in M0)
+## Appendix C — CSP (`<meta http-equiv="Content-Security-Policy">`)
+
+As shipped, generated by `tools/vite-plugin-csp.ts`. The draft allowed `huggingface.co` in
+`connect-src`; with the weights in the build there is no host left to allow, so **the browser now
+enforces the one-host claim** rather than the app merely honouring it.
 
 ```
 default-src 'self';
-script-src 'self' 'wasm-unsafe-eval';          /* add blob: only with the M3 sandboxed-app runner */
+script-src 'self' 'wasm-unsafe-eval' blob: '<sha256 of the app-runner bootstrap>';
 worker-src 'self' blob:;
-connect-src 'self' https://huggingface.co https://*.hf.co;
+connect-src 'self' blob: data:;                 /* no external host, at all */
 img-src 'self' blob: data:;
 media-src 'self' blob:;
 font-src 'self';
