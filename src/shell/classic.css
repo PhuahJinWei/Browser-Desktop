@@ -99,6 +99,15 @@
   outline-offset: 1px;
 }
 
+/*
+ * On a button the rectangle goes inside, which is where this era drew it — around the label rather
+ * than around the control. Kept at 2px rather than the original 1px for the reason at the top of
+ * this file: the position is the period detail, the width was the accessibility problem.
+ */
+[data-skin='classic'] button:focus-visible {
+  outline-offset: -4px;
+}
+
 /* -- Scrollbars -------------------------------------------------------------------------------- */
 
 [data-skin='classic'] * {

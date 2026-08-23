@@ -50,7 +50,12 @@ function Clock() {
 
   return (
     <time className={styles.clock} dateTime={now.toISOString()}>
-      {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      {/*
+        `numeric`, not `2-digit`: the era's clock read 2:19 AM, and a padded 02:19 is one of those
+        details that is wrong without being noticeably wrong. Locale still decides 12- or 24-hour,
+        so this does not force an American clock onto anyone.
+      */}
+      {now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
     </time>
   );
 }
