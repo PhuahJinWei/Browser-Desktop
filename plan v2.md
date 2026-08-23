@@ -385,6 +385,27 @@ the same reason everything else here does not phone home.
 
 ---
 
+### M6.5 — A second skin · **shipped**
+
+Not in the original plan; recorded here because it shipped and the plan is meant to describe what
+this is, not only what was foreseen.
+
+The desktop had one design language and it was entirely of 2026, which undercut the thesis: the
+sentence "in 2026 a complete desktop is just static files" is about the machinery, and nothing on
+screen said so. A **classic** skin — a 1990s desktop, square, bevelled, one grey — makes the
+contrast the first thing a visitor sees rather than something they have to be told.
+
+It is a fourth token axis beside theme, accent and wallpaper, and **it is the default**; Modern is
+one control away. Homage rather than impersonation: the visual grammar is reproduced in detail, and
+nothing identifying a vendor is — no logo, no wordmark, no copied artwork, no font file, and the
+Start menu's banner reads Tabula ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md),
+[ADR 1](./docs/adr/0001-static-hosting-zero-backend.md)).
+
+**Done when:** every surface has a classic treatment, including new ones; both skins pass the same
+contrast bar, with any departure named; switching is instant and neither skin regresses the other.
+
+---
+
 ### M7 — Watch · v0.6 (~1 FTE-week) · **app built; one spike measurement still open**
 
 **What it is.** A YouTube player in a window, and deliberately not a browser. The distinction is
@@ -496,6 +517,7 @@ browser, which stays refused.
 - **Robustness:** every job cancellable; errors surface as notifications with retry; WebGPU device-lost recovery; quota errors handled; 5k-file import without jank.
 - **Accessibility:** keyboard-only completion of the demo script; visible focus; ARIA roles for windows/menus/lists; reduced-motion and colour-scheme respected; axe clean on main surfaces; every context menu also opens on `Shift+F10`.
 - **Context menus:** every surface answers a right-click, editable and selected text excepted (they keep the browser's own). A new app or panel is not finished until it does — see the rule under M6.
+- **Both skins:** a new surface is not finished until it has a classic treatment as well as a modern one, and both meet the contrast bar. The failure mode is silent — a surface left unstyled still renders, just in the wrong century (ADR 21).
 - **Offline:** repeat visit fully works with the network off.
 - **Privacy:** network monitor shows **zero requests post-boot** — the single exception, a Watch frame, is user-initiated, labelled on the window while it exists and listed in the monitor (M7, ADR 20); CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
 - **Tests:** unit (window-manager reducers, VFS ops, scheduler); service tests in Node (Transformers.js v4 WASM path); Playwright smoke on the WASM path in CI; performance marks asserted.

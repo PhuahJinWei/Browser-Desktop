@@ -90,6 +90,32 @@ worth shipping: focus stays a visible dotted outline rather than the near-invisi
 the inactive title bar is two shades darker than the era's `#808080` — at the original grey its
 text measured 2.9:1, the one place the palette failed WCAG. It is 5.1:1 now.
 
+## [Unreleased] — M6, making it yours
+
+Written after the fact: M6 shipped across two commits without a section here, and a changelog with
+a hole in it is worse than one that admits the hole late.
+
+Added
+
+- **The desktop became arrangeable.** Icons select on one click and open on two
+  ([ADR 16](./docs/adr/0016-one-click-selects-two-clicks-open.md)), multi-select, drag to arrange,
+  positions stored as grid cells so an arrangement survives a reload and a resize.
+- **Every surface answers a right-click**, reachable by `Shift+F10` as well as the mouse, with
+  editable and selected text keeping the browser's own menu — cut, paste, spell-check and look-up
+  are things a page cannot reproduce, and replacing them would remove function in exchange for
+  consistency nobody asked for. A file's menu is written once and used by seven apps, so a file
+  behaves the same wherever it is shown.
+- **Any picture in your files can be the wallpaper**, with a fit setting.
+- **The whole arrangement is a file you can carry** — exported and imported as JSON, validated on
+  the way in so a hand-edited file cannot put an invalid value into the settings store
+  ([ADR 17](./docs/adr/0017-customisation-is-a-file.md)).
+- **A stated limited mode below 720px** rather than a broken one discovered
+  ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)).
+- **Portfolio** — the author's other work, handed to a real browser tab. Nothing is fetched, not
+  even a favicon, so the network log stays empty while you use it. This is the answer to "put a
+  browser in the desktop", and the reasoning for the answer being no is
+  [ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md).
+
 ## [Unreleased] — one host
 
 Changed
