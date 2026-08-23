@@ -11,13 +11,7 @@
 
 /** What an app may ask to do. Nothing is implied; each is granted separately. */
 export type Capability =
-  | 'fs:read'
-  | 'fs:write'
-  | 'ai:embed'
-  | 'ai:search'
-  | 'notifications'
-  | 'clipboard'
-  | 'storage';
+  'fs:read' | 'fs:write' | 'ai:embed' | 'ai:search' | 'notifications' | 'clipboard' | 'storage';
 
 export const CAPABILITY_LABELS: Record<Capability, string> = {
   'fs:read': 'Read files you open with it',
@@ -62,6 +56,15 @@ export interface BootMessage {
   token: string;
   args: unknown;
   theme: 'light' | 'dark';
+  /**
+   * Which skin the desktop is wearing.
+   *
+   * Sent for the same reason as `theme`: an app that starts on a surface unlike everything around
+   * it looks broken rather than distinct. The runner turns it into a `data-skin` attribute and a
+   * set of variables; an app that overrides them still wins, because this is a starting point
+   * rather than a rule.
+   */
+  skin: 'modern' | 'classic';
 }
 
 /** Sandbox to host: a request to do something the app cannot do itself. */

@@ -34,7 +34,10 @@ const policy = () =>
     // script — rather than by opening the desktop to inline script in general.
     `script-src 'self' 'wasm-unsafe-eval' blob: '${runnerHash()}'`,
     "worker-src 'self' blob:",
-    "style-src 'self'",
+    // The sandbox document is srcdoc, so it inherits this policy — including for its own inline
+    // stylesheet, which was therefore being dropped and taking every sandboxed app's styling with
+    // it. Allowed by hash rather than by 'unsafe-inline': one stylesheet, pinned to this build.
+    `style-src 'self' '${runnerStyleHash()}'`,
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "media-src 'self' blob:",
@@ -58,6 +61,15 @@ function runnerHash(): string {
     return readFileSync('.app-runner-hash', 'utf8').trim();
   } catch {
     console.warn('[tabula:csp] .app-runner-hash is missing — run tools/build-app-runner.mjs');
+    return '';
+  }
+}
+
+function runnerStyleHash(): string {
+  try {
+    return readFileSync('.app-runner-style-hash', 'utf8').trim();
+  } catch {
+    console.warn('[tabula:csp] .app-runner-style-hash is missing — run tools/build-app-runner.mjs');
     return '';
   }
 }

@@ -69,14 +69,16 @@ if (!script) throw new Error('The runner bundle came out empty');
  * A small stylesheet so an app starts on a surface that matches the desktop's theme instead of a
  * white rectangle. Apps can override all of it; this is a starting point, not a framework.
  */
-const html = `<!doctype html>
-<html lang="en" data-theme="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="${CSP}" />
-    <title>Sandboxed app</title>
-    <style>
-      :root {
+/**
+ * The sandbox stylesheet, kept as its own string so it can be hashed.
+ *
+ * It has to be: a srcdoc document inherits its embedder's CSP, the desktop's `style-src` is
+ * `'self'` with no `'unsafe-inline'`, and an inline <style> under that policy is dropped silently.
+ * Which is exactly what happened — every app ran with browser default styling, and the theme the
+ * boot message carried had nowhere to land. Allowing it by hash rather than by `'unsafe-inline'`
+ * keeps the policy as tight as it was: this one stylesheet, pinned to this build.
+ */
+const css = `      :root {
         color-scheme: light dark;
         --bg: #ffffff;
         --fg: #12161c;
@@ -120,7 +122,70 @@ const html = `<!doctype html>
       }
       a { color: var(--accent); }
       code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    </style>
+
+      /*
+       * The classic skin, sent in the boot message beside the theme.
+       *
+       * A sandboxed app is a separate document with an opaque origin: it cannot import the
+       * desktop's stylesheet and should not be forced to. So the skin arrives as an attribute and
+       * a handful of variables, and an app that overrides them still wins — a starting point, not
+       * a rule. What it buys is that the three bundled sample apps look like they belong to the
+       * desktop around them without knowing the skin exists, because they were already written
+       * against the variables.
+       */
+      html[data-skin='classic'] {
+        color-scheme: light;
+        --bg: #c0c0c0;
+        --fg: #000000;
+        --muted: #404040;
+        --line: #808080;
+        --accent: #000080;
+      }
+      html[data-skin='classic'] body {
+        font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 13px;
+        -webkit-font-smoothing: none;
+      }
+      html[data-skin='classic'] button {
+        border: 1px solid #000000;
+        border-radius: 0;
+        background: #c0c0c0;
+        color: #000000;
+        box-shadow:
+          inset 1px 1px 0 0 #ffffff, inset -1px -1px 0 0 #404040,
+          inset 2px 2px 0 0 #dfdfdf, inset -2px -2px 0 0 #808080;
+      }
+      html[data-skin='classic'] button:hover { border-color: #000000; color: #000000; }
+      html[data-skin='classic'] button:active {
+        box-shadow:
+          inset 1px 1px 0 0 #404040, inset -1px -1px 0 0 #ffffff,
+          inset 2px 2px 0 0 #808080, inset -2px -2px 0 0 #dfdfdf;
+        padding-top: 7px;
+        padding-left: 13px;
+      }
+      html[data-skin='classic'] input,
+      html[data-skin='classic'] textarea,
+      html[data-skin='classic'] select {
+        border: 1px solid #000000;
+        border-radius: 0;
+        background: #ffffff;
+        color: #000000;
+        box-shadow: inset 1px 1px 0 0 #808080, inset -1px -1px 0 0 #ffffff;
+      }
+      html[data-skin='classic'] :focus-visible {
+        outline: 2px dotted #000000;
+        outline-offset: 1px;
+      }
+`;
+
+const html = `<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="${CSP}" />
+    <title>Sandboxed app</title>
+    <style>
+${css}    </style>
   </head>
   <body>
     <script>${script}</script>
@@ -136,6 +201,26 @@ await writeFile(OUT, html);
 const digest = createHash('sha256').update(script, 'utf8').digest('base64');
 await writeFile('.app-runner-hash', `sha256-${digest}
 `);
+
+// The stylesheet needs the same treatment and for the same reason. Sliced back out of the
+// generated document rather than hashed from the `css` constant: what the browser hashes is
+// everything between the tags, which includes the newline the template puts after <style> and the
+// indent before </style>. Hashing the constant was five bytes short of that, and a CSP hash that
+// is close is a CSP hash that blocks.
+if (html.split('<style>').length !== 2) {
+  // Two stylesheets would need two hashes, and the browser would silently drop whichever went
+  // unhashed — the same silent failure this whole mechanism exists to end.
+  throw new Error('The runner document must contain exactly one <style> block');
+}
+const styleOpen = html.indexOf('<style>') + '<style>'.length;
+const styleBody = html.slice(styleOpen, html.indexOf('</style>'));
+if (!styleBody.includes('--accent')) {
+  throw new Error('The extracted stylesheet does not look like the stylesheet');
+}
+const styleDigest = createHash('sha256').update(styleBody, 'utf8').digest('base64');
+await writeFile('.app-runner-style-hash', `sha256-${styleDigest}
+`);
 console.log(`app-runner.html built (${(html.length / 1024).toFixed(1)} KB, script ${(script.length / 1024).toFixed(1)} KB)`);
 console.log('  sandbox policy: no network, no storage, no parent access');
 console.log(`  script hash: sha256-${digest.slice(0, 16)}…`);
+console.log(`  style hash:  sha256-${styleDigest.slice(0, 16)}…`);

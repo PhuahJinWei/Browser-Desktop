@@ -131,6 +131,8 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
             : 'light'
           : theme;
 
+      // Read at boot rather than subscribed to: an app that restyled itself mid-session would be
+      // a surprise, and the window is cheap to reopen.
       const boot: BootMessage = {
         kind: 'boot',
         manifest: app.manifest,
@@ -138,6 +140,7 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
         token,
         args: parsed,
         theme: resolvedTheme,
+        skin: settingsStore.get().skin,
       };
       post(boot);
     };

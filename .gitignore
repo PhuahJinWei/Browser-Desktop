@@ -18,6 +18,7 @@ public/runtime/
 .claude/settings.local.json
 public/app-runner.html
 .app-runner-hash
+.app-runner-style-hash
 
 # Tool caches and logs (generated; never reviewed)
 *.tsbuildinfo
