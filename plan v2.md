@@ -598,7 +598,36 @@ Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behi
 6. **Open.** Limited-mode wording for Safari/Firefox — needs the M1 import UI to exist first.
 7. **Open.** Large-file hashing. Deferred to M1 with the import pipeline; OPFS measured at ~591 MB/s write, so hashing, not I/O, will be the bottleneck.
 8. **Open, as planned.** Sandboxed-app runner placement — spike lands in M3.
-9. **Open — the M7 gate.** Does `youtube-nocookie.com/embed/<id>` load _and play_ inside `<iframe credentialless>` under this desktop's COOP/COEP, on the dev server and in the Pages-simulation build? One hour, pass or fail, recorded here before a line of the Watch app is written. Also to record: which of Firefox and Safari ship credentialless frames today (assumed: neither).
+9. **Half resolved — the M7 gate. The architectural risk is gone; the last step is unverified.**
+   Measured 2026-08-24 in Chrome 151 against the Pages-simulation build (`serve:pages`, no COOP/COEP
+   headers, isolation from our own service worker). Harness kept at
+   `docs/spikes/m7-credentialless-embed.html`, which is not part of the build.
+
+   **What passed.** The origin is genuinely isolated (`crossOriginIsolated: true`) and
+   `credentialless` is supported. `youtube-nocookie.com/embed/<id>` **loads and fully initialises**
+   inside `<iframe credentialless>`: the real player renders, reports the title, a duration of 10:35
+   and a quality ladder to hd2160, and the embed's own `postMessage` protocol handshakes (`onReady`,
+   `initialDelivery`, `infoDelivery`) with no `iframe_api` script and no `script-src` change. A
+   control frame in the same page, identical but for the attribute, is **refused by COEP** — it
+   renders the browser's error page and never speaks. That contrast is the result: the frame is not
+   merely tolerated, the attribute is what admits it, which is the thing that could not have been
+   reasoned out.
+
+   **What could not be measured, and why it is not a COEP problem.** Playback never starts: the
+   player sits in state 3 (BUFFERING) with `currentTime` at 0. This is the harness environment, not
+   the design. Loading the same embed **top-level** — no iframe, no isolation, no policy of ours —
+   leaves its `<video>` at `networkState: 0` (NETWORK_EMPTY), `readyState: 0` and an empty
+   `currentSrc`, so no media source is ever attached; and a plain frame on a **non-isolated** origin
+   buffers identically. Every codec YouTube uses reports supported and MSE is present. The automated
+   browser cannot stream YouTube media at all, which rules out COEP, `credentialless`, the frame and
+   the CSP as causes but leaves the final step untested.
+
+   **What remains:** open the harness in a real Chrome and confirm `currentTime` climbs past 0. That
+   is the whole of it, and it is a thirty-second check rather than an hour.
+
+   **Firefox and Safari: still an assumption**, deliberately not upgraded — neither was available
+   here, so "neither ships credentialless frames" stays labelled as an assumption per ADR 8 rather
+   than being written up as a measurement.
 
 ### Also settled by M0, having overturned an assumption in this plan
 
