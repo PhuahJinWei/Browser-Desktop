@@ -117,6 +117,15 @@ export const APPS: AppDefinition[] = [
     hidden: true,
   },
   {
+    id: 'links',
+    name: 'Portfolio',
+    icon: 'link',
+    description: 'Other things I have built, opened in a real browser tab',
+    component: lazy(() => import('../apps/links/LinksApp')),
+    defaultSize: { width: 720, height: 560 },
+    singleton: true,
+  },
+  {
     id: 'tasks',
     name: 'Task Manager',
     icon: 'gauge',

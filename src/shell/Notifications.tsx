@@ -16,7 +16,7 @@ const ICONS: Record<Notification['level'], IconName> = {
   error: 'alert',
 };
 
-/** Toasts: the transient half. Errors have no timeout and stay until dismissed. */
+/** Toasts. Anything without a timeout — errors, and notices about a standing state — waits to be dismissed. */
 export function NotificationLayer() {
   const items = useNotifications();
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -41,9 +41,10 @@ export function NotificationLayer() {
     }
   }, [items]);
 
-  const toasts = items
-    .filter((item) => item.timeout !== undefined || item.level === 'error')
-    .slice(0, 4);
+  // Every notification is toasted; the timeout, or its absence, decides how long it stays. The
+  // filter this replaces excluded anything without a timeout that was not an error, which quietly
+  // meant a persistent notice at any other level was never shown at all.
+  const toasts = items.slice(0, 4);
   if (toasts.length === 0) return null;
 
   return (
@@ -92,7 +93,9 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     markAllRead();
     const onPointerDown = (event: PointerEvent) => {
-      if (!panelRef.current?.contains(event.target as Node)) onClose();
+      // A target that is not a node cannot be inside the panel, and `contains` throws on one.
+      const target = event.target;
+      if (!(target instanceof Node) || !panelRef.current?.contains(target)) onClose();
     };
     const timer = setTimeout(() => globalThis.addEventListener('pointerdown', onPointerDown), 0);
     return () => {
@@ -128,6 +131,19 @@ export function NotificationCenter({ onClose }: { onClose: () => void }) {
                     minute: '2-digit',
                   })}
                 </time>
+                {/* The history is where a notice that outlived its toast gets acted on. */}
+                {item.action ? (
+                  <button
+                    type="button"
+                    className={styles.listAction}
+                    onClick={() => {
+                      item.action?.run();
+                      dismissNotification(item.id);
+                    }}
+                  >
+                    {item.action.label}
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}

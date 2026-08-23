@@ -65,19 +65,21 @@ Task Manager shows the whole request log so you can check all of this rather tha
 
 ## What it does
 
-|                  |                                                                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten. |
-| **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                            |
-| **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                               |
-| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                           |
-| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.              |
-| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                 |
-| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                |
-| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                         |
-| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                  |
-| **Settings**     | Theme, accent, wallpaper, text size, motion, backend override, indexing, and every destructive operation clearly labelled.                                       |
-| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.     |
+|                  |                                                                                                                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.                        |
+| **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                   |
+| **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                                                      |
+| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                  |
+| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                     |
+| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                        |
+| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                       |
+| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                                |
+| **Portfolio**    | The author's other work, handed to a real browser tab. Nothing is fetched — not even a favicon — so the network log stays empty while you use it.                                       |
+| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                         |
+| **Settings**     | Theme, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
+| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                            |
+| **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                            |
 
 ## Measured, not asserted
 
@@ -159,6 +161,10 @@ Design notes worth the click:
 - [ADR 10 — models are tested, not assumed](./docs/adr/0010-model-choices-are-tested-not-assumed.md):
   the plan's smaller image model ranked correctly 0 times out of 6. The feature is gone; the method
   is the point, and it reversed two decisions the plan had assumed.
+- [ADR 19 — no browser inside the browser](./docs/adr/0019-no-browser-inside-the-browser.md): the
+  most-requested feature, and the four separate reasons it is not being built.
+- [ADR 17 — customisation is a file](./docs/adr/0017-customisation-is-a-file.md): why the wallpaper
+  is a file you already own and your whole setup exports as readable JSON.
 - [ADR 11 — how the app sandbox is delivered](./docs/adr/0011-sandbox-delivery.md): two reasonable
   assumptions about iframe CSP, both wrong, and the measurements that settled it.
 
@@ -169,9 +175,11 @@ Design notes worth the click:
 | Chrome / Edge desktop | Primary target. Folder picker, persisted directory handles        |
 | Firefox 147+ desktop  | Supported. Drag-and-drop and file-picker import; no folder picker |
 | Safari 26 (macOS)     | Supported. Drag-and-drop and file-picker import; no folder picker |
-| Mobile                | Best effort. One 23 MB model, memory-tight                        |
+| Mobile                | Best effort. Compact layout below 720 px, windows open maximised  |
 
-Desktop-first and Chromium-first, degrading explicitly rather than silently.
+Desktop-first and Chromium-first, degrading explicitly rather than silently. On a small screen or a
+machine without a GPU, the desktop says so on arrival instead of letting you find out
+([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)).
 
 ## Limitations
 
@@ -198,6 +206,8 @@ Stated plainly, because a portfolio piece that hides these is worth less:
 - **Files above 256 MB are refused**, because hashing needs the whole buffer in memory.
 - **Storage quota is browser-granted**, roughly 3 GB on the reference machine.
 - **No multi-window drag-and-drop between apps yet**, and no folder re-sync after import.
+- **Exporting your setup does not export your files.** Settings, icon layout, wallpaper and open
+  windows travel as a small JSON file; a bulk export of the file system is still to be built.
 - **The SDK is v0** and will change; see the note at the top of `docs/sdk.md`.
 - **Sandbox delivery uses `srcdoc`** because a sandboxed frame loading a real URL would not run
   scripts in the environment tested. Isolation is unaffected — srcdoc is bound by two policies

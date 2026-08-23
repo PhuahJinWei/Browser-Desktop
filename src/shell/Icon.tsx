@@ -48,7 +48,10 @@ export type IconName =
   | 'arrow-up'
   | 'copy'
   | 'edit'
-  | 'download';
+  | 'download'
+  | 'link'
+  | 'external'
+  | 'wallpaper';
 
 const PATHS: Record<IconName, string> = {
   folder:
@@ -99,6 +102,11 @@ const PATHS: Record<IconName, string> = {
   copy: 'M9 9h9.5a.5.5 0 0 1 .5.5V19a.5.5 0 0 1-.5.5H9a.5.5 0 0 1-.5-.5V9.5A.5.5 0 0 1 9 9ZM5.5 15V5.5A.5.5 0 0 1 6 5h9.5',
   edit: 'M4.5 19.5h4L19 9a2.1 2.1 0 0 0-3-3L5.5 16.5zM14.5 7.5l2 2',
   download: 'M12 4.5V16M7.5 11.5 12 16l4.5-4.5M4.5 15v3.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V15',
+  link: 'M9.5 14.5 14.5 9.5M11 7.6l1.9-1.9a3.6 3.6 0 1 1 5.1 5.1L16.1 12.7M7.9 11.3 6 13.2a3.6 3.6 0 1 0 5.1 5.1l1.9-1.9',
+  external:
+    'M14 4.5h5.5V10M19.5 4.5 11 13M16.5 14v4.5a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1H10',
+  wallpaper:
+    'M4 6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18ZM4 15.5l4.5-4a1.5 1.5 0 0 1 2 0l5.5 5M14.5 9.5h.01',
 };
 
 export interface IconProps {

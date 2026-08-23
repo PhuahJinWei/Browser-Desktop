@@ -1,5 +1,10 @@
 import { APPS, launchApp } from '../kernel/apps';
 import { registerCommands, type Command } from '../kernel/commands';
+import { arrangeIcons, resetIconLayout, rowsForHeight } from '../kernel/desktop';
+import { pickFile } from '../kernel/pickFile';
+import { applySetup, exportSetup, parseSetup } from '../kernel/setup';
+import { pickWallpaperImage } from '../kernel/wallpaper';
+import { notifyError } from '../kernel/notifications';
 import { cancelKind } from '../kernel/jobs';
 import { notify } from '../kernel/notifications';
 import { clearSession, settingsStore, updateSettings } from '../kernel/settings';
@@ -134,6 +139,72 @@ export function registerSystemCommands(): () => void {
               : 'Nothing was indexing',
           level: stopped > 0 ? 'info' : 'info',
         });
+      },
+    },
+    {
+      id: 'view.wallpaper',
+      title: 'Change the wallpaper',
+      section: 'View',
+      keywords: ['background', 'picture', 'personalise'],
+      run: async () => {
+        try {
+          await pickWallpaperImage();
+        } catch (error) {
+          notifyError('That picture could not be used', error);
+        }
+      },
+    },
+    {
+      id: 'view.sortIcons',
+      title: 'Sort the desktop icons by name',
+      section: 'View',
+      keywords: ['arrange', 'tidy', 'desktop'],
+      run: () =>
+        arrangeIcons(
+          APPS.filter((app) => !app.hidden)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((app) => app.id),
+          rowsForHeight(windowStore.get().viewport.height),
+        ),
+    },
+    {
+      id: 'view.resetIcons',
+      title: 'Reset the desktop icon layout',
+      section: 'View',
+      keywords: ['arrange', 'desktop', 'restore'],
+      run: () => {
+        resetIconLayout();
+        notify({ title: 'Desktop icons back where they started', level: 'info' });
+      },
+    },
+    {
+      id: 'system.exportSetup',
+      title: 'Export the desktop setup',
+      section: 'System',
+      keywords: ['backup', 'settings', 'transfer', 'another device'],
+      run: async () => {
+        try {
+          await exportSetup({ includeWindows: true, includeWallpaper: true });
+          notify({ title: 'Setup exported', level: 'success' });
+        } catch (error) {
+          notifyError('The setup could not be exported', error);
+        }
+      },
+    },
+    {
+      id: 'system.importSetup',
+      title: 'Import a desktop setup',
+      section: 'System',
+      keywords: ['restore', 'settings', 'transfer'],
+      run: async () => {
+        try {
+          const file = await pickFile('application/json,.json');
+          if (!file) return;
+          await applySetup(parseSetup(await file.text()));
+          notify({ title: 'Setup imported', level: 'success' });
+        } catch (error) {
+          notifyError('That setup could not be imported', error);
+        }
       },
     },
     {

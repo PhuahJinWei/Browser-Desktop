@@ -88,3 +88,26 @@ export function useNetworkLog(intervalMs = 2000): NetworkEntry[] {
 
   return entries;
 }
+
+/**
+ * Whether the browser thinks it has a connection.
+ *
+ * Worth having in one place: the taskbar chip and anything that links outwards must agree, and
+ * `navigator.onLine` is a lie often enough that two copies of the same guess would eventually
+ * disagree on screen.
+ */
+export function useOnlineStatus(): boolean {
+  const [online, setOnline] = useState(() => navigator.onLine);
+
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    globalThis.addEventListener('online', update);
+    globalThis.addEventListener('offline', update);
+    return () => {
+      globalThis.removeEventListener('online', update);
+      globalThis.removeEventListener('offline', update);
+    };
+  }, []);
+
+  return online;
+}

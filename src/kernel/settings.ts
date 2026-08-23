@@ -14,19 +14,37 @@ import type { WindowSession } from './windows';
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type MotionPreference = 'system' | 'reduced' | 'full';
 export type BackendPreference = 'auto' | 'webgpu' | 'wasm';
+export type WallpaperPreference = 'aurora' | 'grid' | 'plain' | 'dusk' | 'custom';
+export type WallpaperFit = 'cover' | 'contain' | 'tile' | 'center';
+
+/** Where a desktop icon sits, in grid cells rather than pixels — see `desktop.ts`. */
+export interface IconCell {
+  col: number;
+  row: number;
+}
 
 export interface Settings {
   theme: ThemePreference;
   accent: 'teal' | 'indigo' | 'amber' | 'rose';
   fontScale: 0.9 | 1 | 1.1 | 1.25;
   motion: MotionPreference;
-  wallpaper: 'aurora' | 'grid' | 'plain' | 'dusk';
+  wallpaper: WallpaperPreference;
+  /** How a custom wallpaper image fills the desktop. Ignored by the built-in wallpapers. */
+  wallpaperFit: WallpaperFit;
+  /** VFS node of the image used when `wallpaper` is `custom`; the wallpaper is a file you have. */
+  wallpaperFileId: string | null;
   backend: BackendPreference;
   /** Index files in the background as they arrive. Off means search only covers what is indexed. */
   autoIndex: boolean;
   restoreSession: boolean;
+  /** Manually placed desktop icons, by app id. Absent ids flow into the first free cell. */
+  iconPositions: Record<string, IconCell>;
+  /** Apps the user removed from the desktop. They stay in the launcher and the palette. */
+  hiddenIcons: string[];
   sampleDataLoaded: boolean;
   welcomeDismissed: boolean;
+  /** The small-screen notice has been read once; do not show it again. */
+  limitedNoticeDismissed: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,11 +53,16 @@ export const DEFAULT_SETTINGS: Settings = {
   fontScale: 1,
   motion: 'system',
   wallpaper: 'aurora',
+  wallpaperFit: 'cover',
+  wallpaperFileId: null,
   backend: 'auto',
   autoIndex: true,
   restoreSession: true,
+  iconPositions: {},
+  hiddenIcons: [],
   sampleDataLoaded: false,
   welcomeDismissed: false,
+  limitedNoticeDismissed: false,
 };
 
 const SETTINGS_KEY = 'tabula:settings';

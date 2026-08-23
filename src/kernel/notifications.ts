@@ -37,23 +37,30 @@ export function notify(options: {
   level?: NotificationLevel | undefined;
   title: string;
   body?: string | undefined;
-  timeout?: number | undefined;
+  /** Milliseconds, or `null` to stay until dismissed — for anything describing a standing state. */
+  timeout?: number | null | undefined;
   action?: { label: string; run: () => void } | undefined;
 }): string {
   const level = options.level ?? 'info';
   const id = `note-${++counter}`;
+
+  /*
+   * Errors are never auto-dismissed: a message that vanishes before it is read is not a message.
+   * `null` asks for the same treatment at any level, which is what a notice about a lasting
+   * condition needs — the toast going away must not take the explanation with it.
+   */
+  const timeout =
+    options.timeout === null
+      ? undefined
+      : (options.timeout ?? (level === 'error' ? undefined : level === 'warning' ? 8000 : 4500));
+
   const notification: Notification = {
     id,
     level,
     title: options.title,
     ...(options.body ? { body: options.body } : {}),
     createdAt: Date.now(),
-    // Errors are never auto-dismissed: a message that vanishes before it is read is not a message.
-    ...(options.timeout !== undefined
-      ? { timeout: options.timeout }
-      : level === 'error'
-        ? {}
-        : { timeout: level === 'warning' ? 8000 : 4500 }),
+    ...(timeout !== undefined ? { timeout } : {}),
     ...(options.action ? { action: options.action } : {}),
     read: false,
   };

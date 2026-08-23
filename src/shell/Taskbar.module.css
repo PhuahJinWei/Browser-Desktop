@@ -3,9 +3,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: 48px;
-  flex: 0 0 48px;
-  padding: 0 var(--space-2);
+  /* The inset is zero everywhere but an iPhone, where the home indicator sits over the bar. */
+  height: calc(48px + env(safe-area-inset-bottom, 0px));
+  flex: 0 0 calc(48px + env(safe-area-inset-bottom, 0px));
+  padding: 0 var(--space-2) env(safe-area-inset-bottom, 0px);
   background: color-mix(in oklab, var(--surface-2) 88%, transparent);
   border-top: 1px solid var(--border-subtle);
   backdrop-filter: blur(14px);
@@ -217,4 +218,42 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Narrow screens.
+ *
+ * The taskbar keeps every function and sheds only words: the launcher and the command palette
+ * become their icons, and the running-window strip takes the room that frees up. Dropping a
+ * control instead would mean a phone visitor cannot reach half the desktop.
+ */
+@media (max-width: 720px) {
+  .launcherLabel,
+  .search span,
+  .kbd {
+    display: none;
+  }
+
+  .search {
+    min-width: 0;
+    padding: 0 var(--space-2);
+  }
+
+  .task {
+    max-width: 130px;
+  }
+
+  .clock {
+    padding: 0 var(--space-1);
+  }
+}
+
+/* Fingers need a bigger target than a mouse does, whatever the screen width is. */
+@media (pointer: coarse) {
+  .launcher,
+  .search,
+  .task,
+  .chipButton {
+    height: 40px;
+  }
 }

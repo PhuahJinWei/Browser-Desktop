@@ -278,8 +278,37 @@ export async function stats(): Promise<VfsStats> {
 /* Writes                                                                                         */
 /* -------------------------------------------------------------------------------------------- */
 
+/**
+ * Blob writes currently in flight, by hash.
+ *
+ * OPFS permits exactly one access handle or writable stream per file at a time, so two callers
+ * storing the same bytes at the same moment is not a slow path — it is an exception thrown at
+ * whichever of them arrives second. That happens more easily than it sounds: an editor saving on a
+ * debounce, an import containing the same picture twice, two windows onto one note.
+ *
+ * Because the store is content-addressed, the second writer has nothing to contribute — identical
+ * hash means identical bytes — so it waits for the first instead of racing it.
+ */
+const blobWrites = new Map<string, Promise<boolean>>();
+
 /** Writes bytes into the blob store if that hash is not already present. Returns true if new. */
 async function putBlob(hash: string, data: ArrayBuffer): Promise<boolean> {
+  const inFlight = blobWrites.get(hash);
+  if (inFlight) {
+    await inFlight;
+    return false;
+  }
+
+  const write = writeBlob(hash, data);
+  blobWrites.set(hash, write);
+  try {
+    return await write;
+  } finally {
+    blobWrites.delete(hash);
+  }
+}
+
+async function writeBlob(hash: string, data: ArrayBuffer): Promise<boolean> {
   const handle = await blobFile(hash, true);
   const existing = await handle.getFile();
   // Content-addressed: identical hash means identical bytes, so a non-empty file is already correct.

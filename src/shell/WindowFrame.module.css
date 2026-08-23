@@ -187,3 +187,26 @@
   left: -2px;
   cursor: nesw-resize;
 }
+
+/*
+ * Touch.
+ *
+ * The resize handles are six pixels wide, which is a mouse target and not a finger one; on a
+ * coarse pointer they are removed rather than left as an invisible way to fail. Windows opened on
+ * a narrow screen are maximised anyway (see the window manager's compact threshold), so what is
+ * lost is the ability to resize a window that has nowhere to be resized to.
+ */
+@media (pointer: coarse) {
+  .handle {
+    display: none;
+  }
+
+  .titleBar {
+    height: 44px;
+  }
+
+  .control {
+    width: 34px;
+    height: 34px;
+  }
+}

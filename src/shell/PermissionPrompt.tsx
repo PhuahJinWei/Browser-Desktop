@@ -12,8 +12,18 @@ import styles from './PermissionPrompt.module.css';
  * indexed files" at the moment it tries to is a question with a context.
  *
  * Deny is focused by default and Escape denies, so the safe answer is the one that happens by
- * accident. "Remember this" is on by default because being asked the same question repeatedly
- * trains people to stop reading it.
+ * accident.
+ *
+ * **"Remember this" is on by default, deliberately and after review.** Being asked the same
+ * question repeatedly trains people to stop reading it, and a denial that can be re-asked is one an
+ * app can raise in a loop until it gets the answer it wants. The cost is that a single click on
+ * Deny is permanent, which is real — so it is paid for twice over:
+ *
+ * - Escape denies **without** remembering, so a dialog dismissed rather than answered decides
+ *   nothing beyond this one call.
+ * - A call refused by a remembered "no" says so once per app and capability, with a way straight to
+ *   Settings → Apps to allow it or go back to being asked (`kernel/permissions.ts`). Sticky is
+ *   fine; sticky and silent is not, and the silent half was the actual defect.
  */
 export function PermissionPrompt() {
   const request = usePendingPermission();

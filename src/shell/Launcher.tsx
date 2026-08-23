@@ -24,7 +24,9 @@ export function Launcher({ onClose }: { onClose: () => void }) {
   // Clicking anywhere outside closes, which is what a popover is expected to do.
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
-      if (!panelRef.current?.contains(event.target as Node)) onClose();
+      // A target that is not a node cannot be inside the panel, and `contains` throws on one.
+      const target = event.target;
+      if (!(target instanceof Node) || !panelRef.current?.contains(target)) onClose();
     };
     // Deferred so the click that opened the launcher does not immediately close it.
     const timer = setTimeout(() => globalThis.addEventListener('pointerdown', onPointerDown), 0);

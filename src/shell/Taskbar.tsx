@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 import { getApp } from '../kernel/apps';
-import { focusWindow, minimizeWindow, useFocusedWindowId, useWindows } from '../kernel/windows';
+import {
+  closeWindow,
+  focusWindow,
+  minimizeWindow,
+  snapWindow,
+  toggleMaximize,
+  useFocusedWindowId,
+  useWindows,
+} from '../kernel/windows';
 import { useJobSummary } from '../kernel/jobs';
 import { useUnreadCount } from '../kernel/notifications';
+import { useOnlineStatus } from '../kernel/network';
 import { useCapabilities } from './capabilitiesContext';
+import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { Icon } from './Icon';
 import { NotificationCenter } from './Notifications';
 import styles from './Taskbar.module.css';
@@ -40,20 +50,6 @@ function Clock() {
   );
 }
 
-function useOnline(): boolean {
-  const [online, setOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    globalThis.addEventListener('online', update);
-    globalThis.addEventListener('offline', update);
-    return () => {
-      globalThis.removeEventListener('online', update);
-      globalThis.removeEventListener('offline', update);
-    };
-  }, []);
-  return online;
-}
-
 interface TaskbarProps {
   launcherOpen: boolean;
   onToggleLauncher: () => void;
@@ -65,9 +61,22 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
   const focusedId = useFocusedWindowId();
   const jobs = useJobSummary();
   const unread = useUnreadCount();
-  const online = useOnline();
+  const online = useOnlineStatus();
   const capabilities = useCapabilities();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
+
+  const taskMenu = (id: string, minimized: boolean, snapped: boolean): MenuSpec => [
+    {
+      id: 'task.restore',
+      label: minimized ? 'Restore' : 'Minimise',
+      run: () => (minimized ? focusWindow(id) : minimizeWindow(id)),
+    },
+    { id: 'task.maximize', label: 'Maximise', run: () => toggleMaximize(id) },
+    snapped && { id: 'task.unsnap', label: 'Free the window', run: () => snapWindow(id, null) },
+    separator('task.s1'),
+    { id: 'task.close', label: 'Close', run: () => closeWindow(id), danger: true },
+  ];
 
   return (
     <div className={styles.bar} role="toolbar" aria-label="Taskbar">
@@ -100,6 +109,9 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
                 window.minimized ? styles.taskMinimized : ''
               }`}
               onClick={() => (active ? minimizeWindow(window.id) : focusWindow(window.id))}
+              onContextMenu={(event) =>
+                openMenu(event, taskMenu(window.id, window.minimized, window.snap !== null))
+              }
               aria-pressed={active}
               title={window.title}
             >
@@ -162,6 +174,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
       {notificationsOpen ? (
         <NotificationCenter onClose={() => setNotificationsOpen(false)} />
       ) : null}
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

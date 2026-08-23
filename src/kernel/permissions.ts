@@ -1,5 +1,7 @@
+import { launchApp } from './apps';
+import { notify } from './notifications';
 import { createStore, useStoreSelector } from './store';
-import type { AppManifest, Capability } from '../sdk/protocol';
+import { CAPABILITY_LABELS, type AppManifest, type Capability } from '../sdk/protocol';
 
 /**
  * The capability broker.
@@ -56,7 +58,11 @@ export function grantState(appId: string, capability: Capability): GrantState {
   return store.get().grants[appId]?.[capability] ?? 'unasked';
 }
 
-export function setGrant(appId: string, capability: Capability, decision: 'granted' | 'denied'): void {
+export function setGrant(
+  appId: string,
+  capability: Capability,
+  decision: 'granted' | 'denied',
+): void {
   store.set((state) => {
     const grants = {
       ...state.grants,
@@ -104,12 +110,43 @@ export function requestPermission(
 ): Promise<boolean> {
   const existing = grantState(manifest.id, capability);
   if (existing === 'granted') return Promise.resolve(true);
-  if (existing === 'denied') return Promise.resolve(false);
+  if (existing === 'denied') {
+    reportBlocked(manifest, capability);
+    return Promise.resolve(false);
+  }
 
   // An app that did not declare a capability cannot be granted it, whatever it asks at runtime.
   if (!manifest.permissions.includes(capability)) return Promise.resolve(false);
 
   return enqueue(manifest, capability, method);
+}
+
+/**
+ * Says out loud that a remembered "no" is the reason something did not happen.
+ *
+ * Deliberately not a re-prompt. A denial that asks again on every attempt is one the user can be
+ * worn down into reversing, and it hands a hostile app a way to raise the dialog in a loop until it
+ * gets the answer it wants — which is why the answer is remembered in the first place. But a
+ * refusal the user can neither see nor trace back to a decision they made is worse than either: all
+ * they get is the app's own error, and nothing says the decision is theirs to change.
+ *
+ * Once per app and capability per session: enough to explain, not enough to nag.
+ */
+const reported = new Set<string>();
+
+function reportBlocked(manifest: AppManifest, capability: Capability): void {
+  const key = `${manifest.id}:${capability}`;
+  if (reported.has(key)) return;
+  reported.add(key);
+
+  notify({
+    title: `${manifest.name} was blocked`,
+    body: `“${CAPABILITY_LABELS[capability]}” was denied earlier, and the choice was remembered. Settings → Apps can allow it, or go back to asking each time.`,
+    level: 'info',
+    // Stays until dismissed: it explains a standing decision, not a passing event.
+    timeout: null,
+    action: { label: 'Open Settings', run: () => void launchApp('settings') },
+  });
 }
 
 /**
@@ -123,11 +160,7 @@ export function requestPermission(
 const queue: (() => void)[] = [];
 let showing = false;
 
-function enqueue(
-  manifest: AppManifest,
-  capability: Capability,
-  method: string,
-): Promise<boolean> {
+function enqueue(manifest: AppManifest, capability: Capability, method: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     const show = () => {
       // The answer may have arrived while this request waited in the queue — a user granting

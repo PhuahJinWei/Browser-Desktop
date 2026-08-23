@@ -35,6 +35,8 @@ export default function NotesApp({ windowId, args }: AppProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedId = useRef<string | null>(null);
+  /** What is known to be on disk for each note, so an unchanged draft is not written again. */
+  const savedText = useRef(new Map<string, string>());
 
   /* Find or create the Notes folder once. */
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function NotesApp({ windowId, args }: AppProps) {
         const text = await vfs.readText(activeId);
         if (cancelled) return;
         loadedId.current = activeId;
+        savedText.current.set(activeId, text);
         setDraft(text);
         setStatus('idle');
       } catch (error) {
@@ -116,6 +119,13 @@ export default function NotesApp({ windowId, args }: AppProps) {
       const node = notes.find((candidate) => candidate.id === id);
       if (!node) return;
 
+      // Nothing changed since the last successful save: rewriting identical bytes would only
+      // churn the index and, if two of them overlapped, contend for the same blob file.
+      if (savedText.current.get(id) === text) {
+        setStatus('saved');
+        return;
+      }
+
       setStatus('saving');
       try {
         // A note's title is its first heading; keeping the file name in step means Files and
@@ -130,6 +140,8 @@ export default function NotesApp({ windowId, args }: AppProps) {
           mime: 'text/markdown',
           overwrite: true,
         });
+
+        savedText.current.set(id, text);
 
         if (desired && desired !== node.name && desired !== '.md') {
           await vfs.rename(id, desired);
@@ -155,16 +167,34 @@ export default function NotesApp({ windowId, args }: AppProps) {
     [activeId, save],
   );
 
-  /* Flush pending edits when the note changes or the window closes. */
-  useEffect(
-    () => () => {
-      if (saveTimer.current) {
-        clearTimeout(saveTimer.current);
-        if (activeId) void save(activeId, draft);
-      }
-    },
-    [activeId, draft, save],
-  );
+  /*
+   * Flush a pending edit when the note changes or the window closes.
+   *
+   * The draft and the save function are read from a ref rather than listed as dependencies, and
+   * that is the whole point of this effect's shape. With them in the dependency array the cleanup
+   * ran on every keystroke — and, because each save refreshes the folder listing and so rebuilds
+   * `save`, once more after every save. The debounce never got to fire, each pass wrote the text
+   * as of the *previous* keystroke, and two of those arriving together produced identical bytes
+   * for one content-addressed file, which OPFS refuses outright: "Access Handles cannot be created
+   * if there is another open Access Handle".
+   *
+   * Reading from a ref that a later effect updates means the cleanup sees the values as they were
+   * when the note was still the active one, which is exactly what needs saving.
+   */
+  const latest = useRef({ draft, save });
+  useEffect(() => {
+    latest.current = { draft, save };
+  });
+
+  useEffect(() => {
+    const id = activeId;
+    return () => {
+      if (!saveTimer.current || !id) return;
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+      void latest.current.save(id, latest.current.draft);
+    };
+  }, [activeId]);
 
   return (
     <div className={styles.app}>

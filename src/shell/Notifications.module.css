@@ -190,6 +190,22 @@
   overflow-wrap: anywhere;
 }
 
+.listAction {
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.listAction:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .listTime {
   display: block;
   margin-top: 4px;

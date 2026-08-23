@@ -14,13 +14,15 @@ import {
   toggleMaximize,
   windowStore,
   closeAllWindows,
+  COMPACT_VIEWPORT,
 } from './windows';
 
 const viewport = { width: 1200, height: 800 };
 
 beforeEach(() => {
   closeAllWindows();
-  windowStore.set((state) => ({ ...state, viewport, nextZ: 1 }));
+  // Unmeasured, as at boot: the tests that care about measurement set it themselves.
+  windowStore.set((state) => ({ ...state, viewport, nextZ: 1, viewportMeasured: false }));
 });
 
 describe('openWindow', () => {
@@ -61,6 +63,71 @@ describe('openWindow', () => {
     const window = windowStore.get().windows.find((candidate) => candidate.id === id)!;
     expect(window.width).toBeLessThanOrEqual(600);
     expect(window.height).toBeLessThanOrEqual(400);
+  });
+});
+
+describe('a viewport too narrow to arrange anything', () => {
+  const narrow = { width: 390, height: 780 };
+
+  it('opens a window maximised rather than cascading it off the screen', () => {
+    setViewport(narrow);
+    const id = openWindow({ appId: 'files', title: 'Files', width: 940, height: 600 });
+    const window = windowStore.get().windows.find((candidate) => candidate.id === id)!;
+
+    expect(window.snap).toBe('maximized');
+    expect(window).toMatchObject({ x: 0, y: 0, width: narrow.width, height: narrow.height });
+  });
+
+  it('remembers the size it would have had, so a wider screen restores something sensible', () => {
+    setViewport(narrow);
+    const id = openWindow({ appId: 'files', title: 'Files', width: 940, height: 600 });
+
+    setViewport({ width: 1400, height: 900 });
+    snapWindow(id, null);
+    const window = windowStore.get().windows.find((candidate) => candidate.id === id)!;
+
+    expect(window.snap).toBeNull();
+    expect(window.width).toBeGreaterThan(narrow.width);
+  });
+
+  it('maximises a session recorded on a wider screen, and remembers the size it had', () => {
+    restoreSession(
+      {
+        focusedId: 'win-1',
+        windows: [
+          {
+            id: 'win-1',
+            appId: 'notes',
+            title: 'Notes',
+            x: 220,
+            y: 140,
+            width: 940,
+            height: 600,
+            minimized: false,
+            snap: null,
+            restore: null,
+          },
+        ],
+      },
+      narrow,
+    );
+
+    const [window] = windowStore.get().windows;
+    expect(window).toMatchObject({
+      snap: 'maximized',
+      x: 0,
+      y: 0,
+      width: narrow.width,
+      height: narrow.height,
+    });
+    // Clamping alone would have left it at x: 220 on a 390-pixel screen — legal, and unusable.
+    expect(window!.restore).toEqual({ x: 220, y: 140, width: 940, height: 600 });
+  });
+
+  it('still cascades one pixel above the threshold', () => {
+    setViewport({ width: COMPACT_VIEWPORT + 1, height: 800 });
+    const id = openWindow({ appId: 'files', title: 'Files', width: 600, height: 400 });
+    expect(windowStore.get().windows.find((candidate) => candidate.id === id)!.snap).toBeNull();
   });
 });
 
@@ -167,6 +234,30 @@ describe('clampToViewport', () => {
   });
 });
 
+describe('knowing whether the desktop has been measured', () => {
+  it('starts unmeasured, because the initial size is a placeholder rather than a measurement', () => {
+    expect(windowStore.get().viewportMeasured).toBe(false);
+  });
+
+  it('counts as measured once the desktop reports a size', () => {
+    setViewport({ width: 1000, height: 700 });
+    expect(windowStore.get().viewportMeasured).toBe(true);
+  });
+
+  it('counts as measured even when the real size matches the one already there', () => {
+    // The early return that skips a no-op re-flow must not also skip the fact of measurement, or
+    // a desktop that happens to be exactly this size would never restore its session.
+    setViewport(viewport);
+    expect(windowStore.get().viewportMeasured).toBe(true);
+  });
+
+  it('stays measured across a session restore', () => {
+    setViewport({ width: 1000, height: 700 });
+    restoreSession({ windows: [], focusedId: null }, { width: 1000, height: 700 });
+    expect(windowStore.get().viewportMeasured).toBe(true);
+  });
+});
+
 describe('viewport changes', () => {
   it('re-flows snapped windows to the new size', () => {
     const id = openWindow({ appId: 'files', title: 'A' });
@@ -216,9 +307,11 @@ describe('session', () => {
     snapWindow(id, 'right');
     const session = serializeSession();
     closeAllWindows();
-    restoreSession(session, { width: 600, height: 400 });
+    // Above the compact threshold on purpose: below it, restore maximises rather than snapping,
+    // and this is the half-snapping rule rather than that one.
+    restoreSession(session, { width: 1000, height: 600 });
     const window = windowStore.get().windows[0]!;
-    expect(window.width).toBe(300);
-    expect(window.x).toBe(300);
+    expect(window.width).toBe(500);
+    expect(window.x).toBe(500);
   });
 });

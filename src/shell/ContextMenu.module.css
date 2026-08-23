@@ -1,0 +1,80 @@
+.menu {
+  position: fixed;
+  z-index: 1000006;
+  min-width: 196px;
+  max-width: 300px;
+  padding: var(--space-1);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-window);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--accent-subtle);
+  outline: none;
+}
+
+.item:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.danger {
+  color: var(--bad);
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible {
+  background: var(--bad-subtle);
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shortcut {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.separator {
+  height: 0;
+  margin: var(--space-1) var(--space-2);
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Touch raises this menu with a long press, where a 32px row is a miss more often than a hit. */
+@media (pointer: coarse) {
+  .item {
+    padding: var(--space-3) var(--space-2);
+  }
+}

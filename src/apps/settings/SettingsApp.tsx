@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { notify, notifyError } from '../../kernel/notifications';
+import { pickFile } from '../../kernel/pickFile';
+import { applySetup, exportSetup, parseSetup } from '../../kernel/setup';
+import { pickWallpaperImage } from '../../kernel/wallpaper';
 import {
   DEFAULT_SETTINGS,
   clearSession,
@@ -10,6 +13,7 @@ import {
 } from '../../kernel/settings';
 import { useVfsStats, vfs } from '../../kernel/vfs/client';
 import { formatBytes } from '../../kernel/vfs/types';
+import { resetIconLayout } from '../../kernel/desktop';
 import { clearIndex, reindexEverything, useIndexStats } from '../../services/index/client';
 import { MODELS } from '../../kernel/models';
 import { useCapabilities } from '../../shell/capabilitiesContext';
@@ -30,6 +34,8 @@ export default function SettingsApp() {
   const indexStats = useIndexStats();
   const capabilities = useCapabilities();
   const [busy, setBusy] = useState<string | null>(null);
+  const [exportWindows, setExportWindows] = useState(true);
+  const [exportWallpaper, setExportWallpaper] = useState(true);
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     updateSettings({ [key]: value } as Partial<Settings>);
@@ -79,7 +85,10 @@ export default function SettingsApp() {
           </div>
         </Field>
 
-        <Field label="Wallpaper">
+        <Field
+          label="Wallpaper"
+          hint="A picture becomes the wallpaper by being a file you already have. Right-clicking any image in Files does the same thing."
+        >
           <Segmented
             value={settings.wallpaper}
             options={[
@@ -91,6 +100,46 @@ export default function SettingsApp() {
             onChange={(value) => set('wallpaper', value as Settings['wallpaper'])}
           />
         </Field>
+
+        <Field label="Your own picture" hint={<WallpaperName />}>
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() =>
+                void pickWallpaperImage().catch((error: unknown) =>
+                  notifyError('That picture could not be used', error),
+                )
+              }
+            >
+              {settings.wallpaper === 'custom' ? 'Choose another…' : 'Choose a picture…'}
+            </button>
+            {settings.wallpaper === 'custom' ? (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => updateSettings({ wallpaper: 'aurora', wallpaperFileId: null })}
+              >
+                Use a built-in one
+              </button>
+            ) : null}
+          </div>
+        </Field>
+
+        {settings.wallpaper === 'custom' ? (
+          <Field label="Picture fit">
+            <Segmented
+              value={settings.wallpaperFit}
+              options={[
+                { value: 'cover', label: 'Fill' },
+                { value: 'contain', label: 'Fit' },
+                { value: 'center', label: 'Centre' },
+                { value: 'tile', label: 'Tile' },
+              ]}
+              onChange={(value) => set('wallpaperFit', value as Settings['wallpaperFit'])}
+            />
+          </Field>
+        ) : null}
 
         <Field label="Text size">
           <Segmented
@@ -276,6 +325,86 @@ export default function SettingsApp() {
       </section>
 
       <section className={styles.section}>
+        <h3 className={styles.heading}>Desktop setup</h3>
+        <p className={styles.warning}>
+          There is no account to sync with, so a setup travels as a file you carry: theme, accent,
+          wallpaper, text size, icon positions and your indexing preferences. Open it in any text
+          editor — everything this desktop remembers about you is in there, and it is short. Your
+          files are not included, and neither are installed apps: those are code, and code gets
+          installed through the permission prompts rather than by importing a settings file.
+        </p>
+
+        <Field label="Include the open windows" hint="Where they were, and what they had open.">
+          <Toggle checked={exportWindows} onChange={setExportWindows} />
+        </Field>
+        <Field
+          label="Include the wallpaper picture"
+          hint="Carries the image itself, up to 8 MB, so it works on the other machine."
+        >
+          <Toggle checked={exportWallpaper} onChange={setExportWallpaper} />
+        </Field>
+
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={busy !== null}
+            onClick={() =>
+              void run('Export setup', async () => {
+                await exportSetup({
+                  includeWindows: exportWindows,
+                  includeWallpaper: exportWallpaper,
+                });
+                notify({ title: 'Setup exported', level: 'success' });
+              })
+            }
+          >
+            Export setup…
+          </button>
+
+          <button
+            type="button"
+            className={styles.button}
+            disabled={busy !== null}
+            onClick={() =>
+              void run('Import setup', async () => {
+                const file = await pickFile('application/json,.json');
+                if (!file) return;
+                const result = await applySetup(parseSetup(await file.text()));
+                notify({
+                  title: 'Setup imported',
+                  body: [
+                    `${result.settingsApplied} settings applied`,
+                    result.wallpaperImported ? 'wallpaper restored' : null,
+                    result.windowsRestored > 0
+                      ? `${result.windowsRestored} windows reopened`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · '),
+                  level: 'success',
+                });
+              })
+            }
+          >
+            Import setup…
+          </button>
+
+          <button
+            type="button"
+            className={styles.button}
+            disabled={busy !== null}
+            onClick={() => {
+              resetIconLayout();
+              notify({ title: 'Desktop icons back where they started', level: 'info' });
+            }}
+          >
+            Reset icon layout
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.section}>
         <h3 className={styles.heading}>Reset</h3>
         <p className={styles.warning}>
           These cannot be undone. Everything is stored on this device only, so nothing here is
@@ -361,7 +490,7 @@ function Field({
   children,
 }: {
   label: string;
-  hint?: string;
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -423,4 +552,33 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dd>{value}</dd>
     </div>
   );
+}
+
+/**
+ * The name of the picture currently in use.
+ *
+ * Reads it from the file system rather than storing a copy in the settings, so a rename in Files
+ * shows up here — the wallpaper is the file, not a snapshot of what it was called.
+ */
+function WallpaperName() {
+  const { wallpaper, wallpaperFileId } = useSettings();
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (wallpaper !== 'custom' || !wallpaperFileId) {
+      setName(null);
+      return;
+    }
+    let cancelled = false;
+    void vfs
+      .stat(wallpaperFileId)
+      .then((node) => !cancelled && setName(node?.name ?? null))
+      .catch(() => !cancelled && setName(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [wallpaper, wallpaperFileId]);
+
+  if (wallpaper !== 'custom') return <>Any picture in your files can be the wallpaper.</>;
+  return <>Currently {name ?? 'a picture that is no longer there'}.</>;
 }

@@ -1,0 +1,58 @@
+.notice {
+  position: absolute;
+  z-index: 900000;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  width: min(560px, calc(100% - 2 * var(--space-3)));
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--surface-2) 92%, transparent);
+  box-shadow: var(--shadow-raised);
+  backdrop-filter: blur(10px);
+}
+
+.icon {
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detail {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.dismiss {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}

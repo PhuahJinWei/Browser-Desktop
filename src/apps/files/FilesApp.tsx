@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppProps } from '../../kernel/apps';
-import { openFile } from '../../kernel/apps';
+import { appsFor, launchApp, openFile } from '../../kernel/apps';
 import { setWindowTitle } from '../../kernel/windows';
 import { notify, notifyError } from '../../kernel/notifications';
 import { PRIORITY, schedule } from '../../kernel/jobs';
 import { useDirectory, usePath, useTrash, vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, formatBytes, type VfsNode } from '../../kernel/vfs/types';
+import { isWallpaperCandidate, setWallpaperFromFile } from '../../kernel/wallpaper';
+import { ContextMenu, separator, useContextMenu, type MenuSpec } from '../../shell/ContextMenu';
 import { Icon, iconForFile } from '../../shell/Icon';
 import { useVirtualList } from '../../shell/useVirtualList';
 import { collectDroppedEntries, pickDirectory, pickFiles } from './import';
@@ -42,7 +44,7 @@ export default function FilesApp({ windowId, args }: AppProps) {
   const [sort, setSort] = useState<SortKey>('name');
   const [filter, setFilter] = useState('');
   const [dropActive, setDropActive] = useState(false);
-  const [menu, setMenu] = useState<{ x: number; y: number; node: VfsNode | null } | null>(null);
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   const listing = useDirectory(showTrash ? null : directoryId);
   const trash = useTrash();
@@ -334,6 +336,92 @@ export default function FilesApp({ windowId, args }: AppProps) {
     ],
   );
 
+  /* Menus ----------------------------------------------------------------------------------- */
+
+  const fileMenu = (node: VfsNode): MenuSpec => {
+    const many = selection.size > 1;
+    if (showTrash) {
+      return [
+        {
+          id: 'restore',
+          label: many ? `Restore ${selection.size} items` : 'Restore',
+          run: () => void restoreSelected(),
+        },
+        separator('trash.s1'),
+        {
+          id: 'delete',
+          label: many ? `Delete ${selection.size} items permanently` : 'Delete permanently',
+          run: () => void deleteSelected(),
+          danger: true,
+        },
+      ];
+    }
+
+    // "Open with" lists every app that claims the file, so a picture can go to the Viewer as
+    // easily as to Photos. The first one is what plain Open already does, hence the slice.
+    const openers = node.kind === 'file' ? appsFor(node) : [];
+
+    return [
+      {
+        id: 'open',
+        label: node.kind === 'directory' ? 'Open folder' : 'Open',
+        run: () => open(node),
+        disabled: many,
+      },
+      ...openers.slice(1).map((app) => ({
+        id: `open.${app.id}`,
+        label: `Open with ${app.name}`,
+        run: () => void launchApp(app.id, { args: { fileId: node.id }, title: node.name }),
+        disabled: many,
+      })),
+      separator('file.s1'),
+      {
+        id: 'rename',
+        label: 'Rename',
+        shortcut: 'F2',
+        run: () => setRenaming(node.id),
+        disabled: many,
+      },
+      isWallpaperCandidate(node) && {
+        id: 'wallpaper',
+        label: 'Set as desktop wallpaper',
+        run: () => setWallpaperFromFile(node.id, node.name),
+        disabled: many,
+      },
+      separator('file.s2'),
+      {
+        id: 'trash',
+        label: many ? `Move ${selection.size} items to Trash` : 'Move to Trash',
+        shortcut: 'Del',
+        run: () => void trashSelected(),
+        danger: true,
+      },
+    ];
+  };
+
+  /* The menu for the empty space below the files, which is about the folder rather than a file. */
+  const folderMenu = (): MenuSpec => [
+    { id: 'folder.new', label: 'New folder', run: () => void newFolder(), disabled: showTrash },
+    {
+      id: 'folder.import',
+      label: 'Import files…',
+      run: () => {
+        void pickFiles().then((entries) => {
+          if (entries.length > 0) void runImport(entries, 'Import');
+        });
+      },
+      disabled: showTrash,
+    },
+    separator('folder.s1'),
+    {
+      id: 'folder.selectAll',
+      label: 'Select all',
+      shortcut: 'Ctrl+A',
+      run: () => setSelection(new Set(nodes.map((entry) => entry.id))),
+      disabled: nodes.length === 0,
+    },
+  ];
+
   /* Render ---------------------------------------------------------------------------------- */
 
   const empty = !listing.loading && nodes.length === 0;
@@ -485,6 +573,7 @@ export default function FilesApp({ windowId, args }: AppProps) {
         className={view === 'list' ? styles.listScroll : styles.gridScroll}
         ref={view === 'list' ? virtual.ref : containerRef}
         onKeyDown={onKeyDown}
+        onContextMenu={(event) => openMenu(event, folderMenu())}
         onClick={(event) => {
           if (event.target === event.currentTarget) setSelection(new Set());
         }}
@@ -532,9 +621,8 @@ export default function FilesApp({ windowId, args }: AppProps) {
                       onPointerDown={(event) => selectAt(index, event)}
                       onDoubleClick={() => open(node)}
                       onContextMenu={(event) => {
-                        event.preventDefault();
                         if (!selection.has(node.id)) selectAt(index);
-                        setMenu({ x: event.clientX, y: event.clientY, node });
+                        openMenu(event, fileMenu(node));
                       }}
                     />
                   );
@@ -551,9 +639,8 @@ export default function FilesApp({ windowId, args }: AppProps) {
                 onClick={(event) => selectAt(index, event)}
                 onDoubleClick={() => open(node)}
                 onContextMenu={(event) => {
-                  event.preventDefault();
                   if (!selection.has(node.id)) selectAt(index);
-                  setMenu({ x: event.clientX, y: event.clientY, node });
+                  openMenu(event, fileMenu(node));
                 }}
               >
                 <Icon name={iconForFile(node)} size={26} />
@@ -581,21 +668,7 @@ export default function FilesApp({ windowId, args }: AppProps) {
         ) : null}
       </div>
 
-      {menu ? (
-        <ContextMenu
-          x={menu.x}
-          y={menu.y}
-          node={menu.node}
-          inTrash={showTrash}
-          multiple={selection.size > 1}
-          onClose={() => setMenu(null)}
-          onOpen={() => menu.node && open(menu.node)}
-          onRename={() => menu.node && setRenaming(menu.node.id)}
-          onTrash={() => void trashSelected()}
-          onRestore={() => void restoreSelected()}
-          onDelete={() => void deleteSelected()}
-        />
-      ) : null}
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
 
       {dropActive ? (
         <div className={styles.dropOverlay} aria-hidden>
@@ -684,87 +757,6 @@ function FileRow({
         <Icon name="sparkle" size={13} className={styles.rowIndexed} label="Indexed for search" />
       ) : (
         <span className={styles.rowIndexSpacer} />
-      )}
-    </div>
-  );
-}
-
-interface ContextMenuProps {
-  x: number;
-  y: number;
-  node: VfsNode | null;
-  inTrash: boolean;
-  multiple: boolean;
-  onClose: () => void;
-  onOpen: () => void;
-  onRename: () => void;
-  onTrash: () => void;
-  onRestore: () => void;
-  onDelete: () => void;
-}
-
-function ContextMenu({
-  x,
-  y,
-  node,
-  inTrash,
-  multiple,
-  onClose,
-  onOpen,
-  onRename,
-  onTrash,
-  onRestore,
-  onDelete,
-}: ContextMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const close = () => onClose();
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
-    const timer = setTimeout(() => {
-      globalThis.addEventListener('pointerdown', close);
-      globalThis.addEventListener('keydown', onKey);
-    }, 0);
-    ref.current?.querySelector('button')?.focus();
-    return () => {
-      clearTimeout(timer);
-      globalThis.removeEventListener('pointerdown', close);
-      globalThis.removeEventListener('keydown', onKey);
-    };
-  }, [onClose]);
-
-  // Flip the menu when it would otherwise run off the viewport.
-  const style = {
-    left: Math.min(x, globalThis.innerWidth - 200),
-    top: Math.min(y, globalThis.innerHeight - 220),
-  };
-
-  const item = (label: string, run: () => void, danger = false) => (
-    <button
-      type="button"
-      className={`${styles.menuItem} ${danger ? styles.menuDanger : ''}`}
-      onClick={() => {
-        run();
-        onClose();
-      }}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className={styles.menu} style={style} ref={ref} role="menu">
-      {inTrash ? (
-        <>
-          {item('Restore', onRestore)}
-          {item('Delete permanently', onDelete, true)}
-        </>
-      ) : (
-        <>
-          {node && !multiple ? item(node.kind === 'directory' ? 'Open' : 'Open', onOpen) : null}
-          {node && !multiple ? item('Rename', onRename) : null}
-          {item(multiple ? 'Move to Trash' : 'Move to Trash', onTrash, true)}
-        </>
       )}
     </div>
   );

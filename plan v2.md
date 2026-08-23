@@ -41,8 +41,8 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 - No cloud AI, and no text generation at all — local or otherwise.
 - **Nothing downloaded on demand.** No consent dialogs, no "enable this feature", no weights fetched at runtime. What the page can do, it can do the moment it loads.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
-- No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot, with no exceptions.
-- Mobile is best-effort, not a milestone gate. Single user per browser profile.
+- No networking apps (browser-in-browser, chat clients): the OS makes **no** network requests after boot, with no exceptions. The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)).
+- Mobile is best-effort, not a milestone gate, and not a second repository ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)). Single user per browser profile.
 
 ---
 
@@ -82,12 +82,12 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 
 ## 4. Support matrix and hardware tiers
 
-| Browser                                | Import                                      | Re-link real folders        | WebGPU                               | AI                            | Status                                    |
-| -------------------------------------- | ------------------------------------------- | --------------------------- | ------------------------------------ | ----------------------------- | ----------------------------------------- |
-| Chrome / Edge desktop                  | drag-drop, `webkitdirectory`, folder picker | **yes** (persisted handles) | yes                                  | full                          | **primary target**                        |
-| Firefox desktop 147+                   | drag-drop, `webkitdirectory`                | no (re-import)              | yes on Windows/macOS (Linux pending) | full                          | supported                                 |
-| Safari 26 macOS                        | drag-drop, `webkitdirectory`                | no                          | yes                                  | full (verify OPFS throughput) | supported                                 |
-| Mobile (Chrome Android, iOS 26 Safari) | limited                                     | no                          | yes, memory-tight                    | works; 23 MB model            | best-effort; show a "limited mode" banner |
+| Browser                                | Import                                      | Re-link real folders        | WebGPU                               | AI                            | Status                                                                                    |
+| -------------------------------------- | ------------------------------------------- | --------------------------- | ------------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Chrome / Edge desktop                  | drag-drop, `webkitdirectory`, folder picker | **yes** (persisted handles) | yes                                  | full                          | **primary target**                                                                        |
+| Firefox desktop 147+                   | drag-drop, `webkitdirectory`                | no (re-import)              | yes on Windows/macOS (Linux pending) | full                          | supported                                                                                 |
+| Safari 26 macOS                        | drag-drop, `webkitdirectory`                | no                          | yes                                  | full (verify OPFS throughput) | supported                                                                                 |
+| Mobile (Chrome Android, iOS 26 Safari) | limited                                     | no                          | yes, memory-tight                    | works; 23 MB model            | best-effort; compact layout below 720 px, windows maximised, limited-mode notice (ADR 18) |
 
 **Hardware tiers** (probed at boot from `navigator.gpu` adapter limits + `navigator.deviceMemory`; user-overridable in Settings). These were written to decide **which models a machine could afford**. With one 23 MB model left they no longer gate anything, and survive as a reported capability class and a throttling hint:
 
@@ -152,7 +152,7 @@ Worth noting that the tier barely matters for the surviving model: M0 measured t
 - **Content in OPFS, content-addressed** at `/blobs/<sha256>` → dedup, cheap copy, rename/move are metadata-only. Derived data (transcripts, thumbnails, extracted text) at `/derived/<hash>/…`.
 - **Import always copies into OPFS** (works offline and identically across browsers). On Chromium, optionally keep a persisted directory handle for "linked folders" re-sync (M3, optional).
 - **Trash:** flag + original parent; emptying removes blobs with zero references. **Undo/redo:** command log of VFS ops (in-session; persist later).
-- **Quota:** request `navigator.storage.persist()`; show usage and "Export all (zip)" in Settings; everything except user files is rebuildable.
+- **Quota:** request `navigator.storage.persist()`; show usage and "Export all (zip)" in Settings; everything except user files is rebuildable. _Built so far:_ `persist()`, the usage panel, and a **desktop setup export/import** (settings, icon layout, wallpaper, optionally the open windows) — the bulk file export is still open ([ADR 17](./docs/adr/0017-customisation-is-a-file.md)).
 - **Import pipeline:** drag-drop (`webkitGetAsEntry` everywhere; `getAsFileSystemHandle` on Chromium), `<input webkitdirectory>`, `showDirectoryPicker()`. Streams to the file-IO worker; hash in worker (`crypto.subtle` for small files; streamed WASM hasher for large — decide in M0); thumbnails lazily.
 
 ### 5.5 Index
@@ -322,7 +322,40 @@ reasoning: [ADR 14](./docs/adr/0014-no-text-generation.md).
 What this removes is a promise, not a feature: no code was written for it, and the only change to
 the source was deleting one unused member of a type union.
 
-**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4 adds depth.
+### M6 — Making it yours · v0.5 (~1 FTE-week)
+
+The number after M5 rather than M4.5: M5's slot stays retired, as the record of a tier that was
+removed rather than deferred.
+
+The desktop it follows was arrangeable in exactly one way — icons where the CSS put them, a
+wallpaper from a list of four, no menu on anything but a file row, and nothing that survived the
+machine it was set up on. Every item here is polish rather than capability, which is the point:
+G1 says the desktop is judged on polish, and this is the milestone that takes that literally.
+
+**Platform:** desktop icons become a real selection model — click selects, double click opens
+([ADR 16](./docs/adr/0016-one-click-selects-two-clicks-open.md)), multi-select, drag to arrange,
+positions stored as grid cells that survive a resize; one context-menu component behind every
+surface that can be acted on (desktop, icon, taskbar button, window title bar, file row, folder
+background), reachable by `Shift+F10` as well as by right-click; wallpaper from any picture in the
+file system, with a fit setting; desktop setup export and import as a JSON file the user carries
+([ADR 17](./docs/adr/0017-customisation-is-a-file.md)); a compact layout below 720 px with a stated
+limited mode ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)).
+
+**Apps:** **Portfolio** — the author's other work, opened in a real browser tab. This is the answer
+to "put a browser in the desktop", and the reasoning for the answer being no is
+[ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md).
+
+**Done when:** an arrangement survives a reload, a resize and a round trip through an exported
+file; every actionable surface has a context menu reachable from the keyboard; a setup file written
+by hand cannot put an invalid value into the settings store (tested); the desktop is usable on a
+390 px viewport with the limitation stated rather than discovered; `npm run verify` green.
+
+**Out:** anything that fetches. The Portfolio app draws its own initials rather than favicons, for
+the same reason everything else here does not phone home.
+
+---
+
+**Portfolio states:** after M1 "a real local-first desktop with semantic search"; after M2 "the AI desktop"; after M3 "a platform"; M4 adds depth; M6 makes it yours.
 **Calendar reality:** M0–M3 ≈ 14–18 FTE-weeks → ~3.5–4.5 months full-time, ~9–12 months at ~15 h/week, plus M4 as a pool of self-contained additions. Each milestone is publicly valuable on its own, so value accrues even if the project stops early.
 
 ---
@@ -406,12 +439,15 @@ the source was deleting one unused member of a type union.
 - **D03** Local AI as a system service. _Revised twice:_ the optional LLM tier was removed rather than deferred (ADR 14), and then the perception models — image, speech, text recognition — were removed as well, because each cost a visitor a download before it would do anything (ADR 15). What remains is text embeddings for document search.
 - **D04** Hybrid app model: system apps in-process, third-party apps in sandboxed iframes, one SDK.
 - **D05** Weights tiers: **bundled only**, ≤ ~80 MB, verified by digest at build time. The on-demand, built-in and sideload tiers are removed or were never built (ADR 15).
-- **D06** Chromium-first, desktop-first; graceful degradation elsewhere; mobile best-effort.
+- **D06** Chromium-first, desktop-first; graceful degradation elsewhere; mobile best-effort. _Made concrete in M6:_ a compact layout below 720 px, a stated limited mode, and no separate mobile repository (ADR 18).
 - **D07** `coi-serviceworker` for cross-origin isolation; CSP via meta; self-hosted runtime (no jsDelivr).
 - **D08** Content-addressed OPFS blobs + IndexedDB tree; brute-force vector search in a worker first.
 - **D09** Polished subsets per milestone; the demo is never gated on a download, and never answers with generated prose.
 - **D10** No telemetry; privacy verifiable in-app.
 - **D11** Authorship: owner only; no AI co-author trailers or generated-with footers.
+- **D12** The desktop is arrangeable, and the arrangement is a file the user can read and carry — no account, no sync (ADR 17). Icons select on one click and open on two (ADR 16).
+- **D13** No browser inside the browser, ever: it would break the one-host claim, need a CSP that costs cross-origin isolation, and be refused by most sites anyway. Links open in the real browser (ADR 19).
+- **D14** A permission answer is remembered by default, and the prompt does not come back. Being asked the same question repeatedly trains people to stop reading it, and a re-askable denial is one a hostile app can raise in a loop until it gets its way. The two things that make that fair: Escape denies without remembering, and a call refused by a remembered "no" announces itself once with a route to Settings → Apps.
 
 ---
 

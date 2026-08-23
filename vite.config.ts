@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import { serviceWorkerPlugin } from './tools/vite-plugin-sw.ts';
 import { cspPlugin } from './tools/vite-plugin-csp.ts';
 import { dropDuplicateRuntimePlugin } from './tools/vite-plugin-drop-duplicate-runtime.ts';
+import { serveRuntimePlugin } from './tools/vite-plugin-serve-runtime.ts';
 
 /**
  * Base path.
@@ -29,7 +30,13 @@ if (!base.startsWith('/') || !base.endsWith('/')) {
 
 export default defineConfig({
   base,
-  plugins: [react(), cspPlugin(), dropDuplicateRuntimePlugin(), serviceWorkerPlugin({ base })],
+  plugins: [
+    react(),
+    cspPlugin(),
+    serveRuntimePlugin(),
+    dropDuplicateRuntimePlugin(),
+    serviceWorkerPlugin({ base }),
+  ],
   resolve: {
     alias: {
       '@kernel': fileURLToPath(new URL('./src/kernel', import.meta.url)),

@@ -39,16 +39,37 @@ export interface WindowManagerState {
   nextZ: number;
   /** Size of the area windows live in; snapping and clamping are relative to it. */
   viewport: { width: number; height: number };
+  /**
+   * Whether `viewport` is a measurement or still the placeholder below.
+   *
+   * The distinction matters exactly once, at boot: session restore has to place windows against
+   * the real desktop, and a plausible-looking default is worse than an obviously absent one —
+   * it passes every "is this sensible?" check while being wrong on any screen that is not 1280
+   * wide. The placeholder is kept rather than zeroed because geometry helpers still have to
+   * produce something usable if a window is opened before the desktop has been measured.
+   */
+  viewportMeasured: boolean;
 }
 
 export const MIN_WIDTH = 320;
 export const MIN_HEIGHT = 200;
+
+/**
+ * Below this width, windows stop overlapping and open maximised instead.
+ *
+ * Two half-snapped windows at this text size are already unusable at 720 px; below it, a cascade
+ * of floating windows is a worse way to show one thing at a time than simply showing one thing at
+ * a time. The window manager is still here — the title bar, the taskbar and the switcher all work
+ * — it just stops pretending there is room to arrange anything.
+ */
+export const COMPACT_VIEWPORT = 720;
 
 const initialState: WindowManagerState = {
   windows: [],
   focusedId: null,
   nextZ: 1,
   viewport: { width: 1280, height: 800 },
+  viewportMeasured: false,
 };
 
 export const windowStore = createStore<WindowManagerState>(initialState);
@@ -160,15 +181,24 @@ export function openWindow(options: OpenWindowOptions): string {
     state.viewport,
   );
 
+  const compact = state.viewport.width <= COMPACT_VIEWPORT;
+  const geometry = compact
+    ? snapRect('maximized', state.viewport)
+    : clampToViewport(rect, state.viewport);
+
   const window: WindowState = {
     id,
     appId: options.appId,
     title: options.title,
     ...(options.args !== undefined ? { args: options.args } : {}),
-    ...clampToViewport(rect, state.viewport),
+    ...geometry,
     minimized: false,
-    snap: null,
-    restore: null,
+    snap: compact ? 'maximized' : null,
+    // What the app asked for, not what it would have been squeezed into here: the size worth
+    // remembering on a phone is the one that makes sense on the screen it might be restored to.
+    restore: compact
+      ? { x: rect.x, y: rect.y, width: options.width ?? 880, height: options.height ?? 560 }
+      : null,
     zIndex: state.nextZ,
   };
 
@@ -300,15 +330,27 @@ export function toggleMaximize(id: string): void {
   snapWindow(id, window.snap === 'maximized' ? null : 'maximized');
 }
 
-/** Re-flows windows after the desktop area changes size, keeping snapped ones snapped. */
+/**
+ * Re-flows windows after the desktop area changes size, keeping snapped ones snapped.
+ *
+ * Only ever called with a real measurement, which is what makes it the place that flips
+ * `viewportMeasured`. Note the flag in the early return: a desktop that genuinely measures
+ * 1280x800 must still count as measured, or it would be the one screen size where session
+ * restore waits forever.
+ */
 export function setViewport(viewport: { width: number; height: number }): void {
   windowStore.set((current) => {
-    if (current.viewport.width === viewport.width && current.viewport.height === viewport.height) {
+    if (
+      current.viewportMeasured &&
+      current.viewport.width === viewport.width &&
+      current.viewport.height === viewport.height
+    ) {
       return current;
     }
     return {
       ...current,
       viewport,
+      viewportMeasured: true,
       windows: current.windows.map((window) =>
         window.snap
           ? { ...window, ...snapRect(window.snap, viewport) }
@@ -362,16 +404,50 @@ export function restoreSession(
     ...session.windows.map((window) => Number(window.id.replace('win-', '')) || 0),
   );
 
-  windowStore.set(() => ({
+  const compact = viewport.width <= COMPACT_VIEWPORT;
+
+  windowStore.set((current) => ({
+    ...current,
     viewport,
     nextZ: session.windows.length + 1,
     focusedId: session.focusedId,
     windows: session.windows.map((window, index) => ({
       ...window,
-      ...(window.snap ? snapRect(window.snap, viewport) : clampToViewport(window, viewport)),
+      ...restoredGeometry(window, viewport, compact),
       zIndex: index + 1,
     })),
   }));
+}
+
+/**
+ * Where a restored window goes.
+ *
+ * A session recorded on a laptop and reopened on a phone describes a screen that is not there.
+ * Clamping alone satisfies the window manager's rule — enough title bar stays reachable to drag it
+ * back — while still leaving a 940-pixel window three-quarters off the side of a 375-pixel screen.
+ * Below the compact threshold the same rule as `openWindow` applies instead: one window, full
+ * width, with the recorded geometry kept as what to restore to on a wider screen.
+ */
+function restoredGeometry(
+  window: Omit<WindowState, 'zIndex'>,
+  viewport: { width: number; height: number },
+  compact: boolean,
+): Rect & { snap: SnapZone | null; restore: Rect | null } {
+  if (compact) {
+    return {
+      ...snapRect('maximized', viewport),
+      snap: 'maximized',
+      restore:
+        window.restore ??
+        ({ x: window.x, y: window.y, width: window.width, height: window.height } satisfies Rect),
+    };
+  }
+
+  return {
+    ...(window.snap ? snapRect(window.snap, viewport) : clampToViewport(window, viewport)),
+    snap: window.snap,
+    restore: window.restore,
+  };
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -388,4 +464,9 @@ export function useFocusedWindowId(): string | null {
 
 export function useViewport(): { width: number; height: number } {
   return useStoreSelector(windowStore, (state) => state.viewport);
+}
+
+/** False until the desktop has reported its real size. See `viewportMeasured`. */
+export function useViewportMeasured(): boolean {
+  return useStoreSelector(windowStore, (state) => state.viewportMeasured);
 }
