@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased] — a desktop that looks its age
+
+Added
+
+- **The classic skin became a period reproduction rather than a palette.** A Start menu with its
+  gradient banner, a Start button, menus that highlight edge to edge, scrollbars with arrow buttons
+  at both ends, tabs that join the panel below them, drop-downs with the button welded to the
+  field, caption buttons at the era's 16x14, the era's font asked for by name, and the focus
+  rectangle back inside the button where it belongs. The title-bar icon opens the system menu and
+  closes the window on a double click, which is behaviour rather than appearance.
+- It stays an **homage rather than a copy**: no logo, no wordmark, no copied artwork, no font file,
+  and the Start menu's banner reads _Tabula_
+  ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md)).
+- The skin now reaches **sandboxed apps** too, carried in the boot message beside the theme, so the
+  bundled sample apps follow the desktop without knowing the skin exists.
+
+Fixed
+
+- **Sandboxed apps have never been styled — since M3.** A srcdoc document inherits its embedder's
+  CSP, the desktop's `style-src` is `'self'` with no `'unsafe-inline'`, and the runner's stylesheet
+  was refused every time. What every sandboxed app was actually wearing was the browser's default
+  controls, which looks enough like a plain design to pass. The theme in the boot message had
+  therefore never landed either: its variables live in the blocked stylesheet, so switching the
+  desktop to dark left every sandboxed app light. Now allowed by hash, the way the bootstrap script
+  already was — one stylesheet, pinned to the build, and the policy no weaker than before.
+- Two containers in About and Portfolio had been given the white list-view treatment without being
+  list views, which boxed each row separately and clipped labels that ran past.
+- A label reading `SharedArrayBuffer` in an eleven-character column was being cut mid-word in both
+  skins. It wraps now.
+
 ## [Unreleased] — Watch, the one frame you asked for
 
 Added

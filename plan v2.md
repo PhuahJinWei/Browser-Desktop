@@ -736,7 +736,7 @@ connect-src 'self' blob: data:;                 /* no external host, at all */
 img-src 'self' blob: data:;
 media-src 'self' blob:;
 font-src 'self';
-style-src 'self';                               /* React sets styles via CSSOM; add 'unsafe-inline' only if a dependency needs it */
+style-src 'self' '<sha256 of the sandbox stylesheet>';  /* React sets styles via CSSOM. The hash is for the sandbox document, which is srcdoc and so inherits this policy — without it the runner's stylesheet was silently dropped and every sandboxed app ran unstyled */
 frame-src 'self' blob: https://www.youtube-nocookie.com;  /* sandboxed app iframes, and Watch — the only third-party origin, and only as a frame */
 object-src 'none'; base-uri 'none'; form-action 'none';
 ```
