@@ -3,8 +3,8 @@
 **A local-first desktop that runs entirely in a browser tab. Static files, no backend, no
 accounts, no uploads, nothing to install and nothing to download.**
 
-Windows, files, notes and a task manager, with machine-learning models running on your own
-hardware as system services — so you can search your documents by what they _mean_, not just by
+Windows, files, notes and a task manager, with one machine-learning model running on your own
+hardware as a system service — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
 Semantic search is the one place a model is involved, and the model ships with the page — never
@@ -36,12 +36,17 @@ your own files, at an offset you can open and check.
    save that frame as a picture, or cut ten seconds out into a file of its own.
 5. Open **Task Manager → Network**. Every request the page has made is listed. Your documents are
    not among them.
-6. Turn off your network and reload. The desktop still boots and keyword search still works.
+6. Turn off your network and reload. The desktop boots and search still works **including the
+   semantic half** — the model is in the page, not on a server.
 
 ## Why this exists
 
-In 2026 a complete, offline-capable, GPU-accelerated AI desktop is just static files. This is the
-demonstration.
+In 2026 a complete, offline-capable desktop — window manager, file system, semantic search,
+sandboxed third-party apps — is just static files. This is the demonstration.
+
+Note the missing adjective. It was "GPU-accelerated" until the benchmarks said otherwise: threaded
+WASM beat WebGPU on the model that shipped, so the code follows the measurement and the README
+follows the code.
 
 ## One host
 
@@ -78,14 +83,16 @@ Task Manager shows the whole request log so you can check all of this rather tha
 
 From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed build:
 
-| Result                                                    | Value                                               |
-| --------------------------------------------------------- | --------------------------------------------------- |
-| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker      |
-| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)  |
-| Hybrid search over the sample corpus                      | **2–5 ms**                                          |
-| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster   |
-| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                   |
-| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand) |
+| Result                                                    | Value                                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| Cross-origin isolation on a host that cannot send headers | **achieved**, via the app's own service worker                |
+| Pointer-move cost while dragging, 14 windows open         | **0.01 ms** median (one 5.4 ms commit per gesture)            |
+| Hybrid search over the sample corpus                      | **2–5 ms**                                                    |
+| Embeddings: threaded WASM vs WebGPU                       | **6.5 vs 14.4 ms** per passage — WASM 2.2× faster             |
+| OPFS, 64 MB, sync access handle                           | **591 MB/s write, 781 MB/s read**                             |
+| Desktop shell at boot                                     | **~90 KB gzipped** (apps and pdf.js load on demand)           |
+| Hosts contacted, ever                                     | **one** — enforced by `connect-src 'self'`, not just intended |
+| Offline, server stopped                                   | boots, and search keeps its **semantic half** (Chrome 151)    |
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark
@@ -109,15 +116,16 @@ Then open `http://localhost:4180/tabula/`.
 
 ### Scripts
 
-| Command                | Purpose                                                              |
-| ---------------------- | -------------------------------------------------------------------- |
-| `npm run dev`          | Dev server (sends COOP/COEP directly, matching production behaviour) |
-| `npm run build`        | Typecheck, then build to `dist/`                                     |
-| `npm run build:pages`  | Build with the GitHub Pages base path                                |
-| `npm run verify`       | Typecheck, lint, test, build — what CI runs                          |
-| `npm run serve:pages`  | Serve `dist/` with no headers, imitating GitHub Pages                |
-| `npm run sync:runtime` | Copy the ONNX runtime into `public/runtime/` (runs automatically)    |
-| `npm run sync:models`  | Regenerate `models.json` from the Hugging Face API                   |
+| Command                | Purpose                                                                |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`          | Dev server (sends COOP/COEP directly, matching production behaviour)   |
+| `npm run build`        | Typecheck, then build to `dist/`                                       |
+| `npm run build:pages`  | Build with the GitHub Pages base path                                  |
+| `npm run verify`       | Typecheck, lint, test, build — what CI runs                            |
+| `npm run serve:pages`  | Serve `dist/` with no headers, imitating GitHub Pages                  |
+| `npm run sync:runtime` | Copy the ONNX runtime into `public/runtime/` (runs automatically)      |
+| `npm run sync:models`  | Regenerate `models.json` (sizes and digests) from the Hugging Face API |
+| `npm run sync:weights` | Fetch the model into `public/models/`, verified against those digests  |
 
 ## How it is built
 
@@ -125,8 +133,10 @@ Then open `http://localhost:4180/tabula/`.
 src/shell      desktop, window frames, taskbar, launcher, command palette, boot, design tokens
 src/kernel     window manager · VFS · job scheduler · commands · settings · notifications ·
                capability probe · worker RPC · network monitor
-src/services   ai/ (runtime config) · index/ (embeddings, vectors, BM25) · extract/ · bench/
-src/apps       files · viewer · notes · search · settings · tasks · system-report
+src/services   ai/ (runtime config) · index/ (embeddings, vectors, BM25, thumbnails) ·
+               audio/ (waveform) · video/ (frame and clip export) · extract/ · bench/
+src/apps       files · viewer · notes · search · photos · audio · video · settings · tasks ·
+               system-report
 src/sw         the service worker: cross-origin isolation + offline shell
 tools          build plugins and generators (registry, runtime sync, Pages simulator)
 docs/adr       architecture decision records
@@ -142,8 +152,13 @@ Design notes worth the click:
   0.01 ms, and the bug that design creates if you tidy up carelessly.
 - [ADR 6 — content-addressed storage](./docs/adr/0006-content-addressed-opfs.md): why renaming and
   copying are free.
+- [ADR 15 — nothing is downloaded on demand](./docs/adr/0015-no-on-demand-models.md): why photo
+  search, transcription and OCR were built, measured, and then deleted.
+- [ADR 14 — no text generation](./docs/adr/0014-no-text-generation.md): why the LLM tier was closed
+  without being built, after four milestones of features turned out to be retrieval.
 - [ADR 10 — models are tested, not assumed](./docs/adr/0010-model-choices-are-tested-not-assumed.md):
-  the plan's smaller image model ranked correctly 0 times out of 6, and what that cost to find out.
+  the plan's smaller image model ranked correctly 0 times out of 6. The feature is gone; the method
+  is the point, and it reversed two decisions the plan had assumed.
 - [ADR 11 — how the app sandbox is delivered](./docs/adr/0011-sandbox-delivery.md): two reasonable
   assumptions about iframe CSP, both wrong, and the measurements that settled it.
 
@@ -154,7 +169,7 @@ Design notes worth the click:
 | Chrome / Edge desktop | Primary target. Folder picker, persisted directory handles        |
 | Firefox 147+ desktop  | Supported. Drag-and-drop and file-picker import; no folder picker |
 | Safari 26 (macOS)     | Supported. Drag-and-drop and file-picker import; no folder picker |
-| Mobile                | Best effort. Tiny models only                                     |
+| Mobile                | Best effort. One 23 MB model, memory-tight                        |
 
 Desktop-first and Chromium-first, degrading explicitly rather than silently.
 
@@ -162,18 +177,22 @@ Desktop-first and Chromium-first, degrading explicitly rather than silently.
 
 Stated plainly, because a portfolio piece that hides these is worth less:
 
-- **Photo search costs a 150 MB download**, and transcription a further 69 MB. Both are asked
-  for first, shown with their size, and removable in Settings. Nothing downloads on its own.
-- **The sample pictures are drawn, not photographed.** They are illustrations generated in your
-  browser, which is enough to show the model working and avoids shipping image bytes or fetching
-  them from a third host. Drag in your own photos for the real test.
-- **No speech sample ships.** Speech cannot be synthesised without a voice model, so the Audio app
-  offers recording and import instead of pretending. The transcription real-time factor is
-  therefore reported by the app but not yet recorded in the benchmarks.
+- **Only documents are searchable by meaning.** Photo search by description, video moment search,
+  near-duplicate detection, transcription and OCR were all built and then removed, because each
+  cost a visitor a 66–150 MB download before it would do anything
+  ([ADR 15](./docs/adr/0015-no-on-demand-models.md)). Photos, Audio and Video remain as a browser,
+  a player/recorder and a player — useful, and no longer clever.
+- **A scanned page stays unsearchable.** It has no text layer to extract, and OCR went with the
+  rest. pdf.js finds text in real PDFs only.
+- **The sample pictures are drawn, not photographed** — illustrations generated in your browser, so
+  no image bytes ship and no third host is asked. Drag in your own for anything real.
 - **One benchmark machine.** Tier-A desktop, Chromium only. Tier-B and other engines are pending.
 - **Search quality is honest, not tuned.** Ranking is reciprocal rank fusion over cosine
   similarity and BM25, with no learned reranking. Short generic documents can outrank better ones.
-- **Offline, the first search is keyword-only** until the model has been downloaded once.
+- **Nothing is downloaded, so nothing degrades offline.** Verified in Chrome 151 with the server
+  stopped: the desktop boots, and a query sharing no words with any document still returns results
+  found by meaning. Getting there took two fixes — the ONNX runtime was never being cached, and an
+  `onLine` check was skipping the model — both found by pulling the plug rather than reasoning.
 - **`frame-ancestors` cannot be enforced.** Browsers ignore it in a `<meta>` policy and GitHub
   Pages cannot send headers.
 - **Files above 256 MB are refused**, because hashing needs the whole buffer in memory.
