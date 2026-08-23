@@ -29,18 +29,39 @@ export {};
 declare const self: ServiceWorkerGlobalScope;
 declare const __PRECACHE__: string[];
 declare const __BUILD_ID__: string;
+declare const __RUNTIME_ID__: string;
+declare const __WEIGHTS_ID__: string;
 
 const CACHE = `tabula-shell-${__BUILD_ID__}`;
 
 /**
- * Model weights, kept separately from the shell.
+ * The inference stack: 13 MB of ONNX runtime and 23 MB of model weights.
  *
- * Not keyed by build id: the weights are pinned by digest and do not change when the app does, so
- * rebuilding the desktop should not cost the user a 23 MB re-download. Filled on first request
- * rather than at install — see above.
+ * Three things are deliberate here.
+ *
+ * **Not precached.** Paying 36 MB during service-worker install would mean a first visit that
+ * downloads the whole inference stack before anything at all is cached, for a visitor who may
+ * never run a search. These fill on first use instead.
+ *
+ * **Cached at all.** Without this, semantic search worked only while online — the weights were
+ * held by the ML library's own cache but the runtime binaries were not cached anywhere, so
+ * offline the WASM 404'd and every query silently fell back to keyword-only. That was the state
+ * this comment was written to end.
+ *
+ * **Keyed by their own versions, not the build id.** The shell cache is rebuilt on every deploy;
+ * making a CSS change cost every user a 36 MB re-download would be absurd. `__RUNTIME_ID__` is
+ * the onnxruntime version and `__WEIGHTS_ID__` is a digest of the digests in `models.json`, so
+ * these invalidate exactly when their contents change.
  */
-const WEIGHTS_CACHE = 'tabula-weights';
-const WEIGHTS_PATH = '/models/';
+const RUNTIME_CACHE = `tabula-runtime-${__RUNTIME_ID__}`;
+const WEIGHTS_CACHE = `tabula-weights-${__WEIGHTS_ID__}`;
+
+/** Request paths that belong in those caches, and which one. */
+function heavyAssetCache(pathname: string): string | null {
+  if (pathname.includes('/runtime/')) return RUNTIME_CACHE;
+  if (pathname.includes('/models/')) return WEIGHTS_CACHE;
+  return null;
+}
 
 /**
  * `credentialless` lets the page embed cross-origin resources that do not send CORP headers,
@@ -63,9 +84,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
+      const current = new Set([CACHE, RUNTIME_CACHE, WEIGHTS_CACHE]);
       await Promise.all(
         names
-          .filter((n) => n.startsWith('tabula-shell-') && n !== CACHE)
+          .filter((n) => n.startsWith('tabula-') && !current.has(n))
           .map((n) => caches.delete(n)),
       );
       await self.clients.claim();
@@ -105,16 +127,21 @@ self.addEventListener('fetch', (event) => {
       const cached = await caches.match(request, { ignoreSearch: false });
       if (cached) return withIsolationHeaders(cached);
 
-      // Model weights: serve from their own cache, and fill it on the way past. This is what
-      // makes search work with the network off, and it survives the HTTP cache being evicted.
+      // Runtime and weights: serve from their own caches, filling them on the way past. This is
+      // what makes search work with the network off, and it survives HTTP-cache eviction.
       const url = new URL(request.url);
-      if (url.origin === self.location.origin && url.pathname.includes(WEIGHTS_PATH)) {
-        const weights = await caches.open(WEIGHTS_CACHE);
-        const hit = await weights.match(request);
+      const heavyCache =
+        url.origin === self.location.origin ? heavyAssetCache(url.pathname) : null;
+      if (heavyCache) {
+        const store = await caches.open(heavyCache);
+        const hit = await store.match(request);
         if (hit) return withIsolationHeaders(hit);
         try {
           const response = await fetch(request);
-          if (response.ok) await weights.put(request, response.clone());
+          // Range requests answer 206 and must never be stored as if they were the whole file.
+          if (response.ok && response.status === 200) {
+            await store.put(request, response.clone());
+          }
           return withIsolationHeaders(response);
         } catch {
           return new Response('Offline and not cached.', { status: 503, statusText: 'Offline' });

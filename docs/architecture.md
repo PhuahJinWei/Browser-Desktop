@@ -174,11 +174,21 @@ It also removes a whole subsystem: consent dialogs, download jobs with progress 
 and a cache keyed by the URL the library would otherwise have requested all existed to make a
 cross-origin fetch safe and honest. There is no cross-origin fetch.
 
-Two things follow that are easy to miss. The service worker caches the weights on first request in
-a store of its own, keyed separately from the shell so rebuilding the desktop does not cost a
-re-download. And the `navigator.onLine` check that used to skip the model during search is gone:
-it was correct when loading meant a request to another host that would stall for seconds and fail,
-and it was the only thing preventing semantic search from working with the network off.
+Two things had to change before that actually worked offline, and both were only found by pulling
+the plug and looking.
+
+The `navigator.onLine` check that used to skip the model during search is gone. It was correct when
+loading meant a request to another host that would stall and fail; once the weights were local it
+was the only thing forcing every offline query down to keyword-only.
+
+And the **ONNX runtime was never cached**. The precache list is filtered to `js|css|html`, so the
+13 MB of `runtime/*.wasm` was fetched fresh every session and 404'd with the network off — no model
+could run, whatever else was cached. Precaching it is not the answer either: 36 MB of runtime and
+weights during service-worker install would mean a first visit that downloads the whole inference
+stack before anything is cached, for someone who may never search. So the service worker fills
+those two caches on first use instead, and names them after their contents —
+`tabula-runtime-<onnxruntime version>` and `tabula-weights-<digest of the model digests>` — so each
+is invalidated by its own upgrade rather than by every deploy.
 
 ## When the two stores disagree
 

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build, type Plugin } from 'vite';
 
@@ -9,12 +10,25 @@ import { build, type Plugin } from 'vite';
  * Why a custom plugin instead of vite-plugin-pwa/Workbox:
  *  - This project needs ONE service worker that does two jobs (cross-origin isolation + caching);
  *    registering a second SW at the same scope would evict the first. See src/sw/sw.ts.
- *  - Model weights are large, cross-origin and consent-gated, so caching policy has to be ours.
+ *  - The inference stack is too big to precache (35 MB of ONNX runtime, 23 MB of weights) and too
+ *    important to leave uncached, so its policy has to be ours: fetched on first use, then kept in
+ *    caches keyed by what they contain rather than by the app version, so redeploying the desktop
+ *    does not cost anyone a re-download.
  *  - Fewer dependencies (principle P8), and the SW is a portfolio talking point in its own right.
  *
  * The nested build uses `configFile: false` and declares no plugins, so this plugin is not
  * re-applied and there is no recursion.
  */
+/** Reads a JSON file from the project root, or null when it has not been generated yet. */
+function readJson(relative: string): Record<string, unknown> | null {
+  try {
+    const file = fileURLToPath(new URL('../' + relative, import.meta.url));
+    return JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export function serviceWorkerPlugin(options: { base: string }): Plugin {
   let emitted: string[] = [];
 
@@ -38,6 +52,16 @@ export function serviceWorkerPlugin(options: { base: string }): Plugin {
       const precache = [...new Set([...staticAssets, ...emitted])].sort();
       const buildId = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12);
 
+      // The runtime and the weights get cache names of their own, keyed by their own versions:
+      // upgrading onnxruntime or repinning the model should invalidate them, and shipping a CSS
+      // tweak should not.
+      const runtimeId = (readJson('public/runtime/RUNTIME.json')?.version as string) ?? 'unknown';
+      const digests = ((readJson('models.json')?.models ?? []) as { files?: { sha256: string }[] }[])
+        .flatMap((model) => model.files ?? [])
+        .map((file) => file.sha256)
+        .join(String.fromCharCode(10));
+      const weightsId = createHash('sha256').update(digests).digest('hex').slice(0, 12);
+
       await build({
         configFile: false,
         logLevel: 'warn',
@@ -45,6 +69,8 @@ export function serviceWorkerPlugin(options: { base: string }): Plugin {
         define: {
           __PRECACHE__: JSON.stringify(precache),
           __BUILD_ID__: JSON.stringify(buildId),
+          __RUNTIME_ID__: JSON.stringify(runtimeId),
+          __WEIGHTS_ID__: JSON.stringify(weightsId),
         },
         build: {
           outDir: 'dist',

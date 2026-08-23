@@ -14,9 +14,16 @@ Changed
 - Verification moved from runtime to build time, so the download manager, the progress jobs and the
   consent dialog are gone — there is nothing left to download or agree to. Settings now states what
   ships instead of offering to fetch it.
-- **Semantic search works offline.** It never did: a `navigator.onLine` guard skipped the model
-  and returned keyword-only results, which was right when the weights lived on another host and is
-  wrong now that they are cached locally. Removed.
+- **Semantic search works offline** — verified in Chrome 151 with the server stopped: the desktop
+  boots, an uncached request returns the service worker's own 503, and a query sharing no words
+  with any document still returns results labelled "meaning". Two things had to change for that.
+  A `navigator.onLine` guard skipped the model and returned keyword-only results, which was right
+  when the weights lived on another host and wrong once they were local. And the **ONNX runtime was
+  never cached at all**: the precache filter is `js|css|html`, so `runtime/*.wasm` 404'd offline
+  and no model could run whatever else was available. The service worker now caches the runtime and
+  the weights on first use, in caches keyed by the onnxruntime version and by a digest of the model
+  digests — so upgrading either invalidates its own cache, and shipping a CSS change costs nobody a
+  36 MB re-download.
 
 ## [Unreleased] — nothing to download
 
