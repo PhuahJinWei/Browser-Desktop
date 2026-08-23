@@ -297,3 +297,41 @@
 :global([data-skin='classic']) .request:hover {
   background: #ebebeb;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * Tabs of the era were raised tabs sitting on the panel they belong to, with the selected one a
+ * pixel taller and joined to it — not an underline, which is a modern idea. Faked the way the
+ * period faked it: the selected tab covers the panel's top border with its own background.
+ */
+:global([data-skin='classic']) .tabs {
+  gap: 0;
+  padding: 3px 3px 0;
+  border-bottom: 1px solid #808080;
+}
+
+:global([data-skin='classic']) .tab {
+  padding: 3px 10px 2px;
+  border: 1px solid #000000;
+  border-bottom: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow:
+    inset 1px 1px 0 0 #ffffff,
+    inset -1px 0 0 0 #808080;
+}
+
+:global([data-skin='classic']) .tabActive {
+  /* A pixel taller and one lower, which is what made the selected tab look joined to the panel. */
+  margin: -2px -2px 0;
+  padding: 5px 12px 3px;
+  color: #000000;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+:global([data-skin='classic']) .panel {
+  background: #c0c0c0;
+}

@@ -76,6 +76,22 @@
   accent-color: #000080;
 }
 
+/* -- Drop-downs -------------------------------------------------------------------------------- */
+
+/*
+ * A select of this era is a sunken white field with a raised button welded to its right edge. The
+ * button cannot be a real element here, so it is drawn: one data URI holding the whole 17px
+ * control — grey face, white top and left, dark bottom and right, and the triangle — pinned to the
+ * right of the field. `appearance: none` is what lets the field underneath stay ours.
+ */
+[data-skin='classic'] select {
+  appearance: none;
+  padding-right: 20px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='17' height='17' shape-rendering='crispEdges'><rect x='0' y='0' width='17' height='17' fill='%23c0c0c0'/><rect x='0' y='0' width='17' height='1' fill='%23ffffff'/><rect x='0' y='0' width='1' height='17' fill='%23ffffff'/><rect x='1' y='1' width='15' height='1' fill='%23dfdfdf'/><rect x='1' y='1' width='1' height='15' fill='%23dfdfdf'/><rect x='0' y='16' width='17' height='1' fill='%23000000'/><rect x='16' y='0' width='1' height='17' fill='%23000000'/><rect x='1' y='15' width='15' height='1' fill='%23808080'/><rect x='15' y='1' width='1' height='15' fill='%23808080'/><rect x='6' y='7' width='5' height='1' fill='%23000000'/><rect x='7' y='8' width='3' height='1' fill='%23000000'/><rect x='8' y='9' width='1' height='1' fill='%23000000'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 1px center;
+}
+
 /* -- Focus ------------------------------------------------------------------------------------- */
 
 [data-skin='classic'] :focus-visible {
