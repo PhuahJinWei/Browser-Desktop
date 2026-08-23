@@ -1,5 +1,10 @@
 <!doctype html>
-<html lang="en">
+<!--
+  data-skin is stamped here, not only by applySettings, because the stylesheet is render-blocking
+  and the script is not: without it the first frame paints the modern palette and snaps to the
+  classic one once React mounts. This is the default; a stored preference overwrites it on boot.
+-->
+<html lang="en" data-skin="classic">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -11,9 +16,9 @@
     />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <meta name="theme-color" content="#0b0d10" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
-    <meta name="color-scheme" content="dark light" />
+    <!-- The classic chrome grey, to match the default. applySettings keeps it honest after boot. -->
+    <meta name="theme-color" content="#c0c0c0" />
+    <meta name="color-scheme" content="light dark" />
   </head>
   <body>
     <div id="root">

@@ -23,6 +23,8 @@ export type ThemePreference = 'system' | 'light' | 'dark';
  *
  * Classic defines its own complete palette, so `theme` has no effect while it is on; 1995 did not
  * have a dark mode and pretending otherwise would look like neither.
+ *
+ * Classic is the default. Modern is one switch away, and nothing about it changed to make room.
  */
 export type SkinPreference = 'modern' | 'classic';
 export type MotionPreference = 'system' | 'reduced' | 'full';
@@ -63,7 +65,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
-  skin: 'modern',
+  skin: 'classic',
   accent: 'teal',
   fontScale: 1,
   motion: 'system',
@@ -180,6 +182,7 @@ export function applySettings(settings: Settings): void {
 
   // `color-scheme` drives form controls, scrollbars and the default canvas colour. Classic
   // supplies its own light palette whatever the theme says, so it must not be told 'dark'.
+  // 'dark light' rather than a resolved value, so the UA keeps following the OS by itself.
   root.style.colorScheme =
     settings.skin === 'classic'
       ? 'light'
@@ -188,4 +191,19 @@ export function applySettings(settings: Settings): void {
         : settings.theme === 'dark'
           ? 'dark'
           : 'light';
+
+  // The browser's own chrome tint, which takes a colour rather than a pair and so has to be
+  // resolved here. index.html ships the classic grey, so the frame painted before this function
+  // exists is already right; from here it follows what is actually on screen.
+  const dark =
+    settings.skin !== 'classic' &&
+    (settings.theme === 'dark' ||
+      (settings.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches));
+
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute(
+      'content',
+      settings.skin === 'classic' ? '#c0c0c0' : dark ? '#0b0d10' : '#f6f7f9',
+    );
 }

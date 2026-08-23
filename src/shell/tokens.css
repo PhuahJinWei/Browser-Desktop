@@ -381,14 +381,24 @@
   --accent-subtle: #c8c8dc;
 }
 
-/* Wallpapers likewise: the desktop is one flat colour, whichever wallpaper is selected. A custom
-   image is still honoured, because that is the user's own file rather than a style choice. */
-:root[data-skin='classic'][data-wallpaper='aurora'],
-:root[data-skin='classic'][data-wallpaper='dusk'],
-:root[data-skin='classic'][data-wallpaper='plain'] {
+/* Wallpapers become flat colours. The era had no gradients or generated patterns, but its Display
+   Properties did offer a background colour, so keeping the control live is the more faithful
+   answer as well as the less broken one — three options that all painted the same teal looked like
+   a bug. Each is checked against white icon labels: 4.8:1, 5.4:1 and 6.9:1. A custom image is
+   still honoured, because that is the user's own file rather than a style choice. */
+:root[data-skin='classic'][data-wallpaper='aurora'] {
   --desktop-bg: #008080;
 }
 
+:root[data-skin='classic'][data-wallpaper='dusk'] {
+  --desktop-bg: #3a6ea5;
+}
+
+:root[data-skin='classic'][data-wallpaper='plain'] {
+  --desktop-bg: #5a5a5a;
+}
+
+/* The one pattern the era did have: a two-pixel weave, drawn rather than downloaded. */
 :root[data-skin='classic'][data-wallpaper='grid'] {
   --desktop-bg:
     repeating-linear-gradient(0deg, #007070 0 2px, #008080 2px 4px),

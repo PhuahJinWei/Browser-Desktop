@@ -8,9 +8,11 @@ Added
   one grey, a navy title bar and a teal ground. Era-inspired rather than an impersonation — no
   vendor's logos, wordmarks or icons, and the font stack asks for faces the machine already has
   rather than downloading one, so the one-host rule is untouched.
-- It is a fourth token axis (`data-skin`) beside theme, accent and wallpaper. Modern stays the
-  default and is unchanged; switching is instant and reversible. Classic supplies its own complete
-  palette, so the theme and accent controls are disabled while it is on and say why.
+- It is a fourth token axis (`data-skin`) beside theme, accent and wallpaper. **Classic is the
+  default look**; Modern is one switch away and is unchanged by any of it. Classic supplies its own
+  complete palette, so the theme and accent controls are disabled while it is on and say why, and
+  the wallpapers become flat background colours — which is what the era's own Display Properties
+  offered, and keeps the control doing something.
 
 Two deliberate departures from the period, both because inaccessible detail is not authenticity
 worth shipping: focus stays a visible dotted outline rather than the near-invisible original, and

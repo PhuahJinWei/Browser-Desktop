@@ -56,7 +56,8 @@ export function Shell() {
 
     void (async () => {
       try {
-        // Settings first: the theme must be applied before anything paints.
+        // Settings first. index.html carries the default skin so the pre-script frame is already
+        // right; this picks up a stored preference and everything the attribute cannot express.
         applySettings(settingsStore.get());
         const unsubscribe = settingsStore.subscribe(() => applySettings(settingsStore.get()));
 

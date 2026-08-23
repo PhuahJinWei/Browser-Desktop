@@ -23,7 +23,23 @@
 
 /* -- Buttons ----------------------------------------------------------------------------------- */
 
-[data-skin='classic'] button {
+/*
+ * `:where()` is load-bearing, not decoration. It contributes no specificity, so this reads as a
+ * bare `button` rule that any component class outranks.
+ *
+ * The first version of this skin wrote `[data-skin='classic'] button`, which is one class-worth
+ * more specific than the `.toggleOn` / `.segmentActive` / `.rowSelected` classes that carry a
+ * component's *state*. Those states are almost always expressed as a background or colour change,
+ * so the skin repainted every one of them the same grey: toggles never looked on, the selected
+ * segment looked identical to its neighbours, selected rows and cells looked unselected. The
+ * markup was fine throughout — `aria-checked` was correct and screen readers were unaffected —
+ * which is exactly why it survived a look at the chrome and had to be caught by reading computed
+ * styles instead.
+ *
+ * Keeping this at zero specificity means a component that says nothing about its background still
+ * gets the bevel, and one that deliberately paints itself keeps its own paint.
+ */
+:where([data-skin='classic']) button {
   border: 1px solid #000000;
   border-radius: 0;
   background: #c0c0c0;
@@ -31,29 +47,23 @@
   box-shadow: var(--bevel-raised);
 }
 
-/* Pressed pops the bevel inward and nudges the label, which is what sold the illusion. */
-[data-skin='classic'] button:active:not(:disabled) {
+/* Pressed pops the bevel inward and nudges the label, which is what sold the illusion. Left more
+   specific than the states above on purpose: pressing anything should look pressed. */
+:where([data-skin='classic']) button:active:not(:disabled) {
   box-shadow: var(--bevel-sunken);
   padding-top: 1px;
   padding-left: 1px;
 }
 
-[data-skin='classic'] button:disabled {
+:where([data-skin='classic']) button:disabled {
   color: #6d6d6d;
-  box-shadow: var(--bevel-raised);
-}
-
-/* Hover did not exist as a visual state; keeping the raised bevel steady is the accurate answer,
-   and it stops buttons flickering as the pointer crosses a toolbar. */
-[data-skin='classic'] button:hover:not(:disabled) {
-  background: #c0c0c0;
 }
 
 /* -- Fields ------------------------------------------------------------------------------------ */
 
-[data-skin='classic'] input,
-[data-skin='classic'] textarea,
-[data-skin='classic'] select {
+:where([data-skin='classic']) input,
+:where([data-skin='classic']) textarea,
+:where([data-skin='classic']) select {
   border: 1px solid #000000;
   border-radius: 0;
   background: #ffffff;
@@ -88,8 +98,7 @@
 /* The trough was a 50% dither of white on grey. A tiny repeating gradient is the same picture
    without shipping an image. */
 [data-skin='classic'] ::-webkit-scrollbar-track {
-  background:
-    repeating-conic-gradient(#dfdfdf 0% 25%, #ffffff 0% 50%) 0 0 / 2px 2px;
+  background: repeating-conic-gradient(#dfdfdf 0% 25%, #ffffff 0% 50%) 0 0 / 2px 2px;
 }
 
 [data-skin='classic'] ::-webkit-scrollbar-thumb {

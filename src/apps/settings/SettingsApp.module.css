@@ -277,3 +277,71 @@
   font-family: var(--font-mono);
   white-space: nowrap;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * A segmented control is a modern idiom; the era's equivalent was a row of toggle buttons, latched
+ * when on. That is also the accessible answer here: the modern styling says "active" with a tinted
+ * background alone, which in a one-grey palette is no difference at all.
+ */
+:global([data-skin='classic']) .segmented {
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+:global([data-skin='classic']) .segment {
+  border: 1px solid #000000;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-raised);
+}
+
+/* Sunken plus the 50% dither, matching a held-down taskbar button. */
+:global([data-skin='classic']) .segmentActive {
+  background: repeating-conic-gradient(#c0c0c0 0% 25%, #dfdfdf 0% 50%) 0 0 / 2px 2px;
+  color: #000000;
+  box-shadow: var(--bevel-sunken);
+  font-weight: 700;
+}
+
+:global([data-skin='classic']) .segment:disabled,
+:global([data-skin='classic']) .segmentActive:disabled {
+  color: #6d6d6d;
+}
+
+/* The era had no switches. A sunken well with a bevelled knob that slides is the nearest thing it
+   did have, and unlike the pill it reads as on or off without relying on the accent colour. */
+:global([data-skin='classic']) .toggle {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: var(--bevel-sunken);
+}
+
+:global([data-skin='classic']) .toggleOn {
+  background: repeating-conic-gradient(#c0c0c0 0% 25%, #dfdfdf 0% 50%) 0 0 / 2px 2px;
+}
+
+:global([data-skin='classic']) .knob {
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .toggleOn .knob {
+  background: #c0c0c0;
+}
+
+/* Accent has no effect under this skin and the swatches are disabled, but a disabled control
+   should still be legible: colourless grey boxes read as broken rather than as unavailable. */
+:global([data-skin='classic']) .swatch {
+  border-radius: 0;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .swatchActive {
+  border-color: #000000;
+}
