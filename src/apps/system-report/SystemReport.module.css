@@ -148,6 +148,10 @@
 .rowLabel {
   color: var(--text-muted);
   font-size: var(--text-sm);
+  /* "SharedArrayBuffer" is seventeen characters and the column is eleven, so it was being cut
+     mid-word in both skins — visible for longer under the classic face, which is wider. Wrapping
+     is right regardless: a label that does not fit should take a second line, not disappear. */
+  overflow-wrap: anywhere;
 }
 
 .rowValue {
@@ -303,8 +307,12 @@
   box-shadow: var(--bevel-raised);
 }
 
-:global([data-skin='classic']) .tableWrap,
-:global([data-skin='classic']) .list {
+/*
+ * The table is a list view and takes the paper. `.list` is not — it is a definition list of
+ * readings sitting on a card face, and putting it on white boxed each row separately and clipped
+ * the labels that ran past it. Readings belong on the card, the way a properties dialog set them.
+ */
+:global([data-skin='classic']) .tableWrap {
   background: #ffffff;
   box-shadow: var(--bevel-thin-sunken);
 }

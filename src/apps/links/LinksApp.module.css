@@ -149,13 +149,11 @@
 
 /* -- Classic ----------------------------------------------------------------------------------- */
 
-/* Each entry is a raised panel rather than a rounded card, and the list they sit in is the white
-   well every other list view uses. See FilesApp.module.css. */
-:global([data-skin='classic']) .list {
-  background: #ffffff;
-  box-shadow: var(--bevel-thin-sunken);
-}
-
+/*
+ * Each entry is a raised panel rather than a rounded card. The container is deliberately left grey:
+ * it is a grid of panels, not a list view, and paper behind panels reads as a mistake rather than
+ * as a well.
+ */
 :global([data-skin='classic']) .card {
   border: 1px solid #000000;
   border-radius: 0;
