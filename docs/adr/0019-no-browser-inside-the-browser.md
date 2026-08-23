@@ -39,6 +39,11 @@ That was wrong in a way that mattered, because a CSP line is cheap to change and
 The M7 plan for a YouTube **player** — one embed frame, via `credentialless` — is the exact
 carve-out this paragraph leaves open, and the reason the general browser stays refused.
 
+_Taken, in M7:_ the **Watch** app is that one frame, and
+[ADR 20](./0020-one-frame-you-asked-for.md) supersedes this record's YouTube half. Everything else
+here still stands — the general browser is refused for the other three reasons even where COEP
+could be satisfied, and `credentialless` buys exactly one origin, not an address bar.
+
 **It would not work anyway.** Most sites worth linking to — GitHub, Google, anything with a login —
 refuse to be framed with `X-Frame-Options` or `frame-ancestors`. What could actually be built is not
 "a browser" but "an iframe of the minority of sites that permit framing", which demos worse than a

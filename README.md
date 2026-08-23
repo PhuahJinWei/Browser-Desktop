@@ -13,9 +13,10 @@ fetched from anyone else, never waiting on your permission. The desktop does **n
 ([ADR 15](./docs/adr/0015-no-on-demand-models.md)): every answer it gives is a pointer into one of
 your own files, at an offset you can open and check.
 
-> **Status: post-M4.** A window manager, a file system, semantic document search, a picture
-> browser, an audio player and recorder, a video player that exports frames and sections, and
-> sandboxed third-party apps — all from one host, with nothing to download or approve. What
+> **Status: post-M7.** A window manager, a file system, semantic document search, a picture
+> browser, an audio player and recorder, a video player that exports frames and sections,
+> sandboxed third-party apps, two skins, and a YouTube player that is the one named exception to
+> the one-host rule — everything else from one host, with nothing to download or approve. What
 > removing the on-demand models cost is in
 > [ADR 15](./docs/adr/0015-no-on-demand-models.md). See
 > [`plan v2.md`](./plan%20v2.md) for the roadmap, [`docs/sdk.md`](./docs/sdk.md) to write an app,
@@ -48,10 +49,20 @@ Note the missing adjective. It was "GPU-accelerated" until the benchmarks said o
 WASM beat WebGPU on the model that shipped, so the code follows the measurement and the README
 follows the code.
 
-## One host
+## One host, and one frame you asked for
 
-This page contacts exactly **one** host, ever: the origin serving it. Not a CDN, not an analytics
-endpoint, not a model registry.
+This page contacts exactly **one** host on its own: the origin serving it. Not a CDN, not an
+analytics endpoint, not a model registry.
+
+There is one exception, and it is the whole of it: the **Watch** app plays a YouTube video in a
+window, so while a video you pasted is loaded, that window frames `youtube-nocookie.com`. Nothing
+loads until you paste a link, an amber chip in the title bar names the host for exactly as long as
+the frame exists, and Settings can withdraw the permission. The desktop still cannot _talk_ to
+YouTube — `connect-src` allows no external host at all — it can only show a frame that does
+([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
+
+So the claim is not "no network" with an asterisk. It is: **nothing, except the one thing you just
+asked for, and here it is in the network panel while you watch.**
 
 The 23 MB embedding model that document search runs on is in the build — fetched once at release
 time by `npm run sync:weights`, checked against the SHA-256 digests pinned in `models.json`, and

@@ -22,8 +22,14 @@ made — read the relevant ADR before changing anything it covers.
 ## Constraints that are not negotiable
 
 1. **No backend.** No servers, accounts, sync, telemetry or analytics.
-2. **Two hosts only.** The serving origin, and `huggingface.co` for consent-gated model weights.
-   Never add a third-party script, font or CDN.
+2. **One host, plus one frame.** The serving origin is the only host the desktop contacts. (The
+   rule used to name `huggingface.co` for model weights; ADR 15 put the model in the build, so
+   there is no second host and the CSP now enforces it.) The single exception is the **Watch** app,
+   which may frame `youtube-nocookie.com` — user-initiated, announced by a live chip while it is
+   loaded, and revocable in Settings ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
+   `connect-src` stays free of external hosts: the desktop cannot talk to YouTube, it can only show
+   a frame that does. Never add a third-party script, font or CDN, and treat a second frame
+   exception as needing its own ADR rather than following from this one.
 3. **There is no text generation, and none is planned.** ADR 5 made the language model optional;
    ADR 14 removed the option. Do not add generative models, a chat surface, or an `os.ai` method
    that returns prose — every answer this desktop gives points into a file the user already has.

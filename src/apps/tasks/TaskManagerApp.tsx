@@ -206,6 +206,16 @@ export default function TaskManagerApp() {
             Everything this page has fetched, recorded from the browser&rsquo;s own timing data.
             Files you import are never uploaded — there is no server to upload them to.
           </p>
+          {/*
+            Stated whether or not a video is loaded. A caveat that appears only when it bites reads
+            as an excuse; one that is always there is a description of the instrument.
+          */}
+          <p className={styles.networkNote}>
+            One limit worth knowing: this is a list of requests <em>this page</em> made. Watch loads
+            a YouTube frame, and the requests the player then makes inside that frame are its own —
+            they do not appear here and cannot, so the absence of a row is not evidence that nothing
+            happened in there.
+          </p>
           {network.length === 0 ? (
             <p className={styles.empty}>No requests recorded.</p>
           ) : (

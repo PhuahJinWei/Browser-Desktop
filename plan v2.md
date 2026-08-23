@@ -31,7 +31,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 
 - **G1 — A real desktop.** Window management, file system, app lifecycle, settings, notifications, clipboard, keyboard-first UX, session restore. Judged on polish.
 - **G2 — Local AI as a system service.** Text embeddings as a kernel service any app can call; background indexing; instant search. _Narrowed after M4:_ image, speech and text-recognition services were built and removed (ADR 15); embeddings remain.
-- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.) _Planned exception, M7:_ the **Watch** app shows a YouTube frame, only while a video the user pasted is loaded, with a live chip on the window and an entry in the monitor — the claim becomes "nothing, except the one thing you asked for, and here it is."
+- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.) _Exception, shipped in M7:_ the **Watch** app frames YouTube, only while a video the user pasted is loaded, with a live chip on the window naming the host and the request visible in the monitor. `connect-src` still allows no external host, so the desktop cannot talk to YouTube — only show a frame that does. The claim becomes "nothing, except the one thing you asked for, and here it is" ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
 - **G4 — Portfolio-grade.** 30-second demo with bundled sample data; Stats panel; architecture write-up with ADRs; benchmarks with hardware listed; honest limitations.
 - **G5 — A platform.** Apps are built against an SDK; third-party apps run sandboxed with capability-based permissions.
 
@@ -41,7 +41,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 - No cloud AI, and no text generation at all — local or otherwise.
 - **Nothing downloaded on demand.** No consent dialogs, no "enable this feature", no weights fetched at runtime. What the page can do, it can do the moment it loads.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
-- No networking apps (browser-in-browser, chat clients). The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)). The one planned exception is narrow and named: a **YouTube player**, not a browser — one embed frame, user-initiated, visible (M7).
+- No networking apps (browser-in-browser, chat clients). The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)). The one exception is narrow and named, and shipped in M7: a **YouTube player**, not a browser — one embed frame, user-initiated, visible, revocable ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
 - Mobile is best-effort, not a milestone gate, and not a second repository ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)). Single user per browser profile.
 
 ---
@@ -385,7 +385,7 @@ the same reason everything else here does not phone home.
 
 ---
 
-### M7 — Watch · v0.6 (~1 FTE-week) · **planned, gated on a spike**
+### M7 — Watch · v0.6 (~1 FTE-week) · **app built; one spike measurement still open**
 
 **What it is.** A YouTube player in a window, and deliberately not a browser. The distinction is
 the whole design: a browser-in-browser fails the first time a visitor types `google.com` (sites
@@ -497,7 +497,7 @@ browser, which stays refused.
 - **Accessibility:** keyboard-only completion of the demo script; visible focus; ARIA roles for windows/menus/lists; reduced-motion and colour-scheme respected; axe clean on main surfaces; every context menu also opens on `Shift+F10`.
 - **Context menus:** every surface answers a right-click, editable and selected text excepted (they keep the browser's own). A new app or panel is not finished until it does — see the rule under M6.
 - **Offline:** repeat visit fully works with the network off.
-- **Privacy:** network monitor shows **zero requests post-boot** — the single planned exception, a Watch frame, is user-initiated, labelled on the window and listed in the monitor (M7); CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
+- **Privacy:** network monitor shows **zero requests post-boot** — the single exception, a Watch frame, is user-initiated, labelled on the window while it exists and listed in the monitor (M7, ADR 20); CSP `connect-src` names no external host, so the browser enforces it; no third-party scripts.
 - **Tests:** unit (window-manager reducers, VFS ops, scheduler); service tests in Node (Transformers.js v4 WASM path); Playwright smoke on the WASM path in CI; performance marks asserted.
 - **Docs per milestone:** README, `docs/architecture.md`, ADRs, benchmarks, CHANGELOG, tagged release.
 
@@ -567,7 +567,7 @@ browser, which stays refused.
 
 ## 12. Decision log
 
-- **D01** Browser-only, static, GitHub Pages, $0, no backend or other services. _Revised after M4:_ **one host**, full stop — the model is in the build, so Hugging Face is a build-time dependency and never contacted at runtime (ADR 15).
+- **D01** Browser-only, static, GitHub Pages, $0, no backend or other services. _Revised after M4:_ **one host**, full stop — the model is in the build, so Hugging Face is a build-time dependency and never contacted at runtime (ADR 15). _Revised again in M7:_ one host **plus one frame** — Watch may frame `youtube-nocookie.com` while a pasted video is loaded, named and revocable, with `connect-src` unchanged (ADR 20). A second such exception needs its own record; this one is not a precedent.
 - **D02** Genuine desktop; window manager from scratch; original design (no Microsoft/Apple assets).
 - **D03** Local AI as a system service. _Revised twice:_ the optional LLM tier was removed rather than deferred (ADR 14), and then the perception models — image, speech, text recognition — were removed as well, because each cost a visitor a download before it would do anything (ADR 15). What remains is text embeddings for document search.
 - **D04** Hybrid app model: system apps in-process, third-party apps in sandboxed iframes, one SDK.
@@ -702,6 +702,10 @@ As shipped, generated by `tools/vite-plugin-csp.ts`. The draft allowed `huggingf
 `connect-src`; with the weights in the build there is no host left to allow, so **the browser now
 enforces the one-host claim** rather than the app merely honouring it.
 
+M7 added one origin to `frame-src` and nothing to `connect-src`, which is the shape of the
+exception: the desktop cannot open a connection to YouTube, it can only display a frame that does
+(ADR 20).
+
 ```
 default-src 'self';
 script-src 'self' 'wasm-unsafe-eval' blob: '<sha256 of the app-runner bootstrap>';
@@ -711,7 +715,7 @@ img-src 'self' blob: data:;
 media-src 'self' blob:;
 font-src 'self';
 style-src 'self';                               /* React sets styles via CSSOM; add 'unsafe-inline' only if a dependency needs it */
-frame-src 'self' blob:;                         /* sandboxed app iframes; M7 adds https://www.youtube-nocookie.com — the only third-party origin, and only as a frame */
+frame-src 'self' blob: https://www.youtube-nocookie.com;  /* sandboxed app iframes, and Watch — the only third-party origin, and only as a frame */
 object-src 'none'; base-uri 'none'; form-action 'none';
 ```
 

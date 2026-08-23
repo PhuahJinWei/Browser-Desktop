@@ -1,5 +1,43 @@
 # Changelog
 
+## [Unreleased] — Watch, the one frame you asked for
+
+Added
+
+- **Watch** — a YouTube player in a window, and deliberately not a browser. Paste a link and it
+  plays; the sidebar keeps Saved and Recent; the row under the player offers Save, Copy link and
+  Open on YouTube. Playlists play through with the player's own next and previous.
+- This is **the one place in the desktop that contacts another company's server**, so the design is
+  arranged around making that visible. Nothing is fetched until a link is pasted; a consent card
+  stands in front of the first video with Cancel focused; an amber chip in the title bar names the
+  host for exactly as long as a frame is loaded and is driven by the frame's existence, so no path
+  can leave it behind. No thumbnails — each would be a request fired on open, before anyone chose
+  anything. No `iframe_api` script, so `script-src` is unchanged and nothing of Google's runs in
+  this origin; title and channel come over the embed's own `postMessage`.
+- **`connect-src` did not move.** Only `frame-src` gained an origin: the desktop still cannot talk
+  to YouTube, it can only show a frame that does. That difference is what the claim rests on, and
+  it is now "nothing, except the one thing you just asked for, and here it is in the network panel
+  while you watch" ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
+- Saved and Recent live in **`Videos/Watched.md`**, an ordinary Markdown file rather than a store of
+  its own — visible in Files, searchable by meaning with everything else, deletable like anything
+  else, carried by the setup export for free. Parsing is lenient: an unreadable line is skipped
+  rather than costing the file, and a note written above the lists survives the next save.
+- The consent is withdrawn in **Settings**, not inside Watch, because a permission you can only
+  revoke from the thing holding it is not really revocable.
+
+Known limits
+
+- **Chromium only.** The frame needs `credentialless`, which Firefox and Safari have not shipped.
+  Elsewhere the app names the missing capability and offers the outward link; Saved and Recent
+  still work.
+- **Always logged out**, by construction of the frame — a privacy property as much as a limitation.
+- **The monitor sees the frame, not inside it.** Our one request appears in Resource Timing; the
+  dozens the player makes within the frame cannot, and the record says so rather than implying
+  otherwise.
+- **One spike measurement is still open** and §13 of the plan states it plainly: playback under
+  cross-origin isolation is an inference from two environments that each covered one half, not a
+  measurement. `docs/spikes/m7-credentialless-embed.html` settles it in a real browser.
+
 ## [Unreleased] — a second skin
 
 Added
