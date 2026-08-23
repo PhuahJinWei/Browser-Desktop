@@ -49,6 +49,24 @@ Note the missing adjective. It was "GPU-accelerated" until the benchmarks said o
 WASM beat WebGPU on the model that shipped, so the code follows the measurement and the README
 follows the code.
 
+## Why it looks like 1995
+
+Because the sentence above is about the machinery, and nothing on screen was saying so. A visitor
+saw a competent modern web app and had to be *told* that the interesting part was underneath.
+
+So the default skin is a 1990s desktop — Start menu, bevelled everything, one grey, pixel icons
+drawn as text, scrollbars with arrows at both ends — and the contrast does the arguing: this looks
+like 1995 and it is running threaded WebAssembly, content-addressed storage and semantic search,
+from static files, offline. Modern is one control away in Settings, and neither skin is a fork:
+both are the same components reading the same tokens
+([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md)).
+
+**It is an homage, not a copy.** The visual grammar is reproduced closely, because that is what an
+homage is. Nothing identifying a vendor is: no logo, no wordmark, no copied artwork, no font file,
+and no product name anywhere in the interface. The Start menu's banner reads *Tabula*. Accessibility
+is not sacrificed to authenticity either — where the era's own choice failed a contrast check, the
+modern value wins and the departure is written down rather than quietly made.
+
 ## One host, and one frame you asked for
 
 This page contacts exactly **one** host on its own: the origin serving it. Not a CDN, not an
@@ -90,7 +108,7 @@ Task Manager shows the whole request log so you can check all of this rather tha
 | **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                         |
 | **Settings**     | Theme, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
 | **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                            |
-| **Skins**        | Classic by default — a 1990s desktop: square, bevelled, one grey. Modern is one switch away. A token swap, not a second codebase.                                                       |
+| **Skins**        | A 1990s desktop by default: Start menu, bevels, one grey, pixel icons, scrollbar arrows. Modern is a switch away.                                                                       |
 | **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                            |
 
 ## Measured, not asserted
