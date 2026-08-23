@@ -104,28 +104,29 @@ Worth noting that the tier barely matters for the surviving model: M0 measured t
 ### 5.1 Layers
 
 ```
-┌──────────────────────────── Browser tab (static files only) ────────────────────────────┐
+┌──────────────────────────── Browser tab (static files only) ─────────────────────────────┐
 │ SHELL (main thread, React)                                                               │
 │   desktop · window chrome · taskbar · launcher · command palette · notifications · boot  │
 │   ├─ System apps (in-process React): Files · Viewer · Notes · Search · Settings ·        │
-│   │  Task Manager · About · (M2) Photos · Audio                                          │
+│   │  Task Manager · About · Photos · Audio · Video                                       │
 │   └─ Sandboxed apps (iframe, opaque origin) ──── postMessage RPC ───┐                    │
-│                                                                      │  ONE SDK surface   │
-│ KERNEL (TypeScript; coordination on main thread)                      ▼                    │
+│                                                                     │  ONE SDK surface   │
+│ KERNEL (TypeScript; coordination on main thread)                    ▼                    │
 │   window manager · app/process manager · VFS · IPC/event bus · job scheduler ·           │
 │   model registry · settings · notifications · clipboard · multi-tab locks ·              │
 │   capability/permission broker                                                           │
 │                                                                                          │
 │ SERVICES (workers)                                                                       │
-│   inference workers (WebGPU | WASM | [WebNN]) · indexer · file-IO (OPFS sync access      │
-│   handles) · media (thumbnails, decode, WebCodecs) · pdf (pdf.js)                        │
+│   index worker (WASM threads by default, WebGPU fallback) · file-IO (OPFS sync           │
+│   access handles) · pdf (pdf.js) · thumbnails · benchmark                                │
 │                                                                                          │
 │ STORAGE                                                                                  │
 │   OPFS: content-addressed blobs · derived data · index shards · model cache              │
 │   IndexedDB: VFS tree + metadata · settings · permission grants · job log                │
 │   Cache API (service worker): app shell · ONNX runtime · weights (keyed by version)      │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
-     ▲ github.io — code, runtime, the model, demo data. There is no second arrow: nothing else is contacted.
+     ▲ the origin serving the page — code, runtime, the model, demo data.
+       There is no second arrow: nothing else is ever contacted.
 ```
 
 ### 5.2 App model — hybrid (decision D04)

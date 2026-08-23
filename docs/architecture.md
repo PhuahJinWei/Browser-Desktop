@@ -5,10 +5,11 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 ## The shape
 
 ```
-┌──────────────────────────── Browser tab (static files only) ─────────────────────────────┐
+┌──────────────────────────── Browser tab (static files only) ──────────────────────────────┐
 │ SHELL (main thread, React)                                                                │
 │   desktop · window frames · taskbar · launcher · command palette · notifications · boot   │
-│   apps: Files · Viewer · Notes · Search · Settings · Task Manager · About                 │
+│   apps: Files · Viewer · Notes · Search · Photos · Audio · Video · Settings ·             │
+│         Task Manager · About                                                              │
 │                                                                                           │
 │ KERNEL (TypeScript, main thread)                                                          │
 │   window manager · VFS client · job scheduler · command registry · settings ·             │
@@ -17,14 +18,15 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 │ SERVICES (workers)                                                                        │
 │   vfs.worker    metadata + blobs, OPFS sync access handles                                │
 │   index.worker  embedding model + vector index + BM25 + text extraction (pdf.js)          │
+│                 + thumbnails                                                              │
 │   probe.worker  worker-only capability answers                                            │
 │   bench.worker  the M0 benchmark harness, still in About                                  │
 │                                                                                           │
 │ STORAGE                                                                                   │
 │   OPFS: content-addressed blobs        IndexedDB: file tree, index snapshot               │
-│   localStorage: settings, session      Cache API: app shell (service worker)              │
+│   localStorage: settings, session      Cache API: shell · ONNX runtime · weights          │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
-   ▲ serving origin — code                          ▲ huggingface.co — the model, on first use
+   ▲ the serving origin — code, ONNX runtime, the model. There is no second arrow.
 ```
 
 ## Boot
