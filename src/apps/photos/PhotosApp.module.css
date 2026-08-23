@@ -333,3 +333,25 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* Explorer's thumbnail view was the same white well as its list view; see FilesApp.module.css. */
+:global([data-skin='classic']) .grid {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .cell:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .cellSelected,
+:global([data-skin='classic']) .cellSelected:hover {
+  border-color: #000080;
+  background: #000080;
+}
+
+:global([data-skin='classic']) .cellSelected .cellName {
+  color: #ffffff;
+}

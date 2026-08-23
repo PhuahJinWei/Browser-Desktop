@@ -282,3 +282,18 @@
   color: var(--text-muted);
   text-align: right;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The era's own task list was a white well too; see FilesApp.module.css for the reasoning. */
+:global([data-skin='classic']) .jobs,
+:global([data-skin='classic']) .requests {
+  padding: 2px;
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .job:hover,
+:global([data-skin='classic']) .request:hover {
+  background: #ebebeb;
+}

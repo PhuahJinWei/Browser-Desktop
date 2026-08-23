@@ -330,3 +330,40 @@
   line-height: 1.5;
   max-width: 60ch;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .listItem:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .listItemActive,
+:global([data-skin='classic']) .listItemActive:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .listItemActive .listName,
+:global([data-skin='classic']) .listItemActive .meta {
+  color: #ffffff;
+}
+
+/* Chapters and the transcript are read, not browsed, so they keep the panel grey and mark the
+   current line by inverting it alone — a white well behind running text would be a page, not a
+   list, and the distinction is the whole point of the well elsewhere. */
+:global([data-skin='classic']) .segmentActive,
+:global([data-skin='classic']) .chapter:hover,
+:global([data-skin='classic']) .segment:hover {
+  background: #dfdfdf;
+}
+
+:global([data-skin='classic']) .segmentActive .segmentText,
+:global([data-skin='classic']) .segmentActive .segmentTime {
+  color: #000000;
+}

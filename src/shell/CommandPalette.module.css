@@ -118,3 +118,36 @@
   font-size: var(--text-sm);
   text-align: center;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The palette is not a period artefact at all, so it borrows the period's grammar rather than
+   imitating a dialog that never existed: a raised panel with a white result well inside it. */
+:global([data-skin='classic']) .palette {
+  border: 1px solid #000000;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .results {
+  margin: 0 4px 4px;
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .item:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .itemActive,
+:global([data-skin='classic']) .itemActive:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .itemActive .section,
+:global([data-skin='classic']) .itemActive .label,
+:global([data-skin='classic']) .itemActive .shortcut,
+:global([data-skin='classic']) .itemActive .mark {
+  color: #ffffff;
+}

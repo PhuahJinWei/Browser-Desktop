@@ -261,3 +261,15 @@
   font-family: var(--font-mono);
   font-size: 10px;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* Results are a list view like any other: white well, grey chrome. See FilesApp.module.css. */
+:global([data-skin='classic']) .results {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .hit:hover {
+  background: #ebebeb;
+}

@@ -379,3 +379,28 @@
 .canvasHidden {
   display: none;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
+:global([data-skin='classic']) .videoList {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .videoItem:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .videoItemSelected,
+:global([data-skin='classic']) .videoItemSelected:hover {
+  border-color: #000080;
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .videoItemSelected .videoName,
+:global([data-skin='classic']) .videoItemSelected .videoMeta,
+:global([data-skin='classic']) .videoItemSelected > svg {
+  color: #ffffff;
+}

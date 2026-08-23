@@ -309,3 +309,66 @@
   pointer-events: none;
   z-index: 5;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * Explorer's list was a white well, not a grey panel: the toolbar and the status bar were the
+ * chrome, and the files sat on a sunken sheet of paper between them. That division is most of why
+ * the era's file manager reads as a file manager, and it is the reason to bother — one grey
+ * everywhere leaves nothing to say "your files are in here, the controls are out there".
+ *
+ * Selection is a solid navy fill with white text rather than a tint. The tint was the modern
+ * skin's idea and it does not survive this palette: #c8c8dc on #c0c0c0 is a difference you have to
+ * look for. Navy and white is both the period answer and, at 16:1, the highest-contrast state in
+ * either skin.
+ */
+:global([data-skin='classic']) .listScroll,
+:global([data-skin='classic']) .gridScroll {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/* A list view of this era had no hover state at all. A faint one is kept because it costs nothing
+   and says the row is live — but it has to lose to selection, which the order below settles. */
+:global([data-skin='classic']) .row:hover,
+:global([data-skin='classic']) .tile:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .rowSelected,
+:global([data-skin='classic']) .rowSelected:hover,
+:global([data-skin='classic']) .tileSelected,
+:global([data-skin='classic']) .tileSelected:hover {
+  border-color: #000080;
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .rowSelected .rowIcon,
+:global([data-skin='classic']) .rowSelected .rowMeta,
+:global([data-skin='classic']) .rowSelected .rowIndexed,
+:global([data-skin='classic']) .tileSelected .tileName {
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* The keyboard cursor was a dotted rectangle inside the row, separate from selection — which is
+   also the honest way to show them apart, since a row can be focused without being selected. */
+:global([data-skin='classic']) .rowFocused {
+  border-left-color: transparent;
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+:global([data-skin='classic']) .rowSelected.rowFocused {
+  outline-color: #ffffff;
+}
+
+/* The well already draws its own edge; a second ring inside it is noise. */
+:global([data-skin='classic']) .listScroll:focus-visible,
+:global([data-skin='classic']) .gridScroll:focus-visible {
+  box-shadow: var(--bevel-thin-sunken);
+  outline: 2px dotted #000000;
+  outline-offset: -3px;
+}

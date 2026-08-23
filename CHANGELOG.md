@@ -13,6 +13,12 @@ Added
   complete palette, so the theme and accent controls are disabled while it is on and say why, and
   the wallpapers become flat background colours — which is what the era's own Display Properties
   offered, and keeps the control doing something.
+- **List views are a white well in a grey frame**, the way the era's file manager drew them: the
+  toolbar and status bar are the chrome, the files sit on sunken paper between them. Selection is a
+  solid navy fill with white text rather than a tint, which is both the period answer and, at 16:1,
+  the highest-contrast state in either skin; the keyboard cursor stays a separate dotted rectangle,
+  because a row can be focused without being selected. Files, Photos, Notes, Audio, Video, Search,
+  Task Manager and the command palette.
 
 Two deliberate departures from the period, both because inaccessible detail is not authenticity
 worth shipping: focus stays a visible dotted outline rather than the near-invisible original, and

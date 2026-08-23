@@ -142,3 +142,25 @@
   color: var(--text-muted);
   font-size: var(--text-sm);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .listItem:hover {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .listItemActive,
+:global([data-skin='classic']) .listItemActive:hover {
+  background: #000080;
+}
+
+:global([data-skin='classic']) .listItemActive .listName,
+:global([data-skin='classic']) .listItemActive .listDate {
+  color: #ffffff;
+}
