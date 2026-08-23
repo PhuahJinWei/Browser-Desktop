@@ -162,6 +162,24 @@ fixes that outlived their features: an absolute floor in `VectorIndex.search` th
 silently inert since M1, and `MissingContentError`, which names the file when its stored bytes have
 gone missing.
 
+## Where the model comes from
+
+The one remaining model is part of the build. `tools/sync-model.mjs` fetches it from
+`huggingface.co` at release time, checks every file against the SHA-256 pinned in `models.json`,
+and writes it into `public/models/`; `src/services/ai/runtime.ts` points the ML library there and
+sets `allowRemoteModels: false`, so remote loading is not merely unnecessary but switched off.
+
+That moves verification from runtime to build time and makes the page contact exactly one host.
+It also removes a whole subsystem: consent dialogs, download jobs with progress and cancellation,
+and a cache keyed by the URL the library would otherwise have requested all existed to make a
+cross-origin fetch safe and honest. There is no cross-origin fetch.
+
+Two things follow that are easy to miss. The service worker caches the weights on first request in
+a store of its own, keyed separately from the shell so rebuilding the desktop does not cost a
+re-download. And the `navigator.onLine` check that used to skip the model during search is gone:
+it was correct when loading meant a request to another host that would stall for seconds and fail,
+and it was the only thing preventing semantic search from working with the network off.
+
 ## When the two stores disagree
 
 File metadata lives in IndexedDB and file content lives in OPFS, and the two are not transactional

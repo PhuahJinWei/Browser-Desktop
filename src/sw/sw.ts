@@ -11,7 +11,9 @@
  *
  * 2. OFFLINE SHELL.
  *    Precaches the built app shell so a repeat visit works with the network off, which is
- *    the project's headline privacy demo.
+ *    the project's headline privacy demo. The model weights are cached the first time they are
+ *    asked for rather than precached: they are 23 MB, and paying that during service-worker
+ *    install would mean the first visit waits on a download before anything is cached at all.
  *
  * These cannot be two separate service workers: both need the root scope, and a second
  * registration at the same scope replaces the first. Hence one worker doing both.
@@ -29,6 +31,16 @@ declare const __PRECACHE__: string[];
 declare const __BUILD_ID__: string;
 
 const CACHE = `tabula-shell-${__BUILD_ID__}`;
+
+/**
+ * Model weights, kept separately from the shell.
+ *
+ * Not keyed by build id: the weights are pinned by digest and do not change when the app does, so
+ * rebuilding the desktop should not cost the user a 23 MB re-download. Filled on first request
+ * rather than at install — see above.
+ */
+const WEIGHTS_CACHE = 'tabula-weights';
+const WEIGHTS_PATH = '/models/';
 
 /**
  * `credentialless` lets the page embed cross-origin resources that do not send CORP headers,
@@ -92,6 +104,22 @@ self.addEventListener('fetch', (event) => {
       // Cache-first for anything precached: this is what makes the desktop boot offline.
       const cached = await caches.match(request, { ignoreSearch: false });
       if (cached) return withIsolationHeaders(cached);
+
+      // Model weights: serve from their own cache, and fill it on the way past. This is what
+      // makes search work with the network off, and it survives the HTTP cache being evicted.
+      const url = new URL(request.url);
+      if (url.origin === self.location.origin && url.pathname.includes(WEIGHTS_PATH)) {
+        const weights = await caches.open(WEIGHTS_CACHE);
+        const hit = await weights.match(request);
+        if (hit) return withIsolationHeaders(hit);
+        try {
+          const response = await fetch(request);
+          if (response.ok) await weights.put(request, response.clone());
+          return withIsolationHeaders(response);
+        } catch {
+          return new Response('Offline and not cached.', { status: 503, statusText: 'Offline' });
+        }
+      }
 
       // Under `credentialless`, cross-origin no-cors subresources must be fetched without
       // credentials, otherwise the browser blocks them in an isolated context.

@@ -450,17 +450,16 @@ exposeRpc<IndexMethods>({
     const keywordHits = keywords.search(query, limit * 3);
 
     let semanticHits: { id: string; score: number }[] = [];
-    // Offline with no model in memory, attempting to fetch it stalls the search for several
-    // seconds before failing. Keyword results are already in hand, so return those immediately
-    // rather than making the user wait for a request that cannot succeed.
-    const modelReachable = extractor !== null || navigator.onLine;
-    if (modelReachable) {
-      try {
-        const [queryVector] = await embed([query]);
-        if (queryVector) semanticHits = vectors.search(queryVector, limit * 3, 0.15);
-      } catch {
-        // Degrade to keyword-only rather than failing the search outright.
-      }
+    // No `navigator.onLine` check any more. There used to be one: with the weights on another
+    // host, loading the model offline meant a request that stalled the search for seconds before
+    // failing, so keyword results were returned immediately instead. The weights are now served
+    // from this origin and held in the service worker's cache, so the load succeeds with the
+    // network off — and that guard would have been the only thing stopping it.
+    try {
+      const [queryVector] = await embed([query]);
+      if (queryVector) semanticHits = vectors.search(queryVector, limit * 3, 0.15);
+    } catch {
+      // Degrade to keyword-only rather than failing the search outright.
     }
 
     const fused = fuseRankings([semanticHits, keywordHits], [1, 0.9]).slice(0, limit);

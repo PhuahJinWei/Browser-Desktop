@@ -18,7 +18,6 @@ import { Taskbar } from './Taskbar';
 import { Launcher } from './Launcher';
 import { CommandPalette } from './CommandPalette';
 import { NotificationLayer } from './Notifications';
-import { ModelConsent } from './ModelConsent';
 import { PermissionPrompt } from './PermissionPrompt';
 import { DesktopIcons } from './DesktopIcons';
 import styles from './Desktop.module.css';
@@ -175,7 +174,6 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
       {launcherOpen ? <Launcher onClose={() => setLauncherOpen(false)} /> : null}
       {paletteOpen ? <CommandPalette onClose={() => setPaletteOpen(false)} /> : null}
       <NotificationLayer />
-      <ModelConsent />
       <PermissionPrompt />
     </div>
   );

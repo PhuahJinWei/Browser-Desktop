@@ -1,8 +1,10 @@
 # 3. Model weights in four tiers
 
-Status: accepted (M0) · the on-demand tier is **removed** by [ADR 15](./0015-no-on-demand-models.md). One model
-remains, in the bundled tier; the consent, integrity and caching machinery described below is what
-it still travels through.
+Status: accepted (M0) · the on-demand tier is **removed** by [ADR 15](./0015-no-on-demand-models.md),
+and the bundled tier now means what it always said: one model, **in the repository**, served from
+this origin. Weights are fetched and digest-checked at build time by `tools/sync-model.mjs`
+instead of at runtime, so the consent dialog and the download manager described below are gone —
+there is nothing left to consent to or to download.
 
 ## Context
 

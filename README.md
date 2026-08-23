@@ -1,20 +1,23 @@
 # Tabula
 
-**A local-first AI desktop that runs entirely in a browser tab. Static files, no backend, no
-accounts, no uploads.**
+**A local-first desktop that runs entirely in a browser tab. Static files, no backend, no
+accounts, no uploads, nothing to install and nothing to download.**
 
 Windows, files, notes and a task manager, with machine-learning models running on your own
 hardware as system services — so you can search your documents by what they _mean_, not just by
 what they are called. Nothing you open leaves the tab.
 
-It sees, hears and reads: photos by description, speech to text, video by the moment you remember,
-printed pages into searchable words. It does **not** generate text, and it is not going to — every
-answer it gives is a pointer into one of your own files, at an offset or a timestamp you can open
-and check. [ADR 14](./docs/adr/0014-no-text-generation.md) says why.
+Semantic search is the one place a model is involved, and the model ships with the page — never
+fetched from anyone else, never waiting on your permission. The desktop does **not** generate text
+([ADR 14](./docs/adr/0014-no-text-generation.md)) and downloads nothing on demand
+([ADR 15](./docs/adr/0015-no-on-demand-models.md)): every answer it gives is a pointer into one of
+your own files, at an offset you can open and check.
 
-> **Status: M4 — more senses.** The desktop, search, photos, transcription and sandboxed
-> third-party apps of M1–M3, plus search _inside_ video: describe a moment and get the section it
-> is in. See
+> **Status: post-M4.** A window manager, a file system, semantic document search, a picture
+> browser, an audio player and recorder, a video player that exports frames and sections, and
+> sandboxed third-party apps — all from one host, with nothing to download or approve. What
+> removing the on-demand models cost is in
+> [ADR 15](./docs/adr/0015-no-on-demand-models.md). See
 > [`plan v2.md`](./plan%20v2.md) for the roadmap, [`docs/sdk.md`](./docs/sdk.md) to write an app,
 > and [`docs/benchmarks/`](./docs/benchmarks/) for what has actually been measured.
 
@@ -40,17 +43,16 @@ and check. [ADR 14](./docs/adr/0014-no-text-generation.md) says why.
 In 2026 a complete, offline-capable, GPU-accelerated AI desktop is just static files. This is the
 demonstration.
 
-## The two hosts
+## One host
 
-This page contacts exactly two hosts, ever:
+This page contacts exactly **one** host, ever: the origin serving it. Not a CDN, not an analytics
+endpoint, not a model registry.
 
-1. the origin serving it — code, and nothing else;
-2. `huggingface.co`, **once**, for the 23 MB embedding model that document search runs on.
-
-Nothing else is ever fetched, and nothing is ever asked of you: there is no "enable this feature"
-dialog anywhere, because the models that needed one were removed
-([ADR 15](./docs/adr/0015-no-on-demand-models.md)). The second host is the last thing between this
-and contacting nothing but itself, and vendoring that one model would close it.
+The 23 MB embedding model that document search runs on is in the build — fetched once at release
+time by `npm run sync:weights`, checked against the SHA-256 digests pinned in `models.json`, and
+served from this site like any other file. So there is no "enable this feature" dialog anywhere,
+nothing to download and nothing to agree to: open the page, and everything it can do it can already
+do.
 
 The sample documents and pictures are **generated in your browser**, not downloaded. There is no
 analytics, no telemetry, no third-party script and no CDN font. The ML runtime is self-hosted. The

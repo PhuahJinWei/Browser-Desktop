@@ -7,7 +7,6 @@ import { notifyError } from '../kernel/notifications';
 import { vfs } from '../kernel/vfs/client';
 import { ensurePersistentStorage } from '../kernel/persistence';
 import { startIndexer } from '../services/index/client';
-import { refreshModelStates } from '../kernel/models';
 import { CapabilitiesProvider } from './capabilitiesContext';
 import { Desktop } from './Desktop';
 import { registerSystemCommands } from './systemCommands';
@@ -119,7 +118,6 @@ export function Shell() {
         }
 
         await startIndexer(backend);
-        void refreshModelStates();
 
         // Apps last: they are the only thing here that runs code the desktop did not write.
         await loadInstalledApps();

@@ -21,11 +21,12 @@
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
     "sync:runtime": "node tools/sync-runtime.mjs",
     "sync:models": "node tools/fetch-model-registry.mjs",
-    "predev": "node tools/sync-runtime.mjs && node tools/build-app-runner.mjs",
-    "prebuild": "node tools/sync-runtime.mjs && node tools/build-app-runner.mjs",
+    "predev": "node tools/sync-runtime.mjs && node tools/sync-model.mjs && node tools/build-app-runner.mjs",
+    "prebuild": "node tools/sync-runtime.mjs && node tools/sync-model.mjs && node tools/build-app-runner.mjs",
     "serve:pages": "node tools/serve-static.mjs",
     "build:pages": "node tools/build-pages.mjs",
-    "build:runner": "node tools/build-app-runner.mjs"
+    "build:runner": "node tools/build-app-runner.mjs",
+    "sync:weights": "node tools/sync-model.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

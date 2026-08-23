@@ -28,13 +28,13 @@ Removal was chosen.
 
 No model is fetched on demand, and the features that needed one are gone:
 
-| Removed                                            | Model      |
-| -------------------------------------------------- | ---------- |
-| Photo search by description, and find-similar       | CLIP       |
-| Video moment search                                 | CLIP       |
-| The near-duplicate finder                           | CLIP       |
-| Transcription, chapters, `.srt` export              | Whisper    |
-| Reading text out of pictures, and its search index  | TrOCR      |
+| Removed                                            | Model   |
+| -------------------------------------------------- | ------- |
+| Photo search by description, and find-similar      | CLIP    |
+| Video moment search                                | CLIP    |
+| The near-duplicate finder                          | CLIP    |
+| Transcription, chapters, `.srt` export             | Whisper |
+| Reading text out of pictures, and its search index | TrOCR   |
 
 The apps stay. Photos is a picture browser with a name filter and stored thumbnails; Audio plays,
 records and draws a waveform; Video plays, and still exports a frame or a section because both are
@@ -52,10 +52,12 @@ was never behind a dialog.
   embedding a picture, because the image was decoded anyway. They are now made by a worker that
   does nothing else, since a grid decoding 4000-pixel originals is what makes a file manager
   stutter whether or not anything clever is happening elsewhere.
-- **The two-host claim is now nearly a one-host claim**, and would be exactly one if MiniLM were
-  vendored into the repository. It is not, yet: document search still fetches 23 MB from
-  `huggingface.co` on first use, silently, and that is the last thing standing between this project
-  and "contacts nothing but itself". Worth doing, and not done here.
+- **The two-host claim became a one-host claim.** Removing the on-demand models left one download:
+  MiniLM, fetched silently from `huggingface.co` on first use. That was closed immediately
+  afterwards by vendoring it — `tools/sync-model.mjs` fetches and digest-checks the weights at
+  build time into `public/models/`, and `src/services/ai/runtime.ts` sets
+  `allowRemoteModels: false` so a missing file is a loud 404 against our own origin rather than a
+  silent fetch from someone else's. The page now contacts nothing but the origin serving it.
 - **Four milestones of measured work are gone from the product.** ADRs 10, 12 and 13, and the
   matching sections of `docs/benchmarks/`, are kept rather than deleted: they record what was
   built, what it cost and what the measurements said, including two occasions where the benchmarks

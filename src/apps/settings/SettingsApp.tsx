@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { notify, notifyError } from '../../kernel/notifications';
 import {
   DEFAULT_SETTINGS,
@@ -11,13 +11,7 @@ import {
 import { useVfsStats, vfs } from '../../kernel/vfs/client';
 import { formatBytes } from '../../kernel/vfs/types';
 import { clearIndex, reindexEverything, useIndexStats } from '../../services/index/client';
-import {
-  MODELS,
-  deleteModel,
-  downloadModel,
-  refreshModelStates,
-  useModelStates,
-} from '../../kernel/models';
+import { MODELS } from '../../kernel/models';
 import { useCapabilities } from '../../shell/capabilitiesContext';
 import { loadSampleData } from '../../shell/sampleData';
 import { AppsPanel } from './AppsPanel';
@@ -329,66 +323,34 @@ export default function SettingsApp() {
 
 /* ---------------------------------------------------------------------------------------------- */
 
-/** The model shelf: what is on disk, what it cost, and how to get rid of it. */
+/**
+ * What ships, rather than what is downloadable.
+ *
+ * There is no download button because there is nothing to download: the weights are in the build,
+ * served from this origin, and verified against these digests before they got there. This is a
+ * statement of what the desktop is made of, and it is checkable — the digests are the ones
+ * `tools/sync-model.mjs` enforces.
+ */
 function ModelList() {
-  const states = useModelStates();
-
-  useEffect(() => {
-    void refreshModelStates();
-  }, []);
-
   return (
     <ul className={styles.models}>
-      {MODELS.map((model) => {
-        const state = states[model.id] ?? { status: 'unknown', progress: 0, bytesDone: 0 };
-        return (
-          <li key={model.id} className={styles.model}>
-            <div className={styles.modelInfo}>
-              <p className={styles.modelName}>{model.label}</p>
-              <p className={styles.modelMeta}>
-                {formatBytes(model.totalBytes)} · {model.license.name} ·{' '}
-                {model.task.replace(/-/g, ' ')}
-              </p>
-              {state.status === 'downloading' ? (
-                <div className={styles.modelProgress}>
-                  <div
-                    className={styles.modelProgressBar}
-                    style={{ width: `${Math.round(state.progress * 100)}%` }}
-                  />
-                </div>
-              ) : null}
-              {state.error ? <p className={styles.modelError}>{state.error}</p> : null}
-            </div>
-
-            <div className={styles.modelActions}>
-              {state.status === 'ready' ? (
-                <>
-                  <span className={styles.modelReady}>on this device</span>
-                  <button
-                    type="button"
-                    className={styles.button}
-                    onClick={() => void deleteModel(model.id)}
-                  >
-                    Remove
-                  </button>
-                </>
-              ) : state.status === 'downloading' ? (
-                <span className={styles.modelReady}>
-                  {Math.round(state.progress * 100)}% · {formatBytes(state.bytesDone)}
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.button}
-                  onClick={() => void downloadModel(model.id).promise}
-                >
-                  Download
-                </button>
-              )}
-            </div>
-          </li>
-        );
-      })}
+      {MODELS.map((model) => (
+        <li key={model.id} className={styles.model}>
+          <div className={styles.modelInfo}>
+            <p className={styles.modelName}>{model.label}</p>
+            <p className={styles.modelMeta}>
+              {formatBytes(model.totalBytes)} · {model.license.name} ·{' '}
+              {model.task.replace(/-/g, ' ')}
+            </p>
+            <p className={styles.modelMeta}>
+              from {model.source.repo}, fetched at build time and served from this site
+            </p>
+          </div>
+          <div className={styles.modelActions}>
+            <span className={styles.modelReady}>included</span>
+          </div>
+        </li>
+      ))}
     </ul>
   );
 }

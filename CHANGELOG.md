@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased] — one host
+
+Changed
+
+- **The embedding model ships with the build.** It was fetched from `huggingface.co` on first use
+  — silently, but still a second host and still a 23 MB wait before the first search worked, and
+  nothing at all on a first visit without a network. `npm run sync:weights` now fetches it once at
+  release time, checks every file against the SHA-256 digests in `models.json`, and writes it into
+  `public/models/`; the runtime is set to `allowRemoteModels: false` so a missing file is a loud
+  404 against our own origin rather than a quiet fetch from someone else's. **This page now
+  contacts exactly one host: the origin serving it.**
+- Verification moved from runtime to build time, so the download manager, the progress jobs and the
+  consent dialog are gone — there is nothing left to download or agree to. Settings now states what
+  ships instead of offering to fetch it.
+- **Semantic search works offline.** It never did: a `navigator.onLine` guard skipped the model
+  and returned keyword-only results, which was right when the weights lived on another host and is
+  wrong now that they are cached locally. Removed.
+
 ## [Unreleased] — nothing to download
 
 Removed
