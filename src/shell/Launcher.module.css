@@ -78,3 +78,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* -- Classic skin ------------------------------------------------------------------------------ *
+ * The launcher becomes a menu panel: raised bevel, square, and each entry highlights by filling
+ * with the selection navy rather than by tinting.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .panel {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+  backdrop-filter: none;
+}
+
+:global([data-skin='classic']) .heading {
+  color: #000000;
+  font-weight: 700;
+}
+
+:global([data-skin='classic']) .app {
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:global([data-skin='classic']) .app:hover,
+:global([data-skin='classic']) .app:focus-visible {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .app:hover .appName,
+:global([data-skin='classic']) .app:focus-visible .appName,
+:global([data-skin='classic']) .app:hover .appDescription,
+:global([data-skin='classic']) .app:focus-visible .appDescription,
+:global([data-skin='classic']) .app:hover .appIcon,
+:global([data-skin='classic']) .app:focus-visible .appIcon {
+  color: #ffffff;
+}

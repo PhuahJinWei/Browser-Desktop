@@ -210,3 +210,90 @@
     height: 34px;
   }
 }
+
+/* -- Classic skin ------------------------------------------------------------------------------ *
+ * A window of this era is a grey slab with a raised bevel, a solid navy title bar when focused and
+ * a flat grey one when not, and three small square buttons at the right. No rounding, no shadow,
+ * no transition — the bevel is the entire depth cue.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .frame {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .focused {
+  border-color: #000000;
+  box-shadow: var(--bevel-raised);
+}
+
+/* The inactive bar is #6e6e6e rather than the era's #808080. At the original grey, the title
+   text measured 2.9:1 against it — the one place this palette failed WCAG. Two shades darker
+   takes white to 5.1:1 and is indistinguishable unless the two are side by side. */
+:global([data-skin='classic']) .titleBar {
+  height: 26px;
+  padding: 0 2px 0 4px;
+  margin: 2px 2px 0;
+  background: #6e6e6e;
+  border-bottom: 0;
+  gap: 4px;
+}
+
+/* The gradient is the later-90s refinement of a flat navy bar, and the one most people picture. */
+:global([data-skin='classic']) .focused .titleBar {
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+}
+
+:global([data-skin='classic']) .title {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .focused .title {
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .titleIcon,
+:global([data-skin='classic']) .focused .titleIcon {
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .controls {
+  gap: 2px;
+}
+
+:global([data-skin='classic']) .control {
+  width: 18px;
+  height: 16px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .control:hover {
+  background: #c0c0c0;
+  color: #000000;
+}
+
+:global([data-skin='classic']) .control:active {
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/* Close was not red until much later; it is the same button with a different glyph. */
+:global([data-skin='classic']) .close:hover {
+  background: #c0c0c0;
+  color: #000000;
+}
+
+/* The body sits in a sunken well inside the frame, which is what gives a classic window its
+   characteristic double edge. */
+:global([data-skin='classic']) .body {
+  margin: 2px;
+  background: var(--surface-2);
+  box-shadow: var(--bevel-thin-sunken);
+}

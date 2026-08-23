@@ -290,3 +290,107 @@
   --duration-fast: 0ms;
   --duration-normal: 0ms;
 }
+
+/* ---------------------------------------------------------------------------------------------- *
+ * Classic skin.
+ *
+ * A fourth axis, `data-skin`, and the only one that redefines the whole palette rather than
+ * shading it. It is last in the file on purpose: it has the same specificity as the theme and
+ * accent blocks above, so source order is what lets it win over both.
+ *
+ * The colours are the ones a 14-inch CRT made everyone recognise — #c0c0c0 chrome, #008080 desktop,
+ * a navy title bar — arrived at from the era rather than from any vendor's asset. There are no
+ * logos, wordmarks or icons here, and the font stack asks for faces the machine already has rather
+ * than downloading one, which keeps the one-host rule intact.
+ *
+ * Two things are deliberately *not* authentic. Focus rings stay visible instead of relying on a
+ * 1px dotted rectangle nobody can see, and text keeps the modern contrast ratios. Period detail
+ * that fails WCAG is not period detail worth having.
+ * ---------------------------------------------------------------------------------------------- */
+:root[data-skin='classic'] {
+  color-scheme: light;
+
+  /* One grey does most of the work; "sunken" is the paper white that fields and lists sit on. */
+  --surface-0: #008080;
+  --surface-1: #c0c0c0;
+  --surface-2: #c0c0c0;
+  --surface-3: #c0c0c0;
+  --surface-sunken: #ffffff;
+
+  --border-subtle: #808080;
+  --border-strong: #000000;
+
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-muted: #404040;
+  --text-inverted: #ffffff;
+
+  /* The selection navy, used for title bars, menu highlights and anything "active". */
+  --accent: #000080;
+  --accent-hover: #1084d0;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #c8c8dc;
+
+  --ok: #006400;
+  --warn: #7a5200;
+  --bad: #8b0000;
+  --ok-subtle: #d6e8d6;
+  --warn-subtle: #efe4c4;
+  --bad-subtle: #f0d6d6;
+
+  /* Bevels replace shadows: a raised edge is light on top-left, dark on bottom-right, twice over.
+     Expressed as inset box-shadows so a component's existing `border` is free to be the outer
+     black line without fighting them. */
+  --bevel-raised:
+    inset 1px 1px 0 0 #ffffff, inset -1px -1px 0 0 #404040, inset 2px 2px 0 0 #dfdfdf,
+    inset -2px -2px 0 0 #808080;
+  --bevel-sunken:
+    inset 1px 1px 0 0 #404040, inset -1px -1px 0 0 #ffffff, inset 2px 2px 0 0 #808080,
+    inset -2px -2px 0 0 #dfdfdf;
+  --bevel-thin-raised: inset 1px 1px 0 0 #ffffff, inset -1px -1px 0 0 #808080;
+  --bevel-thin-sunken: inset 1px 1px 0 0 #808080, inset -1px -1px 0 0 #ffffff;
+
+  /* Windows of this era cast no shadow at all; the bevel is the depth cue. */
+  --shadow-window: none;
+  --shadow-raised: none;
+
+  /* Asked for, never downloaded: Tahoma and MS Sans Serif exist on Windows, and the fallbacks
+     land somewhere reasonable everywhere else. */
+  --font-sans: Tahoma, 'MS Sans Serif', Geneva, Verdana, sans-serif;
+  --font-mono: 'Lucida Console', 'Courier New', monospace;
+
+  /* Nothing was rounded. */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+
+  /* The era's own focus affordance was a dotted rectangle. Kept, but at a contrast that is
+     actually visible, and never as the only cue. */
+  --focus-ring: 2px dotted #000000;
+  --focus-offset: 1px;
+
+  --desktop-bg: #008080;
+  --desktop-fg: #ffffff;
+}
+
+/* Accent choices are a modern idea; classic has one selection colour and keeps it. */
+:root[data-skin='classic'][data-accent] {
+  --accent: #000080;
+  --accent-hover: #1084d0;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #c8c8dc;
+}
+
+/* Wallpapers likewise: the desktop is one flat colour, whichever wallpaper is selected. A custom
+   image is still honoured, because that is the user's own file rather than a style choice. */
+:root[data-skin='classic'][data-wallpaper='aurora'],
+:root[data-skin='classic'][data-wallpaper='dusk'],
+:root[data-skin='classic'][data-wallpaper='plain'] {
+  --desktop-bg: #008080;
+}
+
+:root[data-skin='classic'][data-wallpaper='grid'] {
+  --desktop-bg:
+    repeating-linear-gradient(0deg, #007070 0 2px, #008080 2px 4px),
+    repeating-linear-gradient(90deg, #007070 0 2px, #008080 2px 4px);
+}

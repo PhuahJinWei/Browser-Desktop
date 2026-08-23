@@ -257,3 +257,71 @@
     height: 40px;
   }
 }
+
+/* -- Classic skin ------------------------------------------------------------------------------ *
+ * A grey bar with a raised top edge, a launcher button at the left, task buttons that latch in
+ * when their window is focused, and a sunken clock well at the right.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .bar {
+  height: 30px;
+  padding: 2px;
+  gap: 3px;
+  background: #c0c0c0;
+  border-top: 1px solid #ffffff;
+  backdrop-filter: none;
+}
+
+:global([data-skin='classic']) .launcher,
+:global([data-skin='classic']) .search,
+:global([data-skin='classic']) .task,
+:global([data-skin='classic']) .chipButton {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .launcherLabel {
+  font-weight: 700;
+}
+
+/* A latched button is the sunken bevel plus the era's 50% dither, which is how an active task
+   read as "held down" rather than merely darker. */
+:global([data-skin='classic']) .launcherOpen,
+:global([data-skin='classic']) .taskActive {
+  box-shadow: var(--bevel-sunken);
+  background:
+    repeating-conic-gradient(#c0c0c0 0% 25%, #dfdfdf 0% 50%) 0 0 / 2px 2px;
+  color: #000000;
+}
+
+:global([data-skin='classic']) .taskMinimized {
+  color: #404040;
+}
+
+:global([data-skin='classic']) .launcher:hover,
+:global([data-skin='classic']) .search:hover,
+:global([data-skin='classic']) .task:hover,
+:global([data-skin='classic']) .chipButton:hover {
+  background: #c0c0c0;
+  color: #000000;
+}
+
+/* Status chips and the clock sit in sunken wells rather than pills. */
+:global([data-skin='classic']) .chip,
+:global([data-skin='classic']) .clock {
+  border-radius: 0;
+  border: 1px solid transparent;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-sunken);
+  color: #000000;
+}
+
+:global([data-skin='classic']) .kbd {
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-raised);
+  color: #000000;
+}

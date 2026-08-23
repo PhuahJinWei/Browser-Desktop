@@ -56,9 +56,24 @@ export default function SettingsApp() {
       <section className={styles.section}>
         <h3 className={styles.heading}>Appearance</h3>
 
+        <Field
+          label="Skin"
+          hint="Classic is a 1990s desktop — square, bevelled, one grey. It brings its own colours, so the theme and accent below have no effect while it is on."
+        >
+          <Segmented
+            value={settings.skin}
+            options={[
+              { value: 'modern', label: 'Modern' },
+              { value: 'classic', label: 'Classic' },
+            ]}
+            onChange={(value) => set('skin', value as Settings['skin'])}
+          />
+        </Field>
+
         <Field label="Theme" hint="System follows your operating system setting.">
           <Segmented
             value={settings.theme}
+            disabled={settings.skin === 'classic'}
             options={[
               { value: 'system', label: 'System' },
               { value: 'light', label: 'Light' },
@@ -78,6 +93,7 @@ export default function SettingsApp() {
                   settings.accent === accent ? styles.swatchActive : ''
                 }`}
                 onClick={() => set('accent', accent)}
+                disabled={settings.skin === 'classic'}
                 aria-label={`Accent: ${accent}`}
                 aria-pressed={settings.accent === accent}
               />
@@ -508,10 +524,13 @@ function Segmented({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  /** Used when another setting has taken the choice away — Classic supplies its own palette. */
+  disabled?: boolean;
 }) {
   return (
     <div className={styles.segmented} role="radiogroup">
@@ -521,6 +540,7 @@ function Segmented({
           type="button"
           role="radio"
           aria-checked={value === option.value}
+          disabled={disabled}
           className={`${styles.segment} ${value === option.value ? styles.segmentActive : ''}`}
           onClick={() => onChange(option.value)}
         >

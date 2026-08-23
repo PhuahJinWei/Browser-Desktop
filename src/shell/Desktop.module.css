@@ -55,3 +55,28 @@
     width var(--duration-fast) var(--easing),
     height var(--duration-fast) var(--easing);
 }
+
+/* -- Classic skin ------------------------------------------------------------------------------ */
+
+:global([data-skin='classic']) .empty {
+  border-radius: 0;
+  border: 1px solid #000000;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-raised);
+  backdrop-filter: none;
+}
+
+:global([data-skin='classic']) .empty kbd {
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-raised);
+  color: #000000;
+}
+
+/* The snap preview was a dotted "rubber band" outline rather than a translucent fill. */
+:global([data-skin='classic']) .snapPreview {
+  border-radius: 0;
+  border: 2px dotted #ffffff;
+  background: rgb(0 0 0 / 12%);
+}

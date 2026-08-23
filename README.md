@@ -79,6 +79,7 @@ Task Manager shows the whole request log so you can check all of this rather tha
 | **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                         |
 | **Settings**     | Theme, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
 | **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                            |
+| **Skins**        | Modern by default, or a Classic 1990s look — square, bevelled, one grey. A token swap, not a second codebase.                                                                           |
 | **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                            |
 
 ## Measured, not asserted

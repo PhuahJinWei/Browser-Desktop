@@ -12,6 +12,19 @@ import type { WindowSession } from './windows';
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+
+/**
+ * The visual skin, which is a different axis from light/dark.
+ *
+ * `modern` is this project's own design language. `classic` is a 1990s desktop: square corners,
+ * two-tone bevels, one grey. It is era-inspired rather than an impersonation — no vendor's logos,
+ * wordmarks, icons or fonts — because the goal is the contrast between an old face and new
+ * machinery, and cloning someone's shell would trade that for a lawsuit.
+ *
+ * Classic defines its own complete palette, so `theme` has no effect while it is on; 1995 did not
+ * have a dark mode and pretending otherwise would look like neither.
+ */
+export type SkinPreference = 'modern' | 'classic';
 export type MotionPreference = 'system' | 'reduced' | 'full';
 export type BackendPreference = 'auto' | 'webgpu' | 'wasm';
 export type WallpaperPreference = 'aurora' | 'grid' | 'plain' | 'dusk' | 'custom';
@@ -25,6 +38,7 @@ export interface IconCell {
 
 export interface Settings {
   theme: ThemePreference;
+  skin: SkinPreference;
   accent: 'teal' | 'indigo' | 'amber' | 'rose';
   fontScale: 0.9 | 1 | 1.1 | 1.25;
   motion: MotionPreference;
@@ -49,6 +63,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
+  skin: 'modern',
   accent: 'teal',
   fontScale: 1,
   motion: 'system',
@@ -157,12 +172,20 @@ export function applySettings(settings: Settings): void {
   const root = document.documentElement;
 
   root.dataset['theme'] = settings.theme;
+  root.dataset['skin'] = settings.skin;
   root.dataset['accent'] = settings.accent;
   root.dataset['wallpaper'] = settings.wallpaper;
   root.dataset['motion'] = settings.motion;
   root.style.setProperty('--font-scale', String(settings.fontScale));
 
-  // `color-scheme` drives form controls, scrollbars and the default canvas colour.
+  // `color-scheme` drives form controls, scrollbars and the default canvas colour. Classic
+  // supplies its own light palette whatever the theme says, so it must not be told 'dark'.
   root.style.colorScheme =
-    settings.theme === 'system' ? 'dark light' : settings.theme === 'dark' ? 'dark' : 'light';
+    settings.skin === 'classic'
+      ? 'light'
+      : settings.theme === 'system'
+        ? 'dark light'
+        : settings.theme === 'dark'
+          ? 'dark'
+          : 'light';
 }

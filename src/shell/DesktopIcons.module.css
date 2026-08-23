@@ -82,3 +82,49 @@
 :global(html[data-theme='light']) .label {
   text-shadow: 0 1px 3px rgb(255 255 255 / 70%);
 }
+
+/* -- Classic skin ------------------------------------------------------------------------------ *
+ * Desktop icons of this era sat directly on the wallpaper: no tile, no rounding. Selection was the
+ * label filling with the selection navy, and the glyph itself did not change colour.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .item,
+:global([data-skin='classic']) .item:hover {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:global([data-skin='classic']) .icon {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+/* The label is what carries selection, and it needs a solid ground to stay legible on any
+   wallpaper — white text on teal has enough contrast, white on white would not. */
+:global([data-skin='classic']) .label {
+  color: #ffffff;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 55%);
+}
+
+:global([data-skin='classic']) .selected,
+:global([data-skin='classic']) .selected:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+:global([data-skin='classic']) .selected .label {
+  background: #000080;
+  color: #ffffff;
+  text-shadow: none;
+  outline: 1px dotted #ffffff;
+  outline-offset: -1px;
+}
+
+:global([data-skin='classic']) .selected .icon {
+  color: #ffffff;
+}

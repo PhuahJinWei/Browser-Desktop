@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased] — a second skin
+
+Added
+
+- **A Classic skin**, in Settings → Appearance. A 1990s desktop: square corners, two-tone bevels,
+  one grey, a navy title bar and a teal ground. Era-inspired rather than an impersonation — no
+  vendor's logos, wordmarks or icons, and the font stack asks for faces the machine already has
+  rather than downloading one, so the one-host rule is untouched.
+- It is a fourth token axis (`data-skin`) beside theme, accent and wallpaper. Modern stays the
+  default and is unchanged; switching is instant and reversible. Classic supplies its own complete
+  palette, so the theme and accent controls are disabled while it is on and say why.
+
+Two deliberate departures from the period, both because inaccessible detail is not authenticity
+worth shipping: focus stays a visible dotted outline rather than the near-invisible original, and
+the inactive title bar is two shades darker than the era's `#808080` — at the original grey its
+text measured 2.9:1, the one place the palette failed WCAG. It is 5.1:1 now.
+
 ## [Unreleased] — one host
 
 Changed

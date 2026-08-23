@@ -1,0 +1,110 @@
+/**
+ * Classic skin: the parts a token swap cannot express.
+ *
+ * `tokens.css` turns the palette grey and the corners square, which gets most of every app for
+ * free. What it cannot do is a *two-tone bevel*, because that is two light edges and two dark ones
+ * on the same box — not a colour a `border` can hold. Those live here, applied to the plain
+ * elements every app already uses, so no app had to be rewritten to take part.
+ *
+ * Everything is scoped under `[data-skin='classic']`, so the modern skin is untouched by all of it.
+ *
+ * Deliberate departures from the period, both for the same reason — this repository does not ship
+ * inaccessible detail as authenticity:
+ *
+ *   - focus is a visible dotted outline, not the near-invisible 1px original;
+ *   - disabled controls keep a readable grey rather than the embossed one that fails contrast.
+ */
+
+[data-skin='classic'] {
+  /* The era antialiased nothing. This is the single most recognisable part of the look. */
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* -- Buttons ----------------------------------------------------------------------------------- */
+
+[data-skin='classic'] button {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-raised);
+}
+
+/* Pressed pops the bevel inward and nudges the label, which is what sold the illusion. */
+[data-skin='classic'] button:active:not(:disabled) {
+  box-shadow: var(--bevel-sunken);
+  padding-top: 1px;
+  padding-left: 1px;
+}
+
+[data-skin='classic'] button:disabled {
+  color: #6d6d6d;
+  box-shadow: var(--bevel-raised);
+}
+
+/* Hover did not exist as a visual state; keeping the raised bevel steady is the accurate answer,
+   and it stops buttons flickering as the pointer crosses a toolbar. */
+[data-skin='classic'] button:hover:not(:disabled) {
+  background: #c0c0c0;
+}
+
+/* -- Fields ------------------------------------------------------------------------------------ */
+
+[data-skin='classic'] input,
+[data-skin='classic'] textarea,
+[data-skin='classic'] select {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: var(--bevel-sunken);
+}
+
+[data-skin='classic'] input[type='checkbox'],
+[data-skin='classic'] input[type='radio'] {
+  accent-color: #000080;
+}
+
+/* -- Focus ------------------------------------------------------------------------------------- */
+
+[data-skin='classic'] :focus-visible {
+  outline: 2px dotted #000000;
+  outline-offset: 1px;
+}
+
+/* -- Scrollbars -------------------------------------------------------------------------------- */
+
+[data-skin='classic'] * {
+  scrollbar-color: #c0c0c0 #dfdfdf;
+  scrollbar-width: auto;
+}
+
+[data-skin='classic'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+/* The trough was a 50% dither of white on grey. A tiny repeating gradient is the same picture
+   without shipping an image. */
+[data-skin='classic'] ::-webkit-scrollbar-track {
+  background:
+    repeating-conic-gradient(#dfdfdf 0% 25%, #ffffff 0% 50%) 0 0 / 2px 2px;
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 1px solid #000000;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+[data-skin='classic'] ::-webkit-scrollbar-corner {
+  background: #c0c0c0;
+}
+
+/* -- Text selection ---------------------------------------------------------------------------- */
+
+[data-skin='classic'] ::selection {
+  background: #000080;
+  color: #ffffff;
+}
