@@ -71,7 +71,7 @@ only because "the default has to work" is a much higher bar than "the alternativ
   pretending otherwise would look like neither thing.
 - **A specificity lesson, recorded because it was expensive.** The first version scoped its rules as
   `[data-skin='classic'] button`, one class-worth more specific than the `.toggleOn` /
-  `.segmentActive` / `.rowSelected` classes that carry a component's *state*. Since state is almost
+  `.segmentActive` / `.rowSelected` classes that carry a component's _state_. Since state is almost
   always a background or colour change, the skin repainted every one of them the same grey: toggles
   never looked on, selected rows looked unselected. The markup was correct throughout —
   `aria-checked` said the right thing — which is exactly why it survived a look at the chrome and
