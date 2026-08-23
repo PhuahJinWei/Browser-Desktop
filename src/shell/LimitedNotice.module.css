@@ -56,3 +56,13 @@
   background: var(--surface-sunken);
   color: var(--text-primary);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The small-screen notice is a dialog in everything but name, so it is drawn as one. */
+:global([data-skin='classic']) .notice {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}

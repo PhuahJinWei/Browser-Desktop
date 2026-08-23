@@ -146,3 +146,32 @@
 .footer code {
   font-family: var(--font-mono);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* Each entry is a raised panel rather than a rounded card, and the list they sit in is the white
+   well every other list view uses. See FilesApp.module.css. */
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .card {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .card:hover {
+  background: #c0c0c0;
+}
+
+:global([data-skin='classic']) .badge,
+:global([data-skin='classic']) .tag,
+:global([data-skin='classic']) .host {
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-sunken);
+}

@@ -137,3 +137,22 @@
   font-size: var(--text-sm);
   cursor: pointer;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * The boot panel. The era's own startup screen was a full-screen splash rather than a card, but a
+ * card that reports each step honestly is worth more than a splash that reports nothing — so this
+ * keeps its shape and takes the period's surface.
+ */
+:global([data-skin='classic']) .card {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .steps {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}

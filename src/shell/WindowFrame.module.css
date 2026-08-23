@@ -233,8 +233,10 @@
    text measured 2.9:1 against it — the one place this palette failed WCAG. Two shades darker
    takes white to 5.1:1 and is indistinguishable unless the two are side by side. */
 :global([data-skin='classic']) .titleBar {
-  height: 26px;
-  padding: 0 2px 0 4px;
+  /* 20px, near the era's 18px caption: small enough to read as the period, tall enough that a
+     16px app icon and a 14px control button still fit without crowding. */
+  height: 20px;
+  padding: 0 2px 0 3px;
   margin: 2px 2px 0;
   background: #6e6e6e;
   border-bottom: 0;
@@ -266,8 +268,10 @@
 }
 
 :global([data-skin='classic']) .control {
-  width: 18px;
-  height: 16px;
+  /* 16x14, which is the era's caption button exactly. With a 1px border that leaves a 14x12
+     padding box, whose centre is the (7, 6) the glyph shadows are anchored to below. */
+  width: 16px;
+  height: 14px;
   border: 1px solid #000000;
   border-radius: 0;
   background: #c0c0c0;

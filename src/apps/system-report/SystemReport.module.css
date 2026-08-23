@@ -290,3 +290,34 @@
   font-size: var(--text-xs);
   font-family: var(--font-mono);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* About is a report, so it reads as one: raised panels for the cards, a white well for the table,
+   and chips in sunken wells the way a status bar of the era held its readings. */
+:global([data-skin='classic']) .card,
+:global([data-skin='classic']) .section {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .tableWrap,
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .chip {
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .progress {
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}

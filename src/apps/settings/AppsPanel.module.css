@@ -192,3 +192,27 @@
   padding: 0;
   text-decoration: underline;
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* An installed app is a raised panel; its permission rows sit in the white well. */
+:global([data-skin='classic']) .app {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .permissions {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .granted,
+:global([data-skin='classic']) .denied,
+:global([data-skin='classic']) .unasked,
+:global([data-skin='classic']) .origin {
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-sunken);
+}

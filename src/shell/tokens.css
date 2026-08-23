@@ -354,9 +354,11 @@
   --shadow-window: none;
   --shadow-raised: none;
 
-  /* Asked for, never downloaded: Tahoma and MS Sans Serif exist on Windows, and the fallbacks
-     land somewhere reasonable everywhere else. */
-  --font-sans: Tahoma, 'MS Sans Serif', Geneva, Verdana, sans-serif;
+  /* Asked for, never downloaded. 'MS Sans Serif' is the era's own face and resolves to its
+     successor on any modern Windows; Tahoma follows because it arrived in the same years and is
+     the closest thing most other machines have. The fallbacks land somewhere reasonable
+     everywhere else. */
+  --font-sans: 'MS Sans Serif', 'Microsoft Sans Serif', Tahoma, Geneva, Verdana, sans-serif;
   --font-mono: 'Lucida Console', 'Courier New', monospace;
 
   /* Nothing was rounded. */

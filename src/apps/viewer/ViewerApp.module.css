@@ -233,3 +233,28 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-raised);
 }
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * A document sits on paper, and the paper sits in a sunken well — which is what a viewer of this
+ * era looked like and, conveniently, what makes long text readable. The bar above it stays grey
+ * chrome, so the division is the same one Files draws.
+ */
+:global([data-skin='classic']) .textWrap,
+:global([data-skin='classic']) .markdown,
+:global([data-skin='classic']) .pdfWrap {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/* Pictures and video sit on black, in every era. */
+:global([data-skin='classic']) .imageWrap,
+:global([data-skin='classic']) .mediaWrap {
+  background: #000000;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .bar {
+  background: #c0c0c0;
+}
