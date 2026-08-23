@@ -297,3 +297,190 @@
   background: var(--surface-2);
   box-shadow: var(--bevel-thin-sunken);
 }
+
+/* -- Classic: control glyphs ------------------------------------------------------------------- */
+
+/*
+ * The line icons are drawn for 24px with round caps. Inside an 18×16 button they rendered at 13px,
+ * which put the stroke under a pixel wide — and a one-pixel-wide anti-aliased grey line is how the
+ * three most-used buttons on the window came to be nearly invisible.
+ *
+ * These are pixel glyphs instead: one box-shadow per pixel on a 1px pseudo-element, so they are
+ * crisp by construction and need no image. Generic shapes — a bar, a box, two boxes, a cross. The
+ * three are told apart by position, which is the title bar's contract (minimise, maximise, close,
+ * in that order); restore is the maximise button while the window is maximised, which the markup
+ * already exposes through its title.
+ *
+ * Forced-colours mode drops box-shadow, so there the line icon comes back rather than leaving an
+ * empty button.
+ */
+:global([data-skin='classic']) .control {
+  position: relative;
+}
+
+:global([data-skin='classic']) .control svg {
+  display: none;
+}
+
+:global([data-skin='classic']) .control::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 7px;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  color: #000000;
+}
+
+/* Pressed nudges the glyph with the rest of the button. */
+:global([data-skin='classic']) .control:active::before {
+  transform: translate(1px, 1px);
+}
+
+:global([data-skin='classic']) .controls .control:nth-child(1)::before {
+  box-shadow:
+    -2px 2px,
+    -1px 2px,
+    0 2px,
+    1px 2px,
+    2px 2px,
+    3px 2px,
+    -2px 3px,
+    -1px 3px,
+    0 3px,
+    1px 3px,
+    2px 3px,
+    3px 3px;
+}
+
+:global([data-skin='classic']) .controls .control:nth-child(2)::before {
+  box-shadow:
+    -4px -4px,
+    -3px -4px,
+    -2px -4px,
+    -1px -4px,
+    0 -4px,
+    1px -4px,
+    2px -4px,
+    3px -4px,
+    4px -4px,
+    -4px -3px,
+    -3px -3px,
+    -2px -3px,
+    -1px -3px,
+    0 -3px,
+    1px -3px,
+    2px -3px,
+    3px -3px,
+    4px -3px,
+    -4px -2px,
+    4px -2px,
+    -4px -1px,
+    4px -1px,
+    -4px 0,
+    4px 0,
+    -4px 1px,
+    4px 1px,
+    -4px 2px,
+    4px 2px,
+    -4px 3px,
+    4px 3px,
+    -4px 4px,
+    -3px 4px,
+    -2px 4px,
+    -1px 4px,
+    0 4px,
+    1px 4px,
+    2px 4px,
+    3px 4px,
+    4px 4px;
+}
+
+:global([data-skin='classic']) .controls .control:nth-child(2)[title='Restore']::before {
+  background: currentColor;
+  box-shadow:
+    -2px -4px,
+    -1px -4px,
+    0 -4px,
+    1px -4px,
+    2px -4px,
+    3px -4px,
+    4px -4px,
+    -2px -3px,
+    -1px -3px,
+    0 -3px,
+    1px -3px,
+    2px -3px,
+    3px -3px,
+    4px -3px,
+    -2px -2px,
+    4px -2px,
+    -4px -1px,
+    -3px -1px,
+    -2px -1px,
+    -1px -1px,
+    0 -1px,
+    1px -1px,
+    2px -1px,
+    4px -1px,
+    -4px 0,
+    -3px 0,
+    -2px 0,
+    -1px 0,
+    1px 0,
+    2px 0,
+    4px 0,
+    -4px 1px,
+    2px 1px,
+    3px 1px,
+    4px 1px,
+    -4px 2px,
+    2px 2px,
+    -4px 3px,
+    2px 3px,
+    -4px 4px,
+    -3px 4px,
+    -2px 4px,
+    -1px 4px,
+    0 4px,
+    1px 4px,
+    2px 4px;
+}
+
+:global([data-skin='classic']) .close::before {
+  background: currentColor;
+  box-shadow:
+    -3px -3px,
+    -2px -3px,
+    2px -3px,
+    3px -3px,
+    -2px -2px,
+    -1px -2px,
+    1px -2px,
+    2px -2px,
+    -1px -1px,
+    0 -1px,
+    1px -1px,
+    -1px 1px,
+    0 1px,
+    1px 1px,
+    -2px 2px,
+    -1px 2px,
+    1px 2px,
+    2px 2px,
+    -3px 3px,
+    -2px 3px,
+    2px 3px,
+    3px 3px;
+}
+
+@media (forced-colors: active) {
+  :global([data-skin='classic']) .control svg {
+    display: revert;
+  }
+
+  :global([data-skin='classic']) .control::before {
+    display: none;
+  }
+}

@@ -19,6 +19,15 @@ Added
   the highest-contrast state in either skin; the keyboard cursor stays a separate dotted rectangle,
   because a row can be focused without being selected. Files, Photos, Notes, Audio, Video, Search,
   Task Manager and the command palette.
+- **Pixel-art desktop icons.** The line icons are the modern set and nothing tokens can do makes
+  a 1.75px round-capped white stroke look like 1995 — the artwork was the tell. Classic now draws
+  32×32 bitmaps in a sixteen-colour palette, stored as text (one character per pixel,
+  `pixelIcons.ts`) and rasterised to crisp SVG at render time: no image files, no new hosts, and
+  the art is reviewable in a diff. Original drawings of generic objects in the period idiom.
+  Selection dithers the icon's own pixels navy, as the era did, rather than only the label.
+- **Legible window controls.** Minimise, maximise, restore and close are pixel glyphs under
+  Classic — one box-shadow per pixel, crisp by construction. The line icons rendered at under a
+  pixel wide inside the 18×16 buttons and were close to invisible.
 
 Fixed
 

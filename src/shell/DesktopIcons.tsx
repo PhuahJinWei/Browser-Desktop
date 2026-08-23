@@ -16,6 +16,7 @@ import { useSettings } from '../kernel/settings';
 import { useViewport } from '../kernel/windows';
 import { ContextMenu, isMenuKey, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { Icon, type IconName } from './Icon';
+import { PixelIcon, hasPixelIcon } from './PixelIcon';
 import { useCoarsePointer } from './useMediaQuery';
 import styles from './DesktopIcons.module.css';
 
@@ -343,7 +344,11 @@ export function DesktopIcons() {
               onFocus={() => setFocusKey(shortcut.key)}
             >
               <span className={styles.icon}>
-                <Icon name={shortcut.icon} size={24} />
+                {settings.skin === 'classic' && hasPixelIcon(shortcut.icon) ? (
+                  <PixelIcon name={shortcut.icon} selected={selected} />
+                ) : (
+                  <Icon name={shortcut.icon} size={24} />
+                )}
               </span>
               <span className={styles.label}>{shortcut.name}</span>
             </li>
