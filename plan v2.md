@@ -622,8 +622,18 @@ Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behi
    browser cannot stream YouTube media at all, which rules out COEP, `credentialless`, the frame and
    the CSP as causes but leaves the final step untested.
 
-   **What remains:** open the harness in a real Chrome and confirm `currentTime` climbs past 0. That
-   is the whole of it, and it is a thirty-second check rather than an hour.
+   **A second environment, narrowing it further (same day, while building the app).** In the
+   in-app browser pane the frame — carrying the `credentialless` attribute, confirmed on the
+   element — **plays normally**: picture, sound, title and channel over `postMessage`. But that
+   pane registers no service worker at all, so it is not isolated either. The two environments
+   therefore cover one half each and neither covers both: one is isolated but cannot stream, the
+   other streams but is not isolated. Nothing observed in either suggests the halves interact —
+   the frame loads identically in both — but that is an inference, not a measurement.
+
+   **What remains:** open the harness in a real Chrome and confirm `currentTime` climbs past 0.
+   That is the whole of it, and it is a thirty-second check rather than an hour. Until it is done,
+   the Watch app is built on the inference above and says so here rather than in a commit message
+   nobody will re-read.
 
    **Firefox and Safari: still an assumption**, deliberately not upgraded — neither was available
    here, so "neither ships credentialless frames" stays labelled as an assumption per ADR 8 rather

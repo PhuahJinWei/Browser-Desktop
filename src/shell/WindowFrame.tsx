@@ -21,6 +21,7 @@ import {
   type MenuSpec,
 } from './ContextMenu';
 import { Icon } from './Icon';
+import { useWindowChip } from '../kernel/windowChips';
 import { AppIcon } from './PixelIcon';
 import styles from './WindowFrame.module.css';
 
@@ -67,6 +68,9 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
   const frameRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
+  // Set by the app inside the window, and only while something is true right now — today that is
+  // Watch, announcing the one connection this desktop makes.
+  const chip = useWindowChip(win.id);
   const app = getApp(win.appId);
 
   /* The window menu: the title bar's buttons, plus the snap targets that only the keyboard had. */
@@ -349,6 +353,11 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
           <AppIcon name={app?.icon ?? 'file'} size={15} />
         </span>
         <span className={styles.title}>{win.title}</span>
+        {chip ? (
+          <span className={styles.chip} title={chip.detail}>
+            {chip.label}
+          </span>
+        ) : null}
         <div className={styles.controls}>
           <button
             type="button"

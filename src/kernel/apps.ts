@@ -117,6 +117,15 @@ export const APPS: AppDefinition[] = [
     hidden: true,
   },
   {
+    id: 'watch',
+    name: 'Watch',
+    icon: 'tv',
+    description: 'Play a YouTube video in a window, by pasting a link',
+    component: lazy(() => import('../apps/watch/WatchApp')),
+    defaultSize: { width: 940, height: 640 },
+    singleton: true,
+  },
+  {
     id: 'links',
     name: 'Portfolio',
     icon: 'link',
