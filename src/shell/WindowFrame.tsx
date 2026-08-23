@@ -349,9 +349,29 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
         onDoubleClick={() => toggleMaximize(win.id)}
         onContextMenu={(event) => openMenu(event, windowMenu())}
       >
-        <span className={styles.titleIcon}>
+        {/*
+          The system menu. Clicking the title-bar icon opened it and double-clicking it closed the
+          window — behaviour, not decoration, and the kind of thing someone who used these machines
+          reaches for without thinking. `stopPropagation` on both, because the bar underneath is
+          listening for a drag and for the double-click that maximises.
+        */}
+        <button
+          type="button"
+          className={styles.titleIcon}
+          aria-label={`System menu for ${win.title}`}
+          aria-haspopup="menu"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            openMenu(event, windowMenu());
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            closeWindow(win.id);
+          }}
+        >
           <AppIcon name={app?.icon ?? 'file'} size={15} />
-        </span>
+        </button>
         <span className={styles.title}>{win.title}</span>
         {chip ? (
           <span className={styles.chip} title={chip.detail}>

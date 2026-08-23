@@ -331,6 +331,17 @@
   color: #000000;
 }
 
+/* Now a real button, so it needs the chrome stripped back to what a title-bar icon looked like. */
+.titleIcon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+}
+
 /* -- Classic: control glyphs ------------------------------------------------------------------- */
 
 /*
