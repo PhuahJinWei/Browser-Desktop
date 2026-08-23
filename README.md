@@ -52,7 +52,7 @@ follows the code.
 ## Why it looks like 1995
 
 Because the sentence above is about the machinery, and nothing on screen was saying so. A visitor
-saw a competent modern web app and had to be *told* that the interesting part was underneath.
+saw a competent modern web app and had to be _told_ that the interesting part was underneath.
 
 So the default skin is a 1990s desktop — Start menu, bevelled everything, one grey, pixel icons
 drawn as text, scrollbars with arrows at both ends — and the contrast does the arguing: this looks
@@ -63,7 +63,7 @@ both are the same components reading the same tokens
 
 **It is an homage, not a copy.** The visual grammar is reproduced closely, because that is what an
 homage is. Nothing identifying a vendor is: no logo, no wordmark, no copied artwork, no font file,
-and no product name anywhere in the interface. The Start menu's banner reads *Tabula*. Accessibility
+and no product name anywhere in the interface. The Start menu's banner reads _Tabula_. Accessibility
 is not sacrificed to authenticity either — where the era's own choice failed a contrast check, the
 modern value wins and the departure is written down rather than quietly made.
 
