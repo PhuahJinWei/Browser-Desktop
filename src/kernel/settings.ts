@@ -29,7 +29,7 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export type SkinPreference = 'modern' | 'classic';
 export type MotionPreference = 'system' | 'reduced' | 'full';
 export type BackendPreference = 'auto' | 'webgpu' | 'wasm';
-export type WallpaperPreference = 'aurora' | 'grid' | 'plain' | 'dusk' | 'custom';
+export type WallpaperPreference = 'bloom' | 'aurora' | 'grid' | 'plain' | 'dusk' | 'custom';
 export type WallpaperFit = 'cover' | 'contain' | 'tile' | 'center';
 
 /** Where a desktop icon sits, in grid cells rather than pixels — see `desktop.ts`. */
@@ -84,7 +84,7 @@ export const DEFAULT_SETTINGS: Settings = {
   accent: 'teal',
   fontScale: 1,
   motion: 'system',
-  wallpaper: 'aurora',
+  wallpaper: 'bloom',
   wallpaperFit: 'cover',
   wallpaperFileId: null,
   classicCursors: true,
@@ -130,13 +130,26 @@ export function updateSettings(patch: Partial<Settings>): void {
   });
 }
 
+/**
+ * Put every preference back to its default.
+ *
+ * `sampleDataLoaded` is carried across rather than reset, because it is not a preference: it
+ * records that the first-run corpus has already been written to the file system. Boot seeds from
+ * the flag alone and never looks at the disk, so clearing it here writes a second copy of every
+ * sample file beside the first — "Welcome to Tabula (2).md" and thirteen more. Erasing all data
+ * clears the flag deliberately, and is right to: there the files really are gone.
+ */
 export function resetSettings(): void {
+  const next: Settings = {
+    ...DEFAULT_SETTINGS,
+    sampleDataLoaded: settingsStore.get().sampleDataLoaded,
+  };
   try {
-    localStorage.removeItem(SETTINGS_KEY);
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
   } catch {
-    /* Nothing to undo. */
+    /* Private mode or a full quota: the reset still holds for this session. */
   }
-  settingsStore.set(DEFAULT_SETTINGS);
+  settingsStore.set(next);
 }
 
 export function useSettings(): Settings {

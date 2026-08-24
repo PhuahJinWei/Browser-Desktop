@@ -1,0 +1,25 @@
+/*
+ * Shared layout primitives.
+ *
+ * `max-width` means two different things in this codebase and they are indistinguishable in a
+ * diff, which is how one of them came to be wrong:
+ *
+ *   A text measure caps line length inside a flow that is already where it belongs —
+ *   `.hint { max-width: 48ch }`. It must NOT centre: the text starts at the start of its column.
+ *   Every `ch` value in the app is one of these, and none of them belong here.
+ *
+ *   A layout column is the app's content being narrower than the window holding it. It MUST
+ *   centre, or a maximised window strands the entire difference down one side. Settings shipped
+ *   640px of controls pinned to the left of a 1434px window for exactly this reason, while About
+ *   solved the same problem correctly a few files away — two hand-rolled answers, no shared one.
+ *
+ * This is the second kind, written once so it cannot be got wrong a third time. Callers set the
+ * width through `--column-measure` and inherit the centring, which is the half worth not leaving
+ * to memory. Setting the width via a custom property rather than by overriding `max-width` also
+ * keeps it independent of which stylesheet the bundler happens to emit first.
+ */
+.column {
+  width: 100%;
+  max-width: var(--column-measure, 68ch);
+  margin-inline: auto;
+}

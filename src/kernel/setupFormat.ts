@@ -109,7 +109,7 @@ function cleanSettings(input: unknown): PortableSettings {
   }
   if (oneOf(input['fontScale'], [0.9, 1, 1.1, 1.25] as const)) out.fontScale = input['fontScale'];
   if (oneOf(input['motion'], ['system', 'reduced', 'full'] as const)) out.motion = input['motion'];
-  if (oneOf(input['wallpaper'], ['aurora', 'grid', 'plain', 'dusk', 'custom'] as const)) {
+  if (oneOf(input['wallpaper'], ['bloom', 'aurora', 'grid', 'plain', 'dusk', 'custom'] as const)) {
     out.wallpaper = input['wallpaper'];
   }
   if (oneOf(input['wallpaperFit'], ['cover', 'contain', 'tile', 'center'] as const)) {

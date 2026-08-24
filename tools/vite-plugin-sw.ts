@@ -51,6 +51,22 @@ function readEmitted(names: string[]): string {
     .join(' ');
 }
 
+/**
+ * Whether an emitted file belongs in the shell's precache.
+ *
+ * Code and markup, plus the one image the desktop paints before anything else: a shell that boots
+ * offline without its wallpaper has not really booted offline, and at 76 KB it is not the kind of
+ * weight this install refuses — it already declines 36 MB of inference stack on the same grounds.
+ *
+ * Named rather than a bare extension test because a plain `webp` rule is wrong in a way that does
+ * not announce itself: it also matches the seventeen Watch stills, and quietly turned a 76 KB
+ * addition into 432 KB downloaded during install by every visitor, including the ones who never
+ * open Watch. Those are app content and are fetched when that app asks for them.
+ */
+function isShell(name: string): boolean {
+  return /\.(js|css|html)$/.test(name) || /(^|\/)wallpaper-[^/]*\.webp$/.test(name);
+}
+
 export function serviceWorkerPlugin(options: { base: string }): Plugin {
   let emitted: string[] = [];
 
@@ -60,7 +76,7 @@ export function serviceWorkerPlugin(options: { base: string }): Plugin {
 
     generateBundle(_options, bundle) {
       emitted = Object.keys(bundle)
-        .filter((name) => /\.(js|css|html)$/.test(name))
+        .filter((name) => isShell(name))
         .map((name) => options.base + name);
     },
 

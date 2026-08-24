@@ -106,7 +106,7 @@ export function NotificationLayer() {
             onClick={() => dismissNotification(item.id)}
             aria-label="Dismiss"
           >
-            <Icon name="close" size={13} />
+            <Icon name="close" size={13} className={styles.toastCloseGlyph} />
           </button>
         </div>
       ))}

@@ -71,7 +71,15 @@
   cursor: pointer;
 }
 
+/*
+ * A button holding nothing but an icon has to centre it, and `display: block` cannot: an inline
+ * <svg> sits on the text baseline, so the glyph rode low and right of centre with a descender's
+ * worth of space under it. Flex is what actually holds the mark in the middle of the box.
+ */
 .toastClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 2px;
   border: 0;
   border-radius: var(--radius-sm);
@@ -244,14 +252,29 @@
 }
 
 /* The close box is a real bevelled button, the same one the title bar uses. */
+/*
+ * 16x14 is the era's close button, and it is smaller than the 13px glyph the markup asks for:
+ * subtract the border and the shared 2px padding and the box left 10x8 of room for it. So the mark
+ * spilled out of the button it belongs to. The button keeps its period size — the glyph is what was
+ * wrong — and the bevel is inset enough on its own that the padding was only ever taking space.
+ */
 :global([data-skin='classic']) .toastClose {
   width: 16px;
   height: 14px;
+  padding: 0;
   border: 1px solid #000000;
   border-radius: 0;
   background: #c0c0c0;
   color: #000000;
   box-shadow: var(--bevel-thin-raised);
+}
+
+/* A thicker stroke because the glyph is drawn from a 24-unit box: at 9px the authored 1.75 scales
+   down to two thirds of a pixel, which renders as a grey smudge rather than a cross. */
+:global([data-skin='classic']) .toastCloseGlyph {
+  width: 9px;
+  height: 9px;
+  stroke-width: 3;
 }
 
 :global([data-skin='classic']) .toastClose:active {
@@ -265,4 +288,22 @@
 :global([data-skin='classic']) .list {
   background: #ffffff;
   box-shadow: var(--bevel-thin-sunken);
+}
+
+/* A 16x14 button is a mouse target. Toasts are dismissible by tapping, so on a coarse pointer the
+   button grows and the glyph grows with it; the era's measurements are not worth a missed tap. */
+@media (pointer: coarse) {
+  .toastClose {
+    padding: var(--space-2);
+  }
+
+  :global([data-skin='classic']) .toastClose {
+    width: 32px;
+    height: 28px;
+  }
+
+  :global([data-skin='classic']) .toastCloseGlyph {
+    width: 14px;
+    height: 14px;
+  }
 }

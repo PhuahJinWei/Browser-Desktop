@@ -45,3 +45,9 @@ made — read the relevant ADR before changing anything it covers.
 - Conventional Commits; squash merges; a tag per milestone.
 - Comments explain _why_, not what. Prefer no comment to a restatement of the code.
 - Accessibility is not a later pass: keyboard-first, visible focus, correct roles from the start.
+- `max-width` has two unrelated jobs and they look the same in a diff. A **text measure** caps line
+  length and is always in `ch`; it must not be centred. A **layout column** is content narrower
+  than the window around it; it must be centred, or a maximised window strands the difference down
+  one side. Never hand-roll the second — compose `column` from `src/shell/layout.module.css` and
+  set `--column-measure`. Every app runs maximised on a compact viewport, so this is not an edge
+  case.

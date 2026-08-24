@@ -305,3 +305,175 @@
   margin: 2px;
   padding: 0;
 }
+
+/* -- The homepage ------------------------------------------------------------------------------ */
+
+/*
+ * The stage centres a single notice, which is right for one paragraph and wrong for a page. The
+ * home view stretches over that and scrolls on its own.
+ */
+.home {
+  align-self: stretch;
+  justify-self: stretch;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.homeHead {
+  margin-bottom: var(--space-4);
+  max-width: 72ch;
+}
+
+.homeTitle {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-lg);
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.homeNote {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: var(--space-4) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/*
+ * Drawn, not downloaded. The hue comes from the video id so a film keeps its colours between
+ * sessions, and it is obviously a graphic rather than a still from the film — which is the honest
+ * way to fill this space when fetching the real thumbnail is the one thing ADR 20 forbids.
+ */
+.poster {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--poster-hue) 48% 34%),
+    hsl(calc(var(--poster-hue) + 45) 52% 17%)
+  );
+}
+
+.posterGlyph {
+  color: #ffffff;
+  font-size: 24px;
+  opacity: 0.72;
+  transition: opacity 120ms linear;
+}
+
+.card:hover .posterGlyph {
+  opacity: 1;
+}
+
+.duration {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 0.78);
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cardTitle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.card:hover .cardTitle {
+  text-decoration: underline;
+}
+
+.cardMeta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posterGlyph {
+    transition: none;
+  }
+}
+
+/*
+ * The era's own video index: square everything, a sunken well for the poster, and titles that look
+ * like the links they are. Homage rather than copy — no wordmark, no borrowed artwork.
+ */
+:global([data-skin='classic']) .home {
+  background: #c0c0c0;
+}
+
+:global([data-skin='classic']) .poster {
+  border-radius: 0;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .duration {
+  border-radius: 0;
+}
+
+:global([data-skin='classic']) .cardTitle {
+  color: #000080;
+  text-decoration: underline;
+}
+
+:global([data-skin='classic']) .card:hover .cardTitle {
+  color: #1084d0;
+}
+
+/* The still sits over the drawn poster, so a file that fails to load leaves the gradient behind. */
+.still {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.credit {
+  margin-top: var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  max-width: 72ch;
+}

@@ -161,7 +161,10 @@ export function DesktopIcons() {
       const next = new Set(base);
       for (const [key, box] of boxes) {
         const hit =
-          box.right >= left && box.left <= left + width && box.bottom >= top && box.top <= top + height;
+          box.right >= left &&
+          box.left <= left + width &&
+          box.bottom >= top &&
+          box.top <= top + height;
         if (hit) next.add(key);
       }
       setSelection((current) => (sameSet(current, next) ? current : next));
@@ -194,6 +197,19 @@ export function DesktopIcons() {
 
       const additive = event.ctrlKey || event.metaKey;
       if (!additive) setSelection((current) => (current.size === 0 ? current : new Set()));
+
+      /*
+       * Touch never sweeps a band. A finger dragged across the desktop already means "scroll" to
+       * the browser, and the surface does not claim the gesture with `touch-action`, so the band
+       * used to be painted over a panning page by a gesture the user did not intend as a selection.
+       * A tap still clears the selection above; only the sweep is withheld.
+       *
+       * Tested per event rather than through `useCoarsePointer`, which reads the *primary* pointer:
+       * a touchscreen laptop reports fine, and would have kept the bug. This way each device keeps
+       * whichever of its pointers the gesture makes sense for. Pen is deliberately not excluded —
+       * a stylus is precise, and its drag is not also a scroll.
+       */
+      if (event.pointerType === 'touch') return;
 
       // `matches`, not `closest`: a press that landed on a window is *inside* the surface without
       // being *on* it, which is the same distinction the desktop's own context menu draws.

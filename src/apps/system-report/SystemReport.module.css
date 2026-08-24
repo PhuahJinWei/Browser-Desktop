@@ -1,6 +1,7 @@
+/* Already correct by hand before the primitive existed; moved onto it so there is one copy. */
 .page {
-  max-width: 1100px;
-  margin: 0 auto;
+  composes: column from '../../shell/layout.module.css';
+  --column-measure: 1100px;
   padding: var(--space-6) var(--space-5) var(--space-7);
 }
 

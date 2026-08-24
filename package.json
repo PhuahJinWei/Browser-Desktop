@@ -26,7 +26,8 @@
     "serve:pages": "node tools/serve-static.mjs",
     "build:pages": "node tools/build-pages.mjs",
     "build:runner": "node tools/build-app-runner.mjs",
-    "sync:weights": "node tools/sync-model.mjs"
+    "sync:weights": "node tools/sync-model.mjs",
+    "sync:stills": "node tools/fetch-watch-stills.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

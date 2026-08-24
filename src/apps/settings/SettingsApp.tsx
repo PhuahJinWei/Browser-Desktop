@@ -22,6 +22,23 @@ import { AppsPanel } from './AppsPanel';
 import styles from './SettingsApp.module.css';
 
 /**
+ * Restart the desktop after a reset.
+ *
+ * A reset tears state down without rebuilding it, and the running desktop goes on holding what it
+ * had: windows open on erased files, the icon layout still arranged, the sample corpus not put
+ * back — `sampleDataLoaded: false` only means anything to a boot that has not happened yet. So the
+ * reset is not really finished until the desktop is rebuilt from what the reset left behind, which
+ * is what boot already does perfectly well.
+ *
+ * It has to happen in this turn of the event loop rather than after a toast. The session is saved
+ * on a 400ms debounce (`Desktop.tsx`), so anything that waits long enough to be read is also long
+ * enough for that timer to write the session straight back over the one just cleared. Reloading
+ * immediately outruns it — and the desktop visibly coming back up is the confirmation a toast
+ * would have given, which is why neither caller posts one.
+ */
+const restart = () => location.reload();
+
+/**
  * Settings.
  *
  * Includes the destructive operations, deliberately: a local-first app that offers no way to
@@ -119,6 +136,7 @@ export default function SettingsApp() {
           <Segmented
             value={settings.wallpaper}
             options={[
+              { value: 'bloom', label: 'Bloom' },
               { value: 'aurora', label: 'Aurora' },
               { value: 'dusk', label: 'Dusk' },
               { value: 'grid', label: 'Grid' },
@@ -145,7 +163,12 @@ export default function SettingsApp() {
               <button
                 type="button"
                 className={styles.button}
-                onClick={() => updateSettings({ wallpaper: 'aurora', wallpaperFileId: null })}
+                onClick={() =>
+                  updateSettings({
+                    wallpaper: DEFAULT_SETTINGS.wallpaper,
+                    wallpaperFileId: null,
+                  })
+                }
               >
                 Use a built-in one
               </button>
@@ -455,7 +478,7 @@ export default function SettingsApp() {
             onClick={() => {
               resetSettings();
               clearSession();
-              notify({ title: 'Settings reset', level: 'info' });
+              restart();
             }}
           >
             Reset settings
@@ -476,7 +499,10 @@ export default function SettingsApp() {
                 await vfs.resetEverything();
                 await clearIndex();
                 updateSettings({ ...DEFAULT_SETTINGS, sampleDataLoaded: false });
-                notify({ title: 'Everything erased', level: 'success' });
+                // The stored session outlives the files it points at. Without this the restart
+                // faithfully reopens windows onto documents that were just erased.
+                clearSession();
+                restart();
               })
             }
           >

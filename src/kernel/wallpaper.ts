@@ -1,6 +1,6 @@
 import { notify, notifyError } from './notifications';
 import { pickFile } from './pickFile';
-import { settingsStore, updateSettings, type WallpaperFit } from './settings';
+import { DEFAULT_SETTINGS, settingsStore, updateSettings, type WallpaperFit } from './settings';
 import { vfs } from './vfs/client';
 import { ROOT_ID, type VfsNode } from './vfs/types';
 
@@ -67,10 +67,10 @@ export async function refreshWallpaper(): Promise<void> {
       // The image was deleted or its contents are gone. Say so once and fall back, rather than
       // leaving a setting that silently does nothing.
       clearBackground();
-      updateSettings({ wallpaper: 'aurora', wallpaperFileId: null });
+      updateSettings({ wallpaper: DEFAULT_SETTINGS.wallpaper, wallpaperFileId: null });
       notify({
         title: 'The wallpaper image is no longer there',
-        body: 'The desktop is back to Aurora. Pick another picture in Settings.',
+        body: 'The desktop is back to its default wallpaper. Pick another picture in Settings.',
         level: 'warning',
       });
       return;

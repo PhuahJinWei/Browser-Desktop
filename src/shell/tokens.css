@@ -223,8 +223,34 @@
 }
 
 /* -------------------------------------------------------------------------------------------- */
-/* Wallpapers — CSS gradients rather than images: nothing to download, nothing to license.         */
+/* Wallpapers                                                                                     */
+/*                                                                                                */
+/* Four of the five are CSS gradients: nothing to download, nothing to license. `bloom` is the     */
+/* exception and the modern default — an original render, encoded once at 76 KB and bundled from   */
+/* this directory, so it is still served by the one host the desktop is allowed to contact.        */
 /* -------------------------------------------------------------------------------------------- */
+
+/*
+ * Bloom, over a scrim, over the gradient it replaced.
+ *
+ * The scrim is not decoration. Desktop icon labels are near-black in the light theme and near-white
+ * in the dark one, and this image spans both ends of the range inside the strip the icons sit in —
+ * a pale wash at the top, a saturated blue where the ribbon crosses the columns lower down. Left
+ * bare it measures 2.74:1 against light-theme labels and 1.00:1 against dark-theme ones, so each
+ * theme lifts the image toward its own labels until the worst pixel in that strip clears 4.5:1:
+ * 30% white reaches 5.0:1, and 62% of near-black reaches 5.3:1. Measured over the real pixels of
+ * the left four icon columns, not estimated.
+ *
+ * The gradient underneath is the fallback layer. An image is the one wallpaper that can fail to
+ * arrive — a cold cache with no network — and without something beneath it the desktop would paint
+ * nothing at all rather than degrade.
+ */
+:root[data-wallpaper='bloom'] {
+  --desktop-bg:
+    linear-gradient(rgb(255 255 255 / 30%), rgb(255 255 255 / 30%)),
+    url('./wallpaper-bloom.webp') center center / cover no-repeat,
+    linear-gradient(160deg, #dfe7f0 0%, #c9d8e8 45%, #d8e4ea 100%);
+}
 
 :root[data-wallpaper='dusk'] {
   --desktop-bg:
@@ -258,6 +284,12 @@
   :root:not([data-theme='light'])[data-wallpaper='plain'] {
     --desktop-bg: #0b0f15;
   }
+  :root:not([data-theme='light'])[data-wallpaper='bloom'] {
+    --desktop-bg:
+      linear-gradient(rgb(8 12 20 / 62%), rgb(8 12 20 / 62%)),
+      url('./wallpaper-bloom.webp') center center / cover no-repeat,
+      linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
+  }
 }
 
 :root[data-theme='dark'][data-wallpaper='dusk'] {
@@ -273,6 +305,12 @@
 }
 :root[data-theme='dark'][data-wallpaper='plain'] {
   --desktop-bg: #0b0f15;
+}
+:root[data-theme='dark'][data-wallpaper='bloom'] {
+  --desktop-bg:
+    linear-gradient(rgb(8 12 20 / 62%), rgb(8 12 20 / 62%)),
+    url('./wallpaper-bloom.webp') center center / cover no-repeat,
+    linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -388,7 +426,8 @@
    answer as well as the less broken one — three options that all painted the same teal looked like
    a bug. Each is checked against white icon labels: 4.8:1, 5.4:1 and 6.9:1. A custom image is
    still honoured, because that is the user's own file rather than a style choice. */
-:root[data-skin='classic'][data-wallpaper='aurora'] {
+:root[data-skin='classic'][data-wallpaper='aurora'],
+:root[data-skin='classic'][data-wallpaper='bloom'] {
   --desktop-bg: #008080;
 }
 

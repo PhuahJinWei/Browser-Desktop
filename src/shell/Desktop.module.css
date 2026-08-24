@@ -15,33 +15,6 @@
   isolation: isolate;
 }
 
-.empty {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-6);
-  transform: translateX(-50%);
-  margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(8px);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  pointer-events: none;
-}
-
-.empty kbd {
-  padding: 1px 5px;
-  border: 1px solid var(--border-strong);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: var(--surface-1);
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  color: var(--text-secondary);
-}
-
 .snapPreview {
   position: absolute;
   z-index: 999999;
@@ -57,22 +30,6 @@
 }
 
 /* -- Classic skin ------------------------------------------------------------------------------ */
-
-:global([data-skin='classic']) .empty {
-  border-radius: 0;
-  border: 1px solid #000000;
-  background: #c0c0c0;
-  color: #000000;
-  box-shadow: var(--bevel-raised);
-  backdrop-filter: none;
-}
-
-:global([data-skin='classic']) .empty kbd {
-  border-radius: 0;
-  background: #c0c0c0;
-  box-shadow: var(--bevel-thin-raised);
-  color: #000000;
-}
 
 /* The snap preview was a dotted "rubber band" outline rather than a translucent fill. */
 :global([data-skin='classic']) .snapPreview {

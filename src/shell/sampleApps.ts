@@ -4,9 +4,9 @@ import { installApp, listInstalledApps } from '../kernel/installedApps';
  * Three apps that ship with the desktop, written only against the SDK.
  *
  * They exist to prove the platform rather than to be impressive: one asks for no permissions at
- * all, one uses the search service, and one writes files into its own folder. If the SDK were
- * missing something these would be the first to show it, and they are the reference anyone writing
- * a fourth app would read.
+ * all, one uses the search service, and one holds file permissions in order to show you where they
+ * stop. If the SDK were missing something these would be the first to show it, and they are the
+ * reference anyone writing a fourth app would read.
  *
  * Each is a single file with its manifest in a leading comment — the same format anyone else's app
  * uses. Nothing about them is privileged; they install through the same path as a dropped file.
@@ -197,27 +197,69 @@ function run() {
 os.ui.setTitle('Find');
 `;
 
-const SCRATCHPAD = `/* tabula-app
+const FENCE = `/* tabula-app
 {
   "id": "tabula.scratchpad",
-  "name": "Scratchpad",
-  "version": "1.0.0",
-  "description": "Jots notes into its own folder — and cannot see anything else",
+  "name": "Fence",
+  "version": "2.0.0",
+  "description": "Holds real file permissions and still cannot leave its own folder",
   "author": "Tabula",
   "permissions": ["fs:read", "fs:write", "storage"],
-  "defaultSize": { "width": 620, "height": 480 }
+  "defaultSize": { "width": 620, "height": 540 }
 }
 */
 
-// Demonstrates the file scoping. This app has fs:read and fs:write, and can still only reach
-// Apps/Scratchpad — try the button at the bottom, which asks for a file it has no business seeing.
+// The id is still tabula.scratchpad although the app is now called Fence, and deliberately so: an
+// id is an identity, a name is only a label. Changing the id would strand the permissions the user
+// already granted and orphan the folder their files are in. Every app platform renames without
+// re-identifying, and a reference app should show that rather than quietly get it wrong.
+//
+// What this demonstrates is the file scoping. fs:read and fs:write are both granted and both real,
+// and they still reach nothing but Apps/Fence. The refusal leads the window because the refusal is
+// the point; the notes underneath are only here to prove the permission does work in the direction
+// it was actually granted.
+
+var heading = document.createElement('p');
+heading.textContent = 'This app holds fs:read and fs:write.';
+heading.style.cssText = 'margin:0 0 4px;font-weight:600';
+
+var sub = document.createElement('p');
+sub.textContent =
+  'Both are genuine. Neither reaches past Apps/Fence. Ask for something else and watch.';
+sub.style.cssText = 'margin:0 0 12px;color:var(--muted);font-size:13px';
+
+var probe = document.createElement('button');
+probe.textContent = 'Try to read a file outside my folder';
+
+var verdict = document.createElement('p');
+verdict.style.cssText =
+  'margin:10px 0 0;padding:10px;border:1px solid var(--muted);font-family:ui-monospace,monospace;font-size:12px';
+verdict.textContent = 'Not asked yet.';
+
+probe.addEventListener('click', function () {
+  verdict.textContent = 'Asking the desktop for the root folder...';
+  os.fs.readText('root').then(function () {
+    verdict.textContent = 'UNEXPECTED - the sandbox allowed that. That would be a bug.';
+  }, function (error) {
+    verdict.textContent = 'Refused, as it should be - ' + String(error.message || error);
+  });
+});
+
+var rule = document.createElement('hr');
+rule.style.cssText = 'margin:18px 0;border:0;border-top:1px solid var(--muted)';
+
+var allowed = document.createElement('p');
+allowed.textContent = 'The same two permissions, pointed where they are allowed to go:';
+allowed.style.cssText = 'margin:0 0 8px;color:var(--muted);font-size:13px';
+
+document.body.append(heading, sub, probe, verdict, rule, allowed);
 
 var list = document.createElement('select');
 list.style.cssText = 'width:100%;margin-bottom:8px;padding:6px';
 
 var area = document.createElement('textarea');
 area.style.cssText =
-  'width:100%;height:260px;padding:10px;font-family:ui-monospace,monospace;font-size:13px;resize:vertical';
+  'width:100%;height:150px;padding:10px;font-family:ui-monospace,monospace;font-size:13px;resize:vertical';
 
 var row = document.createElement('div');
 row.style.cssText = 'display:flex;gap:8px;margin:10px 0';
@@ -239,7 +281,7 @@ function refresh() {
   os.fs.list().then(function (files) {
     list.textContent = '';
     var blank = document.createElement('option');
-    blank.textContent = files.length ? 'Open a note…' : 'No notes yet';
+    blank.textContent = files.length ? 'Open a note...' : 'No notes yet';
     blank.value = '';
     list.appendChild(blank);
     files.forEach(function (file) {
@@ -256,6 +298,10 @@ list.addEventListener('change', function () {
   os.fs.readText(list.value).then(function (text) {
     area.value = text;
     nameInput.value = list.options[list.selectedIndex].textContent;
+    // The host appends ' — Fence' to whatever is set here, so that a window cannot pass itself off
+    // as a system one. That means the useful thing to set is the context, not the app's own name:
+    // setTitle('Fence') would only ever render as 'Fence — Fence'.
+    os.ui.setTitle(nameInput.value);
     status.textContent = 'Opened.';
   }, function (error) { status.textContent = String(error.message || error); });
 });
@@ -263,46 +309,41 @@ list.addEventListener('change', function () {
 saveButton.addEventListener('click', function () {
   var name = (nameInput.value || 'note.txt').trim();
   os.fs.writeText(name, area.value).then(function (file) {
-    status.textContent = 'Saved ' + file.name + ' (' + file.size + ' bytes) into Apps/Scratchpad';
+    status.textContent = 'Saved ' + file.name + ' (' + file.size + ' bytes) into Apps/Fence';
+    os.ui.setTitle(file.name);
     os.storage.set('lastFile', file.name);
     refresh();
   }, function (error) { status.textContent = String(error.message || error); });
 });
-
-// The point of the demonstration: ask for something outside the app's folder and be refused.
-var probe = document.createElement('button');
-probe.textContent = 'Try to read a file outside my folder';
-probe.style.cssText = 'margin-top:12px;font-size:12px';
-probe.addEventListener('click', function () {
-  os.fs.readText('root').then(function () {
-    status.textContent = 'Unexpected: the sandbox let that through.';
-  }, function (error) {
-    status.textContent = 'Refused, as it should be — ' + String(error.message || error);
-  });
-});
-document.body.appendChild(probe);
 
 os.storage.get('lastFile').then(function (last) {
   if (last) nameInput.value = last;
 });
 
 refresh();
-os.ui.setTitle('Scratchpad');
 `;
 
 export const SAMPLE_APPS = [
   { source: CALCULATOR, id: 'tabula.calculator' },
   { source: FIND, id: 'tabula.find' },
-  { source: SCRATCHPAD, id: 'tabula.scratchpad' },
+  { source: FENCE, id: 'tabula.scratchpad' },
 ];
 
-/** Installs the bundled apps once, on first boot. */
+/**
+ * Installs the bundled apps, and replaces any whose source has changed since it was last written.
+ *
+ * This used to install only what was missing, which meant an edit to a bundled app reached every
+ * new desktop and no existing one. These three are the SDK's reference implementation, so a copy
+ * that has silently fallen behind the source in this file is worse than no copy at all. Comparing
+ * the stored source is enough to notice: `installApp` writes by id, so a changed app replaces
+ * itself and keeps the permissions and the folder already attached to that id.
+ */
 export async function installSampleApps(): Promise<number> {
-  const existing = new Set(listInstalledApps().map((app) => app.id));
+  const stored = new Map(listInstalledApps().map((app) => [app.id, app.source]));
   let installed = 0;
 
   for (const app of SAMPLE_APPS) {
-    if (existing.has(app.id)) continue;
+    if (stored.get(app.id) === app.source) continue;
     try {
       await installApp(app.source, 'bundled');
       installed++;

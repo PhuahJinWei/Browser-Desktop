@@ -6,8 +6,15 @@
   background: var(--surface-2);
 }
 
+/*
+ * 640px is what the field layout is tuned for: the label's hint caps at 48ch and the control sits
+ * opposite it, so widening the column only widens the gap between the two. The column was never
+ * the wrong width — it was the wrong position, sitting against the left edge of whatever the
+ * window had grown to.
+ */
 .section {
-  max-width: 640px;
+  composes: column from '../../shell/layout.module.css';
+  --column-measure: 640px;
   margin-bottom: var(--space-6);
 }
 

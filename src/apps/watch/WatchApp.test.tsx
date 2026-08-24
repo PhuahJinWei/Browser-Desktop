@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetSettings, updateSettings } from '../../kernel/settings';
 import { useWindowChip } from '../../kernel/windowChips';
 import WatchApp from './WatchApp';
+import { FEED } from './feed';
 
 /**
  * What these tests are for.
@@ -85,6 +86,15 @@ function unmount() {
 }
 
 const frames = () => [...container.querySelectorAll('iframe')];
+
+/** A film on the homepage, found by the title the card carries rather than by a styling class. */
+function card(index: number): HTMLButtonElement {
+  const film = FEED[index];
+  if (!film) throw new Error('no film at ' + index);
+  const found = container.querySelector<HTMLButtonElement>('button[title="' + film.title + '"]');
+  if (!found) throw new Error('no card for ' + film.title);
+  return found;
+}
 const chip = () => probeContainer.querySelector('[data-chip]')?.textContent ?? '';
 const text = () => container.textContent ?? '';
 
@@ -148,7 +158,7 @@ describe('before anything is asked for', () => {
   it('loads no frame and says so', () => {
     mount();
     expect(frames()).toHaveLength(0);
-    expect(text()).toContain('Paste a link to start');
+    expect(text()).toContain('Featured');
     expect(chip()).toBe('');
     unmount();
   });
@@ -177,7 +187,7 @@ describe('consent', () => {
     paste('https://www.youtube.com/watch?v=aqz-KE-bpKQ');
     click(button('Cancel'));
     expect(frames()).toHaveLength(0);
-    expect(text()).toContain('Paste a link to start');
+    expect(text()).toContain('Featured');
     unmount();
 
     // A second attempt must ask again, or "Cancel" quietly meant "not this once".
@@ -193,6 +203,53 @@ describe('consent', () => {
     paste('https://www.youtube.com/watch?v=aqz-KE-bpKQ');
     expect(text()).not.toContain('Watch plays videos from YouTube');
     expect(frames()).toHaveLength(1);
+    unmount();
+  });
+});
+
+/*
+ * The homepage is the app's largest surface and the one most likely to acquire a network request
+ * by accident — a thumbnail, a poster, a font — so it is tested for the absence of one rather than
+ * for looking right.
+ */
+describe('the homepage', () => {
+  it('renders every film without fetching anything to do it', () => {
+    mount();
+    expect(frames()).toHaveLength(0);
+    expect(container.querySelectorAll('button[title]')).toHaveLength(FEED.length);
+
+    // The grid has real pictures now, and that is fine: ADR 20's rule is about requests, not
+    // images. The stills are committed files served from this origin. What must never appear is a
+    // URL pointing off it — a hotlinked thumbnail would contact Google's image host the moment the
+    // window opened, before anyone had chosen a thing. So the assertion is not "no images", it is
+    // "nothing on this page points anywhere else".
+    const images = [...container.querySelectorAll('img')];
+    expect(images.length).toBeGreaterThan(0);
+    const remote = [...container.querySelectorAll('*')].filter((element) =>
+      ['src', 'href', 'srcset', 'poster'].some((attribute) =>
+        /^(https?:)?[/][/]/.test(element.getAttribute(attribute) ?? ''),
+      ),
+    );
+    expect(remote).toHaveLength(0);
+    expect(chip()).toBe('');
+    unmount();
+  });
+
+  it('puts a clicked film behind the same consent card as a pasted link', () => {
+    mount();
+    click(card(0));
+    expect(text()).toContain('Watch plays videos from YouTube');
+    expect(frames()).toHaveLength(0);
+    expect(chip()).toBe('');
+    unmount();
+  });
+
+  it('plays the film that was clicked, and only once consent is given', () => {
+    updateSettings({ watchConsent: true });
+    mount();
+    click(card(2));
+    const [frame] = frames();
+    expect(frame?.getAttribute('src')).toContain('/embed/' + FEED[2]!.id);
     unmount();
   });
 });

@@ -249,12 +249,6 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
             onSnapPreview={setSnapPreview}
           />
         ))}
-
-        {windows.length === 0 ? (
-          <p className={styles.empty}>
-            Nothing open. Press <kbd>Ctrl</kbd>+<kbd>K</kbd> for commands, or use the launcher.
-          </p>
-        ) : null}
       </div>
 
       <Taskbar

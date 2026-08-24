@@ -20,6 +20,8 @@ import {
   type Watched,
   type WatchedEntry,
 } from './watched';
+import { FEED, formatDuration, posterHue, type FeedFilm } from './feed';
+import { stillFor } from './stills';
 import styles from './WatchApp.module.css';
 
 /**
@@ -36,9 +38,9 @@ import styles from './WatchApp.module.css';
  * - nothing loads until a link is pasted, and the consent card is shown once before the first one;
  * - while a frame is up, a chip sits in the window's title bar naming the host, and it disappears
  *   on Stop or on close, because a badge that outlives the connection is worse than none;
- * - there are no thumbnails. Each would be a request to Google's image host fired the moment the
- *   app opened, before anyone chose anything. Text rows instead — the rule is that every network
- *   contact is one you just asked for;
+ * - no thumbnail is ever fetched. One hotlinked from Google's image host would fire the moment the
+ *   app opened, before anyone chose anything. The homepage's stills are committed files served from
+ *   this origin, and the lists stay text — every network contact is still one you asked for;
  * - no `iframe_api` script, so nothing of Google's runs in this origin. Title and channel arrive
  *   over the embed's own `postMessage` protocol, and `script-src` is unchanged.
  *
@@ -388,13 +390,7 @@ export default function WatchApp({ windowId, args }: AppProps) {
                 {...{ credentialless: 'true' }}
               />
             ) : (
-              <div className={styles.notice}>
-                <h2 className={styles.noticeTitle}>Paste a link to start</h2>
-                <p>
-                  This is the only window in Tabula that talks to another site — youtube.com — and
-                  only while something is loaded. Nothing is fetched before you paste.
-                </p>
-              </div>
+              <Home onPlay={(film) => play({ videoId: film.id })} />
             )}
           </div>
 
@@ -444,6 +440,78 @@ export default function WatchApp({ windowId, args }: AppProps) {
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+
+/**
+ * What the window shows when nothing is playing, which used to be an empty paste box.
+ *
+ * The whole page is local. It is rendered from a list compiled into the build, its posters are
+ * drawn from the video ids, and it issues no request of any kind — which is the point rather than
+ * an implementation detail. A visitor can browse the entire page with the Task Manager's network
+ * log at zero, and then watch it move on the click that starts a film. That is ADR 20's first
+ * constraint made demonstrable instead of merely asserted.
+ */
+function Home({ onPlay }: { onPlay: (film: FeedFilm) => void }) {
+  return (
+    <div className={styles.home}>
+      <div className={styles.homeHead}>
+        <h2 className={styles.homeTitle}>Featured</h2>
+        <p className={styles.homeNote}>
+          Short films from the Blender Foundation’s own channels, openly licensed. This page is part
+          of the desktop: nothing on it has been fetched — no thumbnails, no view counts, nothing
+          ranked for you. The first request to anyone happens when you press play, and the title bar
+          says so while it lasts. You can still paste any link above.
+        </p>
+      </div>
+      <ul className={styles.grid}>
+        {FEED.map((film) => {
+          const still = stillFor(film.id);
+          return (
+            <li key={film.id}>
+              <button
+                type="button"
+                className={styles.card}
+                onClick={() => onPlay(film)}
+                title={film.title}
+              >
+                <span
+                  className={styles.poster}
+                  style={{ '--poster-hue': posterHue(film.id) } as React.CSSProperties}
+                >
+                  {still ? (
+                    // Decorative: the title is right beside it, and announcing the frame twice helps
+                    // nobody. The drawn poster stays underneath as the fallback if it fails to load.
+                    <img
+                      className={styles.still}
+                      src={still}
+                      alt=""
+                      width={480}
+                      height={270}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className={styles.posterGlyph} aria-hidden>
+                      ▶
+                    </span>
+                  )}
+                  <span className={styles.duration}>{formatDuration(film.seconds)}</span>
+                </span>
+                <span className={styles.cardTitle}>{film.title}</span>
+                <span className={styles.cardMeta}>
+                  {film.channel} · {film.year}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className={styles.credit}>
+        Films and stills © Blender Foundation, released under CC-BY. The images are part of this
+        desktop and are served from it — opening this page asks YouTube for nothing.
+      </p>
+    </div>
+  );
+}
 
 function List({
   heading,

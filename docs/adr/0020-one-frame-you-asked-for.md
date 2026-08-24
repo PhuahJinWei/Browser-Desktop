@@ -91,3 +91,49 @@ an inference, which is what §13 gated it on.
 - **If a second exception is ever proposed, it needs its own record.** This one is not a precedent
   for "third-party frames are fine now"; it is a decision about one app, and the five constraints
   above are what it cost.
+
+## Addendum (M7): the homepage
+
+Watch opened onto an empty paste box for its first release. That was faithful to the five
+constraints and was also, plainly, a dead window — and a dead window is a bad place to make an
+argument, because a visitor with nothing to click has to take the privacy claim on faith.
+
+It now opens onto a **local homepage**: a fixed list of short films compiled into the build, laid
+out as a video index of the era. This is recorded here rather than treated as ordinary app work
+because a page called a "feed" is exactly the sort of thing that grows a network request, and the
+reasoning for why this one does not should outlive whoever wrote it.
+
+**It does not weaken any of the five constraints, and it strengthens the first.** Nothing on the
+page is fetched, ranked, personalised or refreshed. Browsing the whole thing makes precisely as
+many requests as looking at the wallpaper does: none. The first contact with anyone still happens
+on the click that starts a film, still behind the same consent card, and the chip still appears for
+exactly as long as the frame exists. The gain is evidential — the claim used to be a sentence in an
+empty window, and is now something a visitor can test by browsing a full page with the Task
+Manager's network log sitting at zero, and then watching it move on the click.
+
+Three things were ruled out in building it, each for a reason already in this record:
+
+- **No _hotlinked_ thumbnails**, exactly as above: they are the obvious way to fill a grid, and
+  every one would be a request to Google's image host fired on open. The page does show a still per
+  film, but each is a committed file served from this origin — fetched once at development time by
+  `npm run sync:stills`, never by the build and never by a browser. The rule here was always about
+  requests rather than about images, and this is the shape that honours it: the grid has real
+  pictures in it and still asks Google for nothing. A film with no still falls back to a poster
+  drawn from its video id, so a future addition that forgets one costs a plain tile rather than a
+  broken image. Redistributing a frame is possible at all because the films are CC-BY, and the
+  attribution that licence asks for sits under the grid.
+- **No view counts, ratings or "trending"**, which the era's page had and which this desktop cannot
+  know. Inventing them to make the grid look busy would be a fabricated claim about somebody else's
+  work, and the honest metadata — title, channel, running time, year — was verified when the list
+  was compiled rather than written to look plausible.
+- **Not a YouTube skin.** The app is still called Watch, carries no wordmark, logo or borrowed
+  artwork, and takes the _form_ of a period video index rather than reproducing anyone's page.
+  This is the same line the classic skin holds in [ADR 21](./0021-a-second-skin-and-why-it-is-the-default.md),
+  and it is worth more here, not less, because this is the one app that names another company.
+
+The films are the Blender Foundation's open movies, which is a licensing decision as much as an
+editorial one: they are openly licensed, so featuring them is defensible, and they are far less
+likely than an ordinary video to be deleted or to have embedding switched off underneath us. The
+list is hand-maintained in `src/apps/watch/feed.ts` and guarded by `feed.test.ts`, which checks its
+shape but deliberately never checks that the videos still exist — a test suite that quietly
+contacted YouTube would contradict the app it was testing.

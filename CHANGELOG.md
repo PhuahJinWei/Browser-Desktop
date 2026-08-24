@@ -15,6 +15,33 @@ Added
   ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md)).
 - The skin now reaches **sandboxed apps** too, carried in the boot message beside the theme, so the
   bundled sample apps follow the desktop without knowing the skin exists.
+- **Watch opens onto a homepage instead of an empty paste box.** Seventeen short films from the
+  Blender Foundation's own channels, laid out as a video index of the era — square sunken posters,
+  navy underlined titles, a running time in the corner. The page is part of the build rather than a
+  feed in the usual sense: nothing on it is fetched, ranked, personalised or refreshed, so browsing
+  the whole thing costs zero requests, and the first contact with anyone still happens on the click
+  that starts a film, behind the same consent card as a pasted link. It turns ADR 20's first
+  constraint from a sentence in an empty window into something a visitor can check for themselves
+  against the Task Manager's network log — and then watch move.
+- **Every film shows a real frame from itself, and none of them is hotlinked.** The stills are
+  committed to the repository as 480x270 WebP — 313 kB for all seventeen — and served from this
+  origin like any other asset. `npm run sync:stills` fetches and converts them once on a
+  developer's machine; the build never reaches the network, and neither does anybody's browser.
+  A thumbnail hotlinked from Google's image host would fire the moment the window opened, which
+  [ADR 20](./docs/adr/0020-one-frame-you-asked-for.md) rules out by name — but that rule was always
+  about requests rather than about images, and this is the shape that keeps it: the grid has real
+  pictures in it and still asks Google for nothing. Redistributing a frame is possible at all
+  because the films are CC-BY, and the attribution that asks for sits under the grid. A film
+  without a still falls back to a poster drawn from its video id, so a future addition that forgets
+  one costs a plain tile rather than a broken image.
+- **Still no view counts and no ratings.** The era's page had both and this desktop cannot know
+  either, so inventing them to make a grid look busy would be a claim about somebody else's work.
+  What is shown — title, channel, running time, year — was checked against YouTube's own oEmbed
+  endpoint when the list was compiled rather than written to look plausible.
+- It stays **Watch, not YouTube**: no wordmark, no logo, no borrowed artwork, and the form of a
+  period video index rather than a reproduction of anyone's page. The same line the classic skin
+  holds, and worth more here than anywhere else, because this is the one app that names another
+  company.
 - **The loading screen became a power-on self test.** Black screen, system monospace, the CGA
   sixteen, one line per step with leader dots running out to a status column. The form is the
   argument: a POST screen reports what the firmware actually found, which is what this boot
@@ -32,6 +59,59 @@ Fixed
   therefore never landed either: its variables live in the blocked stylesheet, so switching the
   desktop to dark left every sandboxed app light. Now allowed by hash, the way the bootstrap script
   already was — one stylesheet, pinned to the build, and the policy no weaker than before.
+- **The Scratchpad sample app was a worse Notes wearing a demo's job.** It shipped a textarea and
+  a Save button next to a desktop that already has Notes, and buried its actual purpose — proving
+  that a sandboxed app holding `fs:read` and `fs:write` still cannot read a byte outside its own
+  folder — in the last button on the page. It is now **Fence**: the refusal leads the window, the
+  notes sit underneath it as evidence that the permission does work in the direction it was
+  granted, and the name no longer promises a notepad. The id stays `tabula.scratchpad`, because an
+  id is an identity and a name is a label, and changing it would have stranded the permissions
+  already granted to it.
+- **A bundled app could never be corrected after its first install.** `installSampleApps` installed
+  only what was missing, so every edit to the three reference apps reached new desktops and no
+  existing one. It now compares the stored source against the source in the file and reinstalls
+  when they differ, which is what carried the rename above onto desktops that already had the old
+  app. `installApp` writes by id, so a replaced app keeps its permissions and its folder.
+- **The reference app taught `os.ui.setTitle` wrong.** The host appends ` — <app name>` to every
+  title so a window cannot impersonate a system one, so calling `setTitle` with the app's own name
+  could only ever render as "Scratchpad — Scratchpad". Fence now titles itself after the note it
+  has open, which is what the suffix is designed to sit behind. Find still does the older thing.
+- **A maximised Settings window left every control in the top-left corner.** The content column was
+  capped at 640px and never centred, so a 1434px window stranded 770px of empty grey down one side
+  — 24 pixels of margin on the left, 770 on the right. It centres now, and at the width the fields
+  were already designed for: widening the column would only have widened the gap between each
+  label and the control opposite it.
+- **`max-width` was doing two unrelated jobs with nothing to tell them apart.** A text measure caps
+  line length inside a flow that is already in the right place and must _not_ centre; a layout
+  column is content narrower than the window around it and must. The two are identical in a diff,
+  and About and Settings had each answered the question by hand — About correctly, Settings not.
+  The layout kind now exists once, as `column` in `src/shell/layout.module.css`, with the width
+  passed in through `--column-measure` and the centring not left to whoever writes the next app.
+  Both existing columns compose it. An audit of all thirteen apps at full width found no third
+  instance, and the one remaining capped container — the Links header, at 60ch — is the other kind
+  and correctly stays put.
+- **Resetting did not finish resetting.** Both buttons under Reset tore state down without
+  rebuilding it, so the desktop carried on holding what it had: windows open on erased files, the
+  icon layout still arranged, the sample corpus not put back — `sampleDataLoaded: false` only means
+  something to a boot that has not happened yet. Both now restart the desktop, which is what makes
+  the reset take, and the machine coming back up is the confirmation the toast used to give. The
+  restart has to be immediate rather than after a message: the session is saved on a 400ms
+  debounce, and anything slower lets that timer write the session back over the one just cleared.
+- **"Reset settings" quietly wrote a second copy of every sample file.** It cleared
+  `sampleDataLoaded`, and boot seeds from that flag without ever looking at the disk — so the next
+  start laid "Welcome to Tabula (2).md" and thirteen more down beside the originals. The flag
+  records what is on disk rather than anything the user prefers, so it is no longer reset with the
+  preferences. Erasing all data still clears it, and is still right to: there the files really are
+  gone.
+- **"Erase all data" left the session pointing at the files it had erased.** It never cleared it,
+  so a restart faithfully reopened windows onto documents that no longer existed.
+- **A finger dragged across the desktop drew a selection rectangle.** Touch has no gesture that
+  means "sweep a region" without also meaning "scroll", and the surface does not claim the drag
+  with `touch-action`, so the band was being painted over a page panning underneath it by a gesture
+  nobody intended as a selection. Touch no longer starts one. A tap still clears the selection, and
+  a stylus still sweeps — it is precise, and its drag is not also a scroll. The test is on the
+  pointer event rather than on the coarse-pointer media query, which reports the _primary_ pointer:
+  a touchscreen laptop reports fine, and would have kept the bug.
 - **The boot splash used to paint before its own styles.** They lived in a CSS module, and Vite
   serves those through JavaScript in development, so the opening frame was a bare list — bullets
   showing, rows overlapping — until the bundle caught up. The splash is static markup in

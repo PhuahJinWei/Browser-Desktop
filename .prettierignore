@@ -2,3 +2,5 @@ dist
 coverage
 public/coi-serviceworker.js
 docs/benchmarks/*.json
+# Written by tools/fetch-watch-stills.mjs; formatting it by hand would be undone on the next run.
+src/apps/watch/stills/README.md
