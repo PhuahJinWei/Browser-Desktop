@@ -32,6 +32,12 @@ import styles from './DesktopIcons.module.css';
  *
  * Positions are grid cells in the settings store, so an arrangement survives a reload, a resize and
  * an export (`kernel/desktop.ts`).
+ *
+ * Two gestures write to the DOM rather than to React state, per ADR 9: the rubber band that selects
+ * icons, and the ghosts that follow the pointer while icons are dragged. Both would otherwise mean
+ * a re-render of every icon on every pointer move, to move one rectangle. Selection is the
+ * exception and stays in state — it changes a handful of times across a whole drag, not sixty times
+ * a second, and the icons genuinely have to repaint when it does.
  */
 
 interface Shortcut {
@@ -54,6 +60,13 @@ export function DesktopIcons() {
   const [selection, setSelection] = useState<ReadonlySet<string>>(() => new Set());
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const elements = useRef(new Map<string, HTMLElement>());
+  const bandRef = useRef<HTMLDivElement>(null);
+  const ghostLayerRef = useRef<HTMLUListElement>(null);
+  /* So the band can read the selection it is extending without being rebuilt whenever it changes. */
+  const selectionRef = useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  });
 
   const shortcuts = useMemo<Shortcut[]>(() => {
     const hidden = new Set(settings.hiddenIcons);
@@ -107,18 +120,90 @@ export function DesktopIcons() {
     [shortcuts, layout],
   );
 
-  /* A click on anything that is not an icon drops the selection, the same as a real desktop. */
+  /* Rubber band ------------------------------------------------------------------------------ */
+
+  /**
+   * Sweeps a selection rectangle from a press on the bare desktop.
+   *
+   * Icon rectangles are read once, at the start: nothing moves during a band, so re-reading them
+   * on every pointer move would be a layout flush per frame for information that cannot have
+   * changed. The band itself is positioned relative to the surface, and the hit test runs in
+   * viewport coordinates, which is why both are measured together here.
+   */
+  const startBand = useCallback((event: PointerEvent, surface: HTMLElement, additive: boolean) => {
+    const band = bandRef.current;
+    if (!band) return;
+
+    const origin = surface.getBoundingClientRect();
+    const boxes = [...elements.current].map(
+      ([key, node]) => [key, node.getBoundingClientRect()] as const,
+    );
+    const base: ReadonlySet<string> = additive ? new Set(selectionRef.current) : new Set();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let sweeping = false;
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const left = Math.min(startX, moveEvent.clientX);
+      const top = Math.min(startY, moveEvent.clientY);
+      const width = Math.abs(moveEvent.clientX - startX);
+      const height = Math.abs(moveEvent.clientY - startY);
+      // A band that appears on the first stray pixel of a click is a flicker, not a gesture.
+      if (!sweeping && Math.hypot(width, height) < 4) return;
+      sweeping = true;
+
+      band.hidden = false;
+      band.style.left = `${left - origin.left}px`;
+      band.style.top = `${top - origin.top}px`;
+      band.style.width = `${width}px`;
+      band.style.height = `${height}px`;
+
+      const next = new Set(base);
+      for (const [key, box] of boxes) {
+        const hit =
+          box.right >= left && box.left <= left + width && box.bottom >= top && box.top <= top + height;
+        if (hit) next.add(key);
+      }
+      setSelection((current) => (sameSet(current, next) ? current : next));
+    };
+
+    const onUp = () => {
+      globalThis.removeEventListener('pointermove', onMove);
+      globalThis.removeEventListener('pointerup', onUp);
+      band.hidden = true;
+    };
+
+    globalThis.addEventListener('pointermove', onMove);
+    globalThis.addEventListener('pointerup', onUp);
+  }, []);
+
+  /*
+   * A click on anything that is not an icon drops the selection, the same as a real desktop; a
+   * press on the desktop surface itself also begins a band.
+   *
+   * Both live on the window rather than on the surface element. A listener on the surface would
+   * stop hearing about a pointer the moment it crossed onto a window or off the viewport, which is
+   * precisely when a band most needs to keep tracking — and it would leave the rectangle painted.
+   */
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
       // Not every pointerdown targets an element — one dispatched at the window does not — and a
       // listener on the window must survive whatever reaches it rather than throwing there.
       const target = event.target instanceof Element ? event.target : null;
       if (target?.closest('[data-desktop-icon]')) return;
-      setSelection((current) => (current.size === 0 ? current : new Set()));
+
+      const additive = event.ctrlKey || event.metaKey;
+      if (!additive) setSelection((current) => (current.size === 0 ? current : new Set()));
+
+      // `matches`, not `closest`: a press that landed on a window is *inside* the surface without
+      // being *on* it, which is the same distinction the desktop's own context menu draws.
+      if (event.button !== 0 || !(target instanceof HTMLElement)) return;
+      if (!target.matches('[data-desktop-surface]')) return;
+      startBand(event, target, additive);
     };
     globalThis.addEventListener('pointerdown', onPointerDown);
     return () => globalThis.removeEventListener('pointerdown', onPointerDown);
-  }, []);
+  }, [startBand]);
 
   const select = useCallback((key: string, additive: boolean) => {
     setSelection((current) => {
@@ -150,11 +235,9 @@ export function DesktopIcons() {
       const nodes = moving
         .map((key) => elements.current.get(key))
         .filter((node): node is HTMLElement => Boolean(node));
-      // React owns `left`/`top` here and never sets `transform`, but ADR 9's rule is to restore
-      // what was there rather than clear it, and the rule is cheaper to keep than to reason about.
-      const inline = nodes.map((node) => node.style.transform);
 
       let dragging = false;
+      let ghosts: HTMLElement[] = [];
       let dx = 0;
       let dy = 0;
 
@@ -162,16 +245,23 @@ export function DesktopIcons() {
         dx = moveEvent.clientX - startX;
         dy = moveEvent.clientY - startY;
         if (!dragging && Math.hypot(dx, dy) < 5) return;
-        dragging = true;
-        for (const node of nodes) node.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        // The icon being dragged stays where it is and a ghost travels instead, which is the era's
+        // own drag and also the honest one: nothing has moved until the drop commits a cell, and an
+        // icon that has already left its place is a promise the drop might not keep.
+        if (!dragging) {
+          dragging = true;
+          ghosts = nodes.map(ghostOf);
+          ghostLayerRef.current?.append(...ghosts);
+        }
+        for (const ghost of ghosts) ghost.style.transform = `translate(${dx}px, ${dy}px)`;
       };
 
       const onUp = () => {
         globalThis.removeEventListener('pointermove', onMove);
         globalThis.removeEventListener('pointerup', onUp);
-        nodes.forEach((node, index) => {
-          node.style.transform = inline[index] ?? '';
-        });
+        for (const ghost of ghosts) ghost.remove();
+        ghosts = [];
         if (!dragging) {
           // A plain click on one of several selected icons narrows the selection to that one,
           // which is the only way back to a single icon without clearing and starting again.
@@ -352,9 +442,43 @@ export function DesktopIcons() {
         })}
       </ul>
 
+      {/*
+        Both of these are rendered empty and written to by hand during a gesture. React declares no
+        children for either, so its reconciler has nothing to diff and never races the drag loop for
+        the same nodes. The ghost layer is a list because its contents are cloned `<li>` icons.
+      */}
+      <ul className={styles.ghostLayer} ref={ghostLayerRef} aria-hidden />
+      <div className={styles.band} ref={bandRef} hidden aria-hidden />
+
       {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </>
   );
+}
+
+/** Set equality, so a band that sweeps without changing anything does not re-render the desktop. */
+function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const key of a) if (!b.has(key)) return false;
+  return true;
+}
+
+/**
+ * A drag image: the icon copied, dimmed, and stripped of everything that made it interactive.
+ *
+ * The clone keeps its `left`/`top`, so dropping it into the ghost layer — which covers the same box
+ * as the icon list — puts it exactly over the original before the first translate moves it.
+ */
+function ghostOf(node: HTMLElement): HTMLElement {
+  const ghost = node.cloneNode(true) as HTMLElement;
+  // Without this the copy answers to the selection-clearing listener and to the arrow keys.
+  ghost.removeAttribute('data-desktop-icon');
+  ghost.removeAttribute('tabindex');
+  ghost.removeAttribute('role');
+  ghost.setAttribute('aria-hidden', 'true');
+  // CSS-module names are typed as possibly-absent, and classList.add('') throws rather than
+  // being a no-op, so this is a guard and not a formality.
+  if (styles.ghost) ghost.classList.add(styles.ghost);
+  return ghost;
 }
 
 /**

@@ -48,7 +48,7 @@
   align-items: center;
   gap: var(--space-2);
   height: 34px;
-  min-width: 210px;
+  min-width: 150px;
   padding: 0 var(--space-2) 0 var(--space-3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -66,15 +66,6 @@
 
 .search span {
   flex: 1;
-}
-
-.kbd {
-  padding: 1px 5px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 4px;
-  background: var(--surface-2);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
 }
 
 .windows {
@@ -229,8 +220,7 @@
  */
 @media (max-width: 720px) {
   .launcherLabel,
-  .search span,
-  .kbd {
+  .search span {
     display: none;
   }
 
@@ -264,10 +254,18 @@
  * ---------------------------------------------------------------------------------------------- */
 
 :global([data-skin='classic']) .bar {
-  /* 28px of bar plus the 2px raised edge above it, which is the era's measurement. */
-  height: 30px;
-  padding: 2px;
-  gap: 3px;
+  /* The bar is a flex item in a column, so `height` alone loses to the base rule's flex-basis and
+     the classic bar silently rendered at the modern 48px with 22px buttons adrift in the middle.
+     Both have to move together. 34px is the era's proportions loosened one notch: the buttons fill
+     the bar the way they did in 1995, without asking a 2026 display for a 22px target. */
+  height: calc(34px + env(safe-area-inset-bottom, 0px));
+  flex-basis: calc(34px + env(safe-area-inset-bottom, 0px));
+  /* The flat 2px dropped the safe-area inset the height still reserves, parking the buttons over
+     an iPhone home indicator. */
+  padding: 2px 2px calc(2px + env(safe-area-inset-bottom, 0px));
+  /* 3px read as a seam rather than a gap once each button carries a black border and a dark
+     bottom-right bevel: two neighbours put four dark pixels side by side. */
+  gap: 5px;
   background: #c0c0c0;
   /* A raised edge, not a white line: the bar is a panel standing above the desktop, and the
      bottom-right shadow is what stops it reading as a flat strip of grey. */
@@ -279,7 +277,7 @@
 /* The Start button is the tallest thing on the bar and the only bold one, which is most of how it
    reads as the way in rather than as the first of a row of tasks. */
 :global([data-skin='classic']) .launcher {
-  height: 22px;
+  height: 26px;
   padding: 0 5px 0 3px;
   gap: 4px;
   font-weight: 700;
@@ -287,20 +285,29 @@
 
 /* Task buttons are wider and flat-topped, and their text sits left where a title would. */
 :global([data-skin='classic']) .task {
-  height: 22px;
+  height: 26px;
   min-width: 140px;
   justify-content: flex-start;
   padding: 0 6px;
 }
 
 :global([data-skin='classic']) .search {
-  height: 22px;
+  height: 26px;
+}
+
+/* The task strip's own gap has to match the bar's, or the space before the first task button
+   differs from the space between the rest of them. */
+:global([data-skin='classic']) .windows {
+  gap: 5px;
 }
 
 /* The tray: one sunken well holding the chips and the clock, rather than each floating alone. */
 :global([data-skin='classic']) .status {
-  gap: 2px;
-  padding: 1px 2px;
+  height: 26px;
+  gap: 3px;
+  padding: 0 4px;
+  /* The bevel is the well's edge; the shared `border-left` would draw a second line beside it. */
+  border-left: 0;
   box-shadow: var(--bevel-thin-sunken);
 }
 
@@ -340,9 +347,16 @@
   color: #000000;
 }
 
-/* Status chips and the clock sit in sunken wells rather than pills. */
+/* Status chips and the clock sit in sunken wells rather than pills.
+
+   The clock is a `<time>`, so it stays inline unless told otherwise — its well was drawn straight
+   onto the glyphs, top and bottom, because zero vertical padding on an inline box is exactly as
+   tight as it sounds. Giving it a height and centring the text is what puts air inside the border. */
 :global([data-skin='classic']) .chip,
 :global([data-skin='classic']) .clock {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
   border-radius: 0;
   border: 1px solid transparent;
   background: #c0c0c0;
@@ -350,9 +364,32 @@
   color: #000000;
 }
 
-:global([data-skin='classic']) .kbd {
-  border-radius: 0;
-  background: #c0c0c0;
-  box-shadow: var(--bevel-thin-raised);
-  color: #000000;
+:global([data-skin='classic']) .clock {
+  padding: 0 8px;
+}
+
+/* A finger needs the same 40px here as anywhere else. The shared `pointer: coarse` rule above
+   cannot deliver it: every classic selector carries an extra `[data-skin]` and outranks it. */
+@media (pointer: coarse) {
+  :global([data-skin='classic']) .bar {
+    height: calc(48px + env(safe-area-inset-bottom, 0px));
+    flex-basis: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :global([data-skin='classic']) .launcher,
+  :global([data-skin='classic']) .search,
+  :global([data-skin='classic']) .task {
+    height: 40px;
+  }
+
+  /* The well and its contents grow with the bar so the bell keeps a reachable target and the
+     clock's border keeps its distance from the digits. */
+  :global([data-skin='classic']) .status {
+    height: 44px;
+  }
+
+  :global([data-skin='classic']) .chip,
+  :global([data-skin='classic']) .clock {
+    height: 38px;
+  }
 }

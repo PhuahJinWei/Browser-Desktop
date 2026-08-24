@@ -6,7 +6,7 @@
  * about Rust" finds the title), it can be deleted like anything else, and the setup export carries
  * it for free. The app is a view over a file, which is the rule everywhere else in this desktop.
  *
- * The format is chosen to survive a human editing it in Notes. Parsing is deliberately lenient —
+ * The format is chosen to survive a human editing it in Notepad. Parsing is deliberately lenient —
  * an unreadable line is skipped rather than throwing away the rest of the file — and anything
  * outside the two headed sections is preserved on write, so a note someone typed at the top of
  * their own file is not silently eaten by the next save.
@@ -182,7 +182,7 @@ export function serialiseWatched(watched: Watched): string {
   return parts.join('\n');
 }
 
-/** A fresh file, with the header a reader deserves if they open it in Notes before Watch. */
+/** A fresh file, with the header a reader deserves if they open it in Notepad before Watch. */
 export function emptyWatched(): Watched {
   return {
     saved: [],

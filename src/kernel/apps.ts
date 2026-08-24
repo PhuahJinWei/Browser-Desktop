@@ -55,11 +55,14 @@ export const APPS: AppDefinition[] = [
     singleton: true,
   },
   {
+    // The id stays 'notes' although the app is called Notepad. It is the key that saved icon
+    // positions, hidden-icon lists and restored sessions were written under, so changing it would
+    // quietly scatter the arrangement of every desktop that already exists.
     id: 'notes',
-    name: 'Notes',
+    name: 'Notepad',
     icon: 'note',
-    description: 'Write notes that become searchable as you type',
-    component: lazy(() => import('../apps/notes/NotesApp')),
+    description: 'Write and save notes as ordinary Markdown files',
+    component: lazy(() => import('../apps/notepad/NotepadApp')),
     defaultSize: { width: 860, height: 600 },
   },
   {

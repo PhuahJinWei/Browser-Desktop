@@ -8,7 +8,7 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 ┌──────────────────────────── Browser tab (static files only) ──────────────────────────────┐
 │ SHELL (main thread, React)                                                                │
 │   desktop · window frames · taskbar · launcher · command palette · notifications · boot   │
-│   apps: Files · Viewer · Notes · Search · Photos · Audio · Video · Settings ·             │
+│   apps: Files · Viewer · Notepad · Search · Photos · Audio · Video · Settings ·           │
 │         Task Manager · About                                                              │
 │                                                                                           │
 │ KERNEL (TypeScript, main thread)                                                          │

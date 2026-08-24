@@ -30,8 +30,8 @@ your own files, at an offset you can open and check.
    PDFs, written by the app itself.
 2. Open **Search** and click the example _invoice for the monitor_. The top result is the invoice,
    and you get the passage, not just the file name.
-3. Open **Notes**, type a heading and a sentence. It saves as a Markdown file, renames itself from
-   the heading, and is searchable seconds later.
+3. Open **Notepad**, type a sentence and press **Ctrl+S**. It saves as an ordinary Markdown file
+   and is searchable seconds later.
 4. Open **Video → Sample**. The desktop draws a short film and encodes it, live, in front of you —
    half a minute, because a canvas recorder runs at wall-clock speed. Then scrub to any point and
    save that frame as a picture, or cut ten seconds out into a file of its own.
@@ -98,7 +98,7 @@ Task Manager shows the whole request log so you can check all of this rather tha
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.                        |
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                   |
-| **Notes**        | Markdown notes stored as ordinary files, auto-titled from the first heading, indexed as you write.                                                                                      |
+| **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                             |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                  |
 | **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                     |
 | **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                        |

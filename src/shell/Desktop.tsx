@@ -214,6 +214,8 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
       <div
         ref={areaRef}
         className={styles.area}
+        /* What DesktopIcons tests a press against before starting a rubber band. */
+        data-desktop-surface
         onPointerDown={onAreaPointerDown}
         onContextMenu={(event) => {
           // Only the bare desktop: a menu raised over a window belongs to that window.

@@ -16,7 +16,6 @@ import { clearNotifications } from '../kernel/notifications';
 import { useJobSummary } from '../kernel/jobs';
 import { useUnreadCount } from '../kernel/notifications';
 import { useOnlineStatus } from '../kernel/network';
-import { useCapabilities } from './capabilitiesContext';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { useSetting } from '../kernel/settings';
 import { AppIcon } from './PixelIcon';
@@ -26,9 +25,10 @@ import styles from './Taskbar.module.css';
 /**
  * The taskbar.
  *
- * Doubles as the system's honesty panel: the chips on the right report which inference backend is
- * live, whether background work is running, and whether the tab is online. The offline indicator
- * is not decoration — being able to point at it and say "still working" is the demo.
+ * Doubles as the system's honesty panel: the chips on the right report whether background work is
+ * running and whether the tab is online. The offline indicator is not decoration — being able to
+ * point at it and say "still working" is the demo. The backend a job actually ran on is a detail
+ * for System Report and Task Manager, not a permanent fixture of the bar.
  */
 
 function Clock() {
@@ -72,7 +72,6 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
   const jobs = useJobSummary();
   const unread = useUnreadCount();
   const online = useOnlineStatus();
-  const capabilities = useCapabilities();
   const launcherLabel = useSetting('skin') === 'classic' ? 'Start' : 'Apps';
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
@@ -146,10 +145,18 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         <span className={styles.launcherLabel}>{launcherLabel}</span>
       </button>
 
-      <button type="button" className={styles.search} onClick={onOpenPalette}>
+      {/*
+        The accelerator moved from a visible chip to the tooltip. `title` describes rather than
+        names, so the button still announces as "Search..." and the shortcut is not lost with it.
+      */}
+      <button
+        type="button"
+        className={styles.search}
+        onClick={onOpenPalette}
+        title="Search commands (Ctrl+K)"
+      >
         <AppIcon name="search" size={15} />
-        <span>Search commands…</span>
-        <kbd className={styles.kbd}>Ctrl K</kbd>
+        <span>Search...</span>
       </button>
 
       <div
@@ -205,32 +212,6 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
             offline
           </span>
         ) : null}
-
-        <span
-          onContextMenu={(event) =>
-            openMenu(event, [
-              { id: 'chip.about', label: 'About this machine', run: () => void launchApp('about') },
-              { id: 'chip.tasks', label: 'Task Manager', run: () => void launchApp('tasks') },
-              separator('chip.s1'),
-              {
-                id: 'chip.backend',
-                label: 'Change the backend in Settings',
-                run: () => void launchApp('settings'),
-              },
-            ])
-          }
-          className={styles.chip}
-          title={
-            capabilities
-              ? `Inference backend: ${capabilities.backend}${
-                  capabilities.gpu.vendor ? ` · GPU: ${capabilities.gpu.vendor}` : ''
-                }`
-              : 'Probing hardware…'
-          }
-        >
-          <AppIcon name={capabilities?.backend === 'webgpu' ? 'bolt' : 'cpu'} size={13} />
-          {capabilities?.backend ?? '…'}
-        </span>
 
         <button
           type="button"

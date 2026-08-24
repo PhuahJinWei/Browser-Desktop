@@ -83,6 +83,37 @@
   text-shadow: 0 1px 3px rgb(255 255 255 / 70%);
 }
 
+/*
+ * The rubber band, and the ghosts a drag leaves under the pointer.
+ *
+ * Neither declares `display`, deliberately: the band is toggled with the `hidden` attribute, and an
+ * author rule setting `display` here would beat the browser's own `[hidden] { display: none }` and
+ * strand a rectangle on the desktop.
+ */
+.band {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  pointer-events: none;
+}
+
+.ghostLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.ghost {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* -- Classic skin ------------------------------------------------------------------------------ *
  * Desktop icons of this era sat directly on the wallpaper: no tile, no rounding. Selection was the
  * label filling with the selection navy, and the glyph itself did not change colour.
@@ -127,4 +158,12 @@
 
 :global([data-skin='classic']) .selected .icon {
   color: #ffffff;
+}
+
+/* The band was a one-pixel dotted outline with nothing inside it — drawn by inverting the pixels
+   under it, which is why it stayed visible over any wallpaper. */
+:global([data-skin='classic']) .band {
+  border: 1px dotted #ffffff;
+  border-radius: 0;
+  background: transparent;
 }

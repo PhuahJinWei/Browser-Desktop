@@ -85,11 +85,16 @@
  * A menu of the era: a raised grey panel with no rounding and no shadow, rows that highlight edge
  * to edge in the selection navy, and separators etched rather than drawn as a single grey line.
  *
- * The shortcut column keeps its own colour until the row is highlighted, when everything in the row
- * has to go white together — a shortcut left grey on navy is the detail that gives a reproduction
- * away, and it is also simply unreadable.
+ * The paint was right before the *proportions* were. A menu of this era is tight — an 18px row and
+ * a panel exactly as wide as its widest entry — and the modern defaults underneath were a 26px row
+ * inside a 196px floor, so short menus came out as wide grey slabs with the text swimming in them.
+ * That reads as a modern menu wearing 1995 colours, which is the one thing a reproduction cannot
+ * afford. `line-height` sets the row height rather than vertical padding, because the check gutter
+ * and the accelerator have to sit on the same baseline box as the label.
  */
 :global([data-skin='classic']) .menu {
+  /* Content-width, like the era. A floor here is what made every short menu the same wide slab. */
+  min-width: 0;
   padding: 2px;
   border: 1px solid #000000;
   border-radius: 0;
@@ -97,10 +102,47 @@
   box-shadow: var(--bevel-raised);
 }
 
+/*
+ * A menu row is not a push button, and in this skin that has to be said out loud: classic.css gives
+ * every `button` a raised bevel and a pressed nudge at zero specificity, and `.item` overrode the
+ * border and background but stayed silent on both of those — so each row kept its bevel and the
+ * whole menu rendered as a stack of raised grey keys. A row of the era is flat text on the shared
+ * panel; the navy fill is its only state, and clicking one does not depress it.
+ */
 :global([data-skin='classic']) .item {
-  padding: 3px var(--space-2);
+  grid-template-columns: 14px 1fr auto;
+  gap: 6px;
+  padding: 1px 6px;
+  line-height: 16px;
   border-radius: 0;
   color: #000000;
+  box-shadow: none;
+}
+
+:global([data-skin='classic']) .item:active:not(:disabled) {
+  box-shadow: none;
+  translate: none;
+}
+
+/*
+ * Everything in a row shares the row's colour, in every state.
+ *
+ * The check mark and the accelerator used to paint themselves — accent and muted grey — which meant
+ * each state needed its own rule to drag them back, and the highlighted row had a grey accelerator
+ * sitting on navy until one did. Inheriting is both fewer rules and the thing that cannot drift:
+ * black on grey, white on navy, and the disabled grey, all for free.
+ */
+:global([data-skin='classic']) .shortcut,
+:global([data-skin='classic']) .check {
+  color: inherit;
+}
+
+/* The accelerator is the same face and size as the label, pushed to the right edge — it was never
+   a smaller monospace annotation the way a modern menu writes it. */
+:global([data-skin='classic']) .shortcut {
+  padding-left: var(--space-5);
+  font-family: inherit;
+  font-size: inherit;
 }
 
 :global([data-skin='classic']) .item:hover:not(:disabled),
@@ -108,13 +150,6 @@
   background: #000080;
   color: #ffffff;
   outline: none;
-}
-
-:global([data-skin='classic']) .item:hover:not(:disabled) .shortcut,
-:global([data-skin='classic']) .item:focus-visible .shortcut,
-:global([data-skin='classic']) .item:hover:not(:disabled) .check,
-:global([data-skin='classic']) .item:focus-visible .check {
-  color: #ffffff;
 }
 
 /* Disabled text was embossed — grey with a white shadow a pixel down and right. Kept at a readable
@@ -143,4 +178,13 @@
   margin: 3px 1px;
   border-top: 1px solid #808080;
   border-bottom: 1px solid #ffffff;
+}
+
+/* A long press raises this menu on touch too, and the classic rules above outrank the shared
+   `pointer: coarse` block purely by carrying an extra `[data-skin]`. Period metrics are not worth
+   a row a finger misses. */
+@media (pointer: coarse) {
+  :global([data-skin='classic']) .item {
+    padding: var(--space-2) 6px;
+  }
 }

@@ -47,12 +47,21 @@
   box-shadow: var(--bevel-raised);
 }
 
-/* Pressed pops the bevel inward and nudges the label, which is what sold the illusion. Left more
-   specific than the states above on purpose: pressing anything should look pressed. */
+/*
+ * Pressed pops the bevel inward and nudges the label, which is what sold the illusion. Left more
+ * specific than the states above on purpose: pressing anything should look pressed.
+ *
+ * The nudge is `translate`, not `padding-top`/`padding-left`. Those two declarations *replace* the
+ * padding a component set, and a button that is sized by its padding therefore collapses while it
+ * is held: a list row padded 8px lost 7px of height on every click and visibly shrank under the
+ * pointer. Only fixed-height buttons — the taskbar's — survived it, which is why it read as a
+ * Notepad bug rather than a skin-wide one. Moving the whole box leaves layout alone by
+ * construction, whatever a component pads itself with, and `translate` composes with a `transform`
+ * rather than overwriting one.
+ */
 :where([data-skin='classic']) button:active:not(:disabled) {
   box-shadow: var(--bevel-sunken);
-  padding-top: 1px;
-  padding-left: 1px;
+  translate: 1px 1px;
 }
 
 :where([data-skin='classic']) button:disabled {

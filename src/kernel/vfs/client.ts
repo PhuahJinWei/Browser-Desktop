@@ -20,7 +20,7 @@ import { ROOT_ID } from './types';
  *
  * Beyond forwarding calls to the worker it does one thing that matters: every mutation announces
  * what changed, locally and to other tabs. Views subscribe rather than poll, so a file created in
- * the Notes app appears in an open Files window without either app knowing the other exists.
+ * the Notepad app appears in an open Files window without either app knowing the other exists.
  */
 
 type ChangeListener = (change: VfsChange) => void;

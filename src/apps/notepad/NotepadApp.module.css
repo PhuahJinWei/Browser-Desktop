@@ -1,0 +1,272 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--surface-2);
+}
+
+.menuBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+
+/*
+ * A menu title is not a push button, and this is where that has to be said out loud: the classic
+ * skin gives every `button` a bevel at zero specificity, so a title that painted nothing would come
+ * out as a row of raised grey keys — which is exactly what the toolbar this replaced looked like.
+ * The whole affordance is the highlight while its menu is down.
+ */
+.menuTitle {
+  padding: 3px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.menuTitle:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.menuTitleOpen,
+.menuTitleOpen:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 210px;
+  flex: 0 0 auto;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.sidebarHeader {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: var(--space-1);
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.listItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.listItem:hover:not(.listItemActive) {
+  background: var(--surface-3);
+}
+
+.listItemActive {
+  background: var(--accent-subtle);
+}
+
+.listName {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listDate {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.renameInput {
+  width: 100%;
+  min-width: 0;
+  padding: 1px 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.listEmpty {
+  padding: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.editorPane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.editor {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.saveState {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  height: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* The menu bar is a flat grey band, not a raised strip: the era drew no edge between it and the
+   window's client area, and one here reads as a toolbar again. */
+:global([data-skin='classic']) .menuBar {
+  gap: 0;
+  padding: 1px 2px;
+  border-bottom: 0;
+  background: #c0c0c0;
+}
+
+:global([data-skin='classic']) .menuTitle,
+:global([data-skin='classic']) .menuTitle:hover {
+  padding: 2px 6px;
+  /* Set the band height from the text box, as the menus do — 13px MS Sans Serif with a default
+     line-height gives a 24px bar, and the era's is twenty. */
+  line-height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #000000;
+  box-shadow: none;
+  /* Titles do not depress; the classic press nudge would slide the word a pixel as its menu opens. */
+  translate: none;
+}
+
+:global([data-skin='classic']) .menuTitleOpen,
+:global([data-skin='classic']) .menuTitleOpen:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* Inside a menu bar the dotted focus rectangle belongs around the word, not inset into it. */
+:global([data-skin='classic']) .menuTitle:focus-visible {
+  outline-offset: -1px;
+}
+
+/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
+:global([data-skin='classic']) .list {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .listItem:hover:not(.listItemActive) {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .listItemActive {
+  background: #000080;
+}
+
+:global([data-skin='classic']) .listItemActive .listName,
+:global([data-skin='classic']) .listItemActive .listDate {
+  color: #ffffff;
+}
+
+/*
+ * The edit area is white, and that is not a preference — it is what a text field is in this era.
+ * `classic.css` already paints every textarea white at zero specificity; this rule exists because
+ * the modern `.editor` sets `background: transparent` to sit on the app's own surface, and a class
+ * outranks that deliberately weightless default. So the skin lost, and the one part of the window
+ * you actually type into came out the same grey as the chrome around it.
+ */
+:global([data-skin='classic']) .editor {
+  padding: var(--space-2);
+  background: #ffffff;
+  color: #000000;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .renameInput {
+  border-radius: 0;
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: none;
+}
+
+:global([data-skin='classic']) .statusBar {
+  border-top: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .saveState {
+  color: #000000;
+}

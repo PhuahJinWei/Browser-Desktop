@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { isTypingTarget } from '../kernel/commands';
 import { Icon } from './Icon';
 import styles from './ContextMenu.module.css';
@@ -14,6 +15,14 @@ import styles from './ContextMenu.module.css';
  * Right-click is not the only way in: `Shift+F10` and the menu key raise the same menu from the
  * keyboard, and the menu is arrow-navigable once open, because a menu that only a mouse can reach
  * is a feature half the users do not have.
+ *
+ * It renders through a portal to `document.body`, and that is a correctness fix rather than tidiness.
+ * A window frame carries `contain: layout paint` so an app's contents can never reflow the desktop;
+ * a side effect nobody asks for is that the frame then becomes the containing block for `position:
+ * fixed` descendants. This menu is fixed and positioned in viewport coordinates, so every menu
+ * raised inside a window — in Files, in Notepad, on any file row — was landing offset by exactly
+ * that window's top-left corner. Escaping to the body is what makes "at the pointer" mean the same
+ * thing everywhere; React events still bubble through the React tree, so nothing else moves.
  */
 
 export interface MenuAction {
@@ -164,7 +173,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
     event.stopPropagation();
   };
 
-  return (
+  return createPortal(
     <div
       ref={ref}
       className={styles.menu}
@@ -198,7 +207,8 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
           </button>
         ),
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -208,6 +218,14 @@ export interface ContextMenuController {
   menu: MenuRequest | null;
   /** Opens at the pointer, or at the element's corner when raised from the keyboard. */
   open: (event: React.MouseEvent | React.KeyboardEvent, items: MenuSpec) => void;
+  /**
+   * Opens flush under an element, ignoring the pointer entirely.
+   *
+   * What a menu bar needs: a menu dropped from "Edit" belongs under the word Edit, whether it was
+   * reached by click, by keyboard, or by sliding along an already-open bar — and in none of those
+   * cases is where the pointer happens to be the right answer.
+   */
+  openUnder: (anchor: HTMLElement, items: MenuSpec) => void;
   close: () => void;
 }
 
@@ -227,9 +245,14 @@ export function useContextMenu(): ContextMenuController {
     setMenu({ x: Math.round(box.left + 8), y: Math.round(box.bottom - 4), items });
   }, []);
 
+  const openUnder = useCallback((anchor: HTMLElement, items: MenuSpec) => {
+    const box = anchor.getBoundingClientRect();
+    setMenu({ x: Math.round(box.left), y: Math.round(box.bottom), items });
+  }, []);
+
   const close = useCallback(() => setMenu(null), []);
 
-  return { menu, open, close };
+  return { menu, open, openUnder, close };
 }
 
 /**
