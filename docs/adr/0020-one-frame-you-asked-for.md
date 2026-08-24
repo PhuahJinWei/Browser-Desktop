@@ -61,11 +61,13 @@ spike is recorded in §13 of `plan v2.md`, with the harness kept at
 frame on the same page, identical but for the attribute, is **refused** — so the attribute is what
 admits it, rather than the frame having been allowed all along.
 
-**One half of that spike is still open at the time of writing**, and this record says so rather
-than rounding up: the isolated environment available for testing could not stream YouTube media at
-all, and the environment that could stream it registered no service worker and so was not isolated.
-Loading, initialising and the `postMessage` handshake are all confirmed under real isolation.
-Bytes flowing while isolated is an inference from the two halves, not a measurement.
+**Measured in full.** An earlier draft of this record left one half open, because the two
+environments available at the time each covered one half and neither covered both — one was
+isolated but could not stream YouTube media at all, the other streamed but registered no service
+worker. It has since been confirmed in a real Chrome with `crossOriginIsolated: true`: the
+credentialless frame reached `PLAYING` with `currentTime` past zero, and the control frame — the
+same frame minus the attribute — was refused. So the decision rests on a measurement rather than on
+an inference, which is what §13 gated it on.
 
 ## Consequences
 

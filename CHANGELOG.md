@@ -64,9 +64,11 @@ Known limits
 - **The monitor sees the frame, not inside it.** Our one request appears in Resource Timing; the
   dozens the player makes within the frame cannot, and the record says so rather than implying
   otherwise.
-- **One spike measurement is still open** and §13 of the plan states it plainly: playback under
-  cross-origin isolation is an inference from two environments that each covered one half, not a
-  measurement. `docs/spikes/m7-credentialless-embed.html` settles it in a real browser.
+- **The gate was measured and passed.** In a real Chrome with `crossOriginIsolated: true`, the
+  credentialless frame reached `PLAYING` and the control frame — the same frame minus the attribute
+  — was refused by COEP. The control is the result as much as the player is: it shows the attribute
+  is what admits the frame rather than the frame having been allowed all along. Harness kept at
+  `docs/spikes/m7-credentialless-embed.html`; details in §13 of the plan.
 
 ## [Unreleased] — a second skin
 

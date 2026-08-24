@@ -406,7 +406,7 @@ contrast bar, with any departure named; switching is instant and neither skin re
 
 ---
 
-### M7 — Watch · v0.6 (~1 FTE-week) · **app built; one spike measurement still open**
+### M7 — Watch · v0.6 (~1 FTE-week) · **shipped; the gate measured and passed**
 
 **What it is.** A YouTube player in a window, and deliberately not a browser. The distinction is
 the whole design: a browser-in-browser fails the first time a visitor types `google.com` (sites
@@ -620,46 +620,38 @@ Status after M0 — see `docs/benchmarks/` and `docs/adr/` for the evidence behi
 6. **Open.** Limited-mode wording for Safari/Firefox — needs the M1 import UI to exist first.
 7. **Open.** Large-file hashing. Deferred to M1 with the import pipeline; OPFS measured at ~591 MB/s write, so hashing, not I/O, will be the bottleneck.
 8. **Open, as planned.** Sandboxed-app runner placement — spike lands in M3.
-9. **Half resolved — the M7 gate. The architectural risk is gone; the last step is unverified.**
-   Measured 2026-08-24 in Chrome 151 against the Pages-simulation build (`serve:pages`, no COOP/COEP
-   headers, isolation from our own service worker). Harness kept at
+9. **Resolved — the M7 gate. PASS.** Confirmed in a real Chrome on the project owner's machine,
+   against the Pages-simulation build (`serve:pages`, no COOP/COEP headers, isolation supplied by
+   our own service worker — the arrangement that actually ships). Harness kept at
    `docs/spikes/m7-credentialless-embed.html`, which is not part of the build.
 
-   **What passed.** The origin is genuinely isolated (`crossOriginIsolated: true`) and
-   `credentialless` is supported. `youtube-nocookie.com/embed/<id>` **loads and fully initialises**
-   inside `<iframe credentialless>`: the real player renders, reports the title, a duration of 10:35
-   and a quality ladder to hd2160, and the embed's own `postMessage` protocol handshakes (`onReady`,
-   `initialDelivery`, `infoDelivery`) with no `iframe_api` script and no `script-src` change. A
-   control frame in the same page, identical but for the attribute, is **refused by COEP** — it
-   renders the browser's error page and never speaks. That contrast is the result: the frame is not
-   merely tolerated, the attribute is what admits it, which is the thing that could not have been
-   reasoned out.
+   All four conditions held at once:
 
-   **What could not be measured, and why it is not a COEP problem.** Playback never starts: the
-   player sits in state 3 (BUFFERING) with `currentTime` at 0. This is the harness environment, not
-   the design. Loading the same embed **top-level** — no iframe, no isolation, no policy of ours —
-   leaves its `<video>` at `networkState: 0` (NETWORK_EMPTY), `readyState: 0` and an empty
-   `currentSrc`, so no media source is ever attached; and a plain frame on a **non-isolated** origin
-   buffers identically. Every codec YouTube uses reports supported and MSE is present. The automated
-   browser cannot stream YouTube media at all, which rules out COEP, `credentialless`, the frame and
-   the CSP as causes but leaves the final step untested.
+   - `crossOriginIsolated: true` — the origin is genuinely isolated, so this is the real case and
+     not a relaxed one;
+   - `credentialless` supported;
+   - **A, the credentialless frame: `PLAYING`, `currentTime` reached 1.8s.** Bytes flowing, picture
+     on screen, the embed's own `postMessage` protocol handshaking (`onReady`, `initialDelivery`)
+     with no `iframe_api` script and no `script-src` change;
+   - **B, the control — the same frame minus the attribute: refused by COEP**, the browser's error
+     page, never spoke.
 
-   **A second environment, narrowing it further (same day, while building the app).** In the
-   in-app browser pane the frame — carrying the `credentialless` attribute, confirmed on the
-   element — **plays normally**: picture, sound, title and channel over `postMessage`. But that
-   pane registers no service worker at all, so it is not isolated either. The two environments
-   therefore cover one half each and neither covers both: one is isolated but cannot stream, the
-   other streams but is not isolated. Nothing observed in either suggests the halves interact —
-   the frame loads identically in both — but that is an inference, not a measurement.
+   B is the result as much as A. It shows the attribute is what admits the frame, rather than the
+   frame having been permitted all along — the one thing that could not have been reasoned out, and
+   the reason this was gated on a measurement instead of an argument.
 
-   **What remains:** open the harness in a real Chrome and confirm `currentTime` climbs past 0.
-   That is the whole of it, and it is a thirty-second check rather than an hour. Until it is done,
-   the Watch app is built on the inference above and says so here rather than in a commit message
-   nobody will re-read.
+   **Why it took three environments.** Two earlier attempts each covered one half and neither
+   covered both. An automated Chrome was properly isolated but could not stream YouTube media at
+   all — the same embed loaded top-level, with no iframe and no policy of ours, left its `<video>`
+   at `networkState: 0` with no source ever attached — while the in-app browser pane played the
+   credentialless frame perfectly but registered no service worker, so it was not isolated. The gap
+   between them was narrow and every observation pointed the same way, but it was still an
+   inference; this run measured it. Recorded because "the harness could not do it" and "the design
+   does not work" look identical in a screenshot, and the difference is the whole milestone.
 
-   **Firefox and Safari: still an assumption**, deliberately not upgraded — neither was available
-   here, so "neither ships credentialless frames" stays labelled as an assumption per ADR 8 rather
-   than being written up as a measurement.
+   **Firefox and Safari: still an assumption**, deliberately not upgraded — neither was tested, so
+   "neither ships credentialless frames" stays labelled as an assumption per ADR 8 rather than
+   being written up as a measurement.
 
 ### Also settled by M0, having overturned an assumption in this plan
 
