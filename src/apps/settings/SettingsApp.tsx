@@ -70,6 +70,17 @@ export default function SettingsApp() {
           />
         </Field>
 
+        <Field
+          label="Classic pointers"
+          hint="The era's own arrow, I-beam and hourglass, drawn rather than downloaded. There was no pointing hand in 1995 — a button showed the arrow. Turn this off to keep your system's pointers, which is the right choice if you have set them larger for visibility."
+        >
+          <Toggle
+            checked={settings.classicCursors}
+            disabled={settings.skin !== 'classic'}
+            onChange={(value) => set('classicCursors', value)}
+          />
+        </Field>
+
         <Field label="Theme" hint="System follows your operating system setting.">
           <Segmented
             value={settings.theme}
@@ -562,12 +573,22 @@ function Segmented({
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
+function Toggle({
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  /** Used when another setting has taken the choice away — the pointers need the classic skin. */
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       className={`${styles.toggle} ${checked ? styles.toggleOn : ''}`}
       onClick={() => onChange(!checked)}
     >

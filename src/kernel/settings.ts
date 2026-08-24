@@ -49,6 +49,15 @@ export interface Settings {
   wallpaperFit: WallpaperFit;
   /** VFS node of the image used when `wallpaper` is `custom`; the wallpaper is a file you have. */
   wallpaperFileId: string | null;
+  /**
+   * Draw the era's own pointers while the classic skin is on. Ignored by the modern skin.
+   *
+   * Worth a switch rather than following the skin outright, because a custom cursor is the one part
+   * of a skin that overrides an operating-system accessibility setting: a pointer enlarged for low
+   * vision is replaced by ours at our size, and CSS cannot detect that it was enlarged. This is the
+   * escape hatch, and it is the reason the pointers are a preference at all.
+   */
+  classicCursors: boolean;
   backend: BackendPreference;
   /** Index files in the background as they arrive. Off means search only covers what is indexed. */
   autoIndex: boolean;
@@ -78,6 +87,7 @@ export const DEFAULT_SETTINGS: Settings = {
   wallpaper: 'aurora',
   wallpaperFit: 'cover',
   wallpaperFileId: null,
+  classicCursors: true,
   backend: 'auto',
   autoIndex: true,
   restoreSession: true,
@@ -185,6 +195,10 @@ export function applySettings(settings: Settings): void {
   root.dataset['accent'] = settings.accent;
   root.dataset['wallpaper'] = settings.wallpaper;
   root.dataset['motion'] = settings.motion;
+  // One attribute rather than two conditions in the stylesheet: the pointers are on only when the
+  // classic skin is on *and* they have not been switched off, and CSS should not have to know that.
+  root.dataset['cursors'] =
+    settings.skin === 'classic' && settings.classicCursors ? 'classic' : 'system';
   root.style.setProperty('--font-scale', String(settings.fontScale));
 
   // `color-scheme` drives form controls, scrollbars and the default canvas colour. Classic

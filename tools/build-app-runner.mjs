@@ -22,7 +22,35 @@
  */
 import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
+
+/**
+ * The classic pointers, lifted out of the desktop's own stylesheet.
+ *
+ * Read rather than repeated. A sandboxed frame is a separate document with an opaque origin, so it
+ * cannot import `classic.css`; the only other way to give it the same pointers is a second copy of
+ * seven SVG paths in this file, which is a copy that goes stale the first time one is redrawn. The
+ * markers around the block are there for this.
+ *
+ * The whole pack goes over, including the resize pointers and the hourglass that nothing in a
+ * sandbox currently uses. Filtering would mean this script knowing which cursors a third-party app
+ * might want, which it cannot, and the unused ones cost about a kilobyte of srcdoc.
+ */
+const START = '/* cursor-pack:start */';
+const END = '/* cursor-pack:end */';
+
+async function cursorPack() {
+  const css = await readFile('src/shell/classic.css', 'utf8');
+  const start = css.indexOf(START);
+  const end = css.indexOf(END);
+  if (start === -1 || end === -1) throw new Error('classic.css: the cursor-pack markers are missing');
+  return css
+    .slice(start + START.length, end)
+    .trim()
+    .split('\n')
+    .map((line) => (line.trim() ? `      ${line}` : line))
+    .join('\n');
+}
 
 const OUT = 'public/app-runner.html';
 
@@ -156,12 +184,13 @@ const css = `      :root {
           inset 2px 2px 0 0 #dfdfdf, inset -2px -2px 0 0 #808080;
       }
       html[data-skin='classic'] button:hover { border-color: #000000; color: #000000; }
+      /* A translate, not a padding bump: adding a pixel to two sides makes a pressed button a
+         pixel bigger, and an app that sized anything against it sees the layout move. */
       html[data-skin='classic'] button:active {
         box-shadow:
           inset 1px 1px 0 0 #404040, inset -1px -1px 0 0 #ffffff,
           inset 2px 2px 0 0 #808080, inset -2px -2px 0 0 #dfdfdf;
-        padding-top: 7px;
-        padding-left: 13px;
+        translate: 1px 1px;
       }
       html[data-skin='classic'] input,
       html[data-skin='classic'] textarea,
@@ -175,6 +204,28 @@ const css = `      :root {
       html[data-skin='classic'] :focus-visible {
         outline: 2px dotted #000000;
         outline-offset: 1px;
+      }
+
+${await cursorPack()}
+      /*
+       * The pointers, on the same terms as the skin: sent as an attribute, switchable in Settings,
+       * and overridable by the app. A frame does not inherit its embedder's cursor, so without this
+       * an app's window was the one rectangle on a classic desktop still showing the modern hand.
+       *
+       * Only the arrow and the I-beam are wired up here. The resize pointers belong to the window
+       * frame, which is the desktop's side of the glass, and the hourglass to work the desktop is
+       * doing — neither is a thing a sandboxed app draws.
+       */
+      html[data-cursors='classic'] * {
+        cursor: var(--cursor-arrow), default;
+      }
+      html[data-cursors='classic']
+        :is(
+          input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+          textarea,
+          [contenteditable='true']
+        ) {
+        cursor: var(--cursor-text), text;
       }
 `;
 

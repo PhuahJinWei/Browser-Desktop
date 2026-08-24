@@ -16,15 +16,81 @@
     />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="./manifest.webmanifest" />
+    <!--
+      The splash's stylesheet, linked rather than bundled so it is render-blocking and lands before
+      the module graph. A loading screen that waits for the bundle is not a loading screen.
+    -->
+    <link rel="stylesheet" href="./boot.css" />
     <!-- The classic chrome grey, to match the default. applySettings keeps it honest after boot. -->
     <meta name="theme-color" content="#c0c0c0" />
     <meta name="color-scheme" content="light dark" />
   </head>
   <body>
-    <div id="root">
-      <!-- Replaced on mount. Present so a failed script load still says something useful. -->
-      <noscript>Tabula needs JavaScript: the entire operating system runs on the client.</noscript>
+    <!--
+      The boot splash is static markup outside #root, not React, for two reasons. It paints on the
+      first frame, before any script has run — so the desktop's first impression does not depend on
+      how long a bundle takes. And React clears the container it mounts into, so anything meant to
+      outlive the mount cannot live inside #root.
+
+      The step labels live here and only here. src/shell/bootSplash.ts addresses each line by its
+      data-step key and never writes a label, so there is no second copy to drift.
+    -->
+    <div
+      id="boot-splash"
+      data-state="booting"
+      role="status"
+      aria-live="polite"
+      aria-atomic="false"
+      aria-label="Starting Tabula"
+    >
+      <div class="bs-screen">
+        <p class="bs-brand">TABULA</p>
+        <p class="bs-tagline">A desktop in a tab</p>
+        <hr class="bs-rule" />
+        <ol class="bs-steps">
+          <li class="bs-step" data-step="isolation" data-state="pending">
+            <span class="bs-label">Isolating the page</span>
+            <span class="bs-leader" aria-hidden="true"></span>
+            <span class="bs-status"></span>
+            <span class="bs-detail"></span>
+          </li>
+          <li class="bs-step" data-step="probe" data-state="pending">
+            <span class="bs-label">Probing this machine</span>
+            <span class="bs-leader" aria-hidden="true"></span>
+            <span class="bs-status"></span>
+            <span class="bs-detail"></span>
+          </li>
+          <li class="bs-step" data-step="vfs" data-state="pending">
+            <span class="bs-label">Mounting the file system</span>
+            <span class="bs-leader" aria-hidden="true"></span>
+            <span class="bs-status"></span>
+            <span class="bs-detail"></span>
+          </li>
+          <li class="bs-step" data-step="search" data-state="pending">
+            <span class="bs-label">Starting search</span>
+            <span class="bs-leader" aria-hidden="true"></span>
+            <span class="bs-status"></span>
+            <span class="bs-detail"></span>
+          </li>
+        </ol>
+        <p class="bs-caret"><span class="bs-cursor"></span></p>
+
+        <div class="bs-failure">
+          <p class="bs-failure-title">*** BOOT FAILURE ***</p>
+          <p class="bs-failure-message"></p>
+          <button type="button" class="bs-reload">Reload</button>
+        </div>
+
+        <hr class="bs-rule" />
+        <p class="bs-note">Everything runs on this device. Nothing you open is uploaded.</p>
+        <noscript>
+          <p class="bs-noscript">
+            Tabula needs JavaScript: the entire operating system runs on the client.
+          </p>
+        </noscript>
+      </div>
     </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

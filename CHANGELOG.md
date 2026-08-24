@@ -15,6 +15,13 @@ Added
   ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md)).
 - The skin now reaches **sandboxed apps** too, carried in the boot message beside the theme, so the
   bundled sample apps follow the desktop without knowing the skin exists.
+- **The loading screen became a power-on self test.** Black screen, system monospace, the CGA
+  sixteen, one line per step with leader dots running out to a status column. The form is the
+  argument: a POST screen reports what the firmware actually found, which is what this boot
+  sequence already had to say. It reports the same four steps as before and invents none, and it
+  does not pad the wait so it can be admired — on a warm cache it is gone in a blink. Firmware runs
+  before the operating system has a theme, so it ignores the skin setting on purpose. Homage, not
+  copy, on the same terms as the skin: no logo, no wordmark, no font file.
 
 Fixed
 
@@ -25,6 +32,11 @@ Fixed
   therefore never landed either: its variables live in the blocked stylesheet, so switching the
   desktop to dark left every sandboxed app light. Now allowed by hash, the way the bootstrap script
   already was — one stylesheet, pinned to the build, and the policy no weaker than before.
+- **The boot splash used to paint before its own styles.** They lived in a CSS module, and Vite
+  serves those through JavaScript in development, so the opening frame was a bare list — bullets
+  showing, rows overlapping — until the bundle caught up. The splash is static markup in
+  `index.html` now with a render-blocking stylesheet beside it, which cannot arrive late by
+  construction. React no longer renders the boot screen at all; it only reports into it.
 - Two containers in About and Portfolio had been given the white list-view treatment without being
   list views, which boxed each row separately and clipped labels that ran past.
 - A label reading `SharedArrayBuffer` in an eleven-character column was being cut mid-word in both

@@ -126,6 +126,7 @@ globalThis.addEventListener('message', (event: MessageEvent<ToSandbox>) => {
 
     document.documentElement.dataset['theme'] = message.theme;
     document.documentElement.dataset['skin'] = message.skin;
+    document.documentElement.dataset['cursors'] = message.cursors;
     (window as unknown as { __tabulaOs: unknown }).__tabulaOs = makeApi(
       message.manifest,
       message.args,

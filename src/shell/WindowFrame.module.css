@@ -523,3 +523,31 @@
     display: none;
   }
 }
+
+/*
+ * Resize pointers under the classic cursors.
+ *
+ * The blanket arrow in classic.css is `html[data-cursors] *`, which outranks a lone class — so
+ * these have to be stated again, and an attribute plus a class clears it comfortably. Living here
+ * rather than in classic.css keeps each override next to the handle it belongs to, and means the
+ * one file that knows these handles exist is still the only one that has to.
+ */
+:global([data-cursors='classic']) .handle-n,
+:global([data-cursors='classic']) .handle-s {
+  cursor: var(--cursor-ns), ns-resize;
+}
+
+:global([data-cursors='classic']) .handle-e,
+:global([data-cursors='classic']) .handle-w {
+  cursor: var(--cursor-ew), ew-resize;
+}
+
+:global([data-cursors='classic']) .handle-nw,
+:global([data-cursors='classic']) .handle-se {
+  cursor: var(--cursor-nwse), nwse-resize;
+}
+
+:global([data-cursors='classic']) .handle-ne,
+:global([data-cursors='classic']) .handle-sw {
+  cursor: var(--cursor-nesw), nesw-resize;
+}

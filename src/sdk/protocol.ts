@@ -65,6 +65,16 @@ export interface BootMessage {
    * rather than a rule.
    */
   skin: 'modern' | 'classic';
+  /**
+   * Whether the desktop is drawing the era's own pointers.
+   *
+   * Its own field rather than something the runner infers from `skin`, because it is its own
+   * setting: the pointers can be switched off while the classic skin stays on, since a custom
+   * cursor is the one part of a skin that overrides an operating-system accessibility choice.
+   * A frame does not inherit its embedder's cursor, so without this an app's window is the one
+   * rectangle on a classic desktop still showing the modern pointing hand.
+   */
+  cursors: 'classic' | 'system';
 }
 
 /** Sandbox to host: a request to do something the app cannot do itself. */

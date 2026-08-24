@@ -197,3 +197,71 @@
   background: #000080;
   color: #ffffff;
 }
+
+/* -- Cursors ----------------------------------------------------------------------------------- */
+
+/*
+ * The era's own pointers, drawn here rather than downloaded.
+ *
+ * They are original SVG recreations, not the shipped `.cur` files: those belong to a vendor, and a
+ * public repository is the wrong place to find out how seriously they mean it. Drawing them also
+ * fixes the format problem — a 32x32 bitmap cursor is blurry on a high-density display, and these
+ * stay sharp at any scale.
+ *
+ * Diagonal edges are left antialiased. The period aliasing is the one detail worth losing here:
+ * `shape-rendering: crispEdges` on a diagonal drops whole pixels at fractional device ratios, so
+ * the authentic choice renders as a broken one on the machines most people are using.
+ *
+ * Scoped to `data-cursors` rather than `data-skin` because they are separately switchable; see
+ * `classicCursors` in kernel/settings.ts for why that switch has to exist.
+ *
+ * The markers are load-bearing: tools/build-app-runner.mjs lifts everything between them into the
+ * sandbox stylesheet verbatim, so a sandboxed app's frame gets the same pointers as the desktop
+ * around it. A frame is a separate document and cannot import this file, and the alternative — a
+ * second copy of these paths in the generator — is a copy that drifts the first time one is redrawn.
+ */
+/* cursor-pack:start */
+[data-cursors='classic'] {
+  --cursor-arrow: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='20'><path d='M1 1v15.5l3.8-3.5 2.4 5.6 2-.8-2.3-5.4H11z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/></svg>")
+    0 0;
+  --cursor-text: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='20' shape-rendering='crispEdges'><g fill='%23ffffff'><rect x='1' y='1' width='7' height='3'/><rect x='3' y='1' width='3' height='18'/><rect x='1' y='16' width='7' height='3'/></g><g fill='%23000000'><rect x='2' y='2' width='5' height='1'/><rect x='4' y='2' width='1' height='16'/><rect x='2' y='17' width='5' height='1'/></g></svg>")
+    4 10;
+  --cursor-wait: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='20'><path d='M2 1h10v3.5L7.6 9.5l4.4 5.5V18H2v-3.5l4.4-5-4.4-5z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/><path d='M4 15.5h6L7 11.8z' fill='%23000000'/></svg>")
+    7 10;
+  --cursor-ew: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='12'><path d='M1 6l5-4.5v3h8v-3L19 6l-5 4.5v-3H6v3z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/></svg>")
+    10 6;
+  --cursor-ns: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='20'><path d='M6 1l4.5 5h-3v8h3L6 19l-4.5-5h3V6h-3z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/></svg>")
+    6 10;
+  --cursor-nwse: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M2 2v7l2.6-2.6 6 6L8 15h7V8l-2.6 2.6-6-6L9 2z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/></svg>")
+    9 9;
+  --cursor-nesw: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M15 2H8l2.6 2.6-6 6L2 8v7h7l-2.6-2.6 6-6L15 9z' fill='%23ffffff' stroke='%23000000' stroke-width='2' paint-order='stroke' stroke-linejoin='miter'/></svg>")
+    9 9;
+}
+/* cursor-pack:end */
+
+/*
+ * The arrow, over everything.
+ *
+ * `*` rather than inheritance, and that is the whole trick: `cursor` does inherit, but the 57 places
+ * that ask for `cursor: pointer` would each keep asking. This has to outrank a component's own class
+ * to take the hand away, so it is `html` plus the attribute — one more element than a bare class —
+ * and everything below re-establishes the few pointers that are genuinely a different tool.
+ *
+ * The hand is not one of them. This desktop's era had no pointing hand at all: it arrived with the
+ * web browser two years later, and until then a button was somewhere the arrow could be pressed
+ * rather than somewhere the pointer changed shape. Restoring the arrow over buttons is the single
+ * most noticeable thing in this file, which is why it is also the most likely to be switched off.
+ */
+html[data-cursors='classic'] * {
+  cursor: var(--cursor-arrow), default;
+}
+
+/* Text is a different tool, and always was. */
+html[data-cursors='classic']
+  :is(
+    input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+    textarea,
+    [contenteditable='true']
+  ) {
+  cursor: var(--cursor-text), text;
+}

@@ -354,3 +354,10 @@
 :global([data-skin='classic']) .cellSelected .cellName {
   color: #ffffff;
 }
+
+/* The hourglass is the era's whole vocabulary for "wait", and the blanket classic arrow would
+   otherwise take it. Everywhere else a disabled control keeps the plain arrow, which is what this
+   desktop's era showed over one — `not-allowed` is a later convention. */
+:global([data-cursors='classic']) .enable:disabled {
+  cursor: var(--cursor-wait), wait;
+}

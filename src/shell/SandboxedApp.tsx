@@ -141,6 +141,10 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
         args: parsed,
         theme: resolvedTheme,
         skin: settingsStore.get().skin,
+        cursors:
+          settingsStore.get().skin === 'classic' && settingsStore.get().classicCursors
+            ? 'classic'
+            : 'system',
       };
       post(boot);
     };
