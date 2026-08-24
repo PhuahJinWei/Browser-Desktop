@@ -6,7 +6,7 @@
  *
  * Three axes, all driven by data attributes the settings store writes onto <html>:
  *   data-theme     system | light | dark
- *   data-accent    teal | indigo | amber | rose
+ *   data-accent    blue | teal | indigo | amber | rose
  *   data-wallpaper aurora | dusk | grid | plain
  *
  * Light is the base definition; dark overrides only colour. The `system` case is expressed as
@@ -33,10 +33,23 @@
   --text-muted: #6b7684;
   --text-inverted: #f7f9fb;
 
-  --accent: #0d7a6f;
-  --accent-hover: #0a6459;
+  /*
+   * The default accent.
+   *
+   * `--accent-subtle` is the requested #cce8ff. It is the *fill* half of the pair — the wash behind
+   * a selected row or a pressed toggle — and it is the half that colour can be: dark body text on
+   * it measures 14.3:1. The other half is a foreground, used for text, icons and the focus ring in
+   * sixty-odd places, and #cce8ff there measures 1.2:1 against this surface, which is invisible.
+   * So the family is built around the requested colour rather than from it alone: same hue, one
+   * value light enough to fill with and one dark enough to write in.
+   */
+  /* The taskbar's own colour; see Taskbar.module.css for why it is not derived from a surface. */
+  --taskbar-bg: #e6f1fc;
+
+  --accent: #005fb8;
+  --accent-hover: #004c93;
   --accent-contrast: #ffffff;
-  --accent-subtle: #d7efec;
+  --accent-subtle: #cce8ff;
 
   --ok: #1a7f4b;
   --warn: #9a6200;
@@ -104,10 +117,12 @@
     --text-muted: #7b8593;
     --text-inverted: #0b0d10;
 
-    --accent: #5eead4;
-    --accent-hover: #7bf0dd;
-    --accent-contrast: #06231f;
-    --accent-subtle: #123833;
+    --taskbar-bg: #172231;
+
+    --accent: #7cc7ff;
+    --accent-hover: #8fd0ff;
+    --accent-contrast: #062033;
+    --accent-subtle: #10314d;
 
     --ok: #5dd39e;
     --warn: #e8b44a;
@@ -140,10 +155,12 @@
   --text-muted: #7b8593;
   --text-inverted: #0b0d10;
 
-  --accent: #5eead4;
-  --accent-hover: #7bf0dd;
-  --accent-contrast: #06231f;
-  --accent-subtle: #123833;
+  --taskbar-bg: #172231;
+
+  --accent: #7cc7ff;
+  --accent-hover: #8fd0ff;
+  --accent-contrast: #062033;
+  --accent-subtle: #10314d;
 
   --ok: #5dd39e;
   --warn: #e8b44a;
@@ -163,6 +180,12 @@
 /* Accents                                                                                        */
 /* -------------------------------------------------------------------------------------------- */
 
+:root[data-accent='teal'] {
+  --accent: #0d7a6f;
+  --accent-hover: #0a6459;
+  --accent-contrast: #ffffff;
+  --accent-subtle: #d7efec;
+}
 :root[data-accent='indigo'] {
   --accent: #4f46e5;
   --accent-hover: #4338ca;
@@ -183,6 +206,12 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-accent='teal'] {
+    --accent: #5eead4;
+    --accent-hover: #7bf0dd;
+    --accent-contrast: #06231f;
+    --accent-subtle: #123833;
+  }
   :root:not([data-theme='light'])[data-accent='indigo'] {
     --accent: #a5b4fc;
     --accent-hover: #c7d2fe;
@@ -203,6 +232,12 @@
   }
 }
 
+:root[data-theme='dark'][data-accent='teal'] {
+  --accent: #5eead4;
+  --accent-hover: #7bf0dd;
+  --accent-contrast: #06231f;
+  --accent-subtle: #123833;
+}
 :root[data-theme='dark'][data-accent='indigo'] {
   --accent: #a5b4fc;
   --accent-hover: #c7d2fe;
@@ -231,15 +266,18 @@
 /* -------------------------------------------------------------------------------------------- */
 
 /*
- * Bloom, over a scrim, over the gradient it replaced.
+ * Bloom, over the gradient it replaced.
  *
- * The scrim is not decoration. Desktop icon labels are near-black in the light theme and near-white
- * in the dark one, and this image spans both ends of the range inside the strip the icons sit in —
- * a pale wash at the top, a saturated blue where the ribbon crosses the columns lower down. Left
- * bare it measures 2.74:1 against light-theme labels and 1.00:1 against dark-theme ones, so each
- * theme lifts the image toward its own labels until the worst pixel in that strip clears 4.5:1:
- * 30% white reaches 5.0:1, and 62% of near-black reaches 5.3:1. Measured over the real pixels of
- * the left four icon columns, not estimated.
+ * There is no scrim over the picture, and there used to be. Icon labels are the only thing that
+ * sits directly on a wallpaper — the icon glyphs have their own tile — and this image spans both
+ * ends of the brightness range inside the strip the icons occupy, so the labels measured 2.75:1
+ * against it. The first fix was to wash the image toward the labels: 30% white in the light theme,
+ * 62% near-black in the dark one. It worked, and it meant the wallpaper could never be seen as it
+ * was, with every future wallpaper paying the same tax.
+ *
+ * The labels carry their own backing now (DesktopIcons.module.css), which makes them legible on any
+ * picture at any saturation and lets this one be itself. That is the fix for the cause rather than
+ * a trade against it.
  *
  * The gradient underneath is the fallback layer. An image is the one wallpaper that can fail to
  * arrive — a cold cache with no network — and without something beneath it the desktop would paint
@@ -247,7 +285,6 @@
  */
 :root[data-wallpaper='bloom'] {
   --desktop-bg:
-    linear-gradient(rgb(255 255 255 / 30%), rgb(255 255 255 / 30%)),
     url('./wallpaper-bloom.webp') center center / cover no-repeat,
     linear-gradient(160deg, #dfe7f0 0%, #c9d8e8 45%, #d8e4ea 100%);
 }
@@ -286,7 +323,6 @@
   }
   :root:not([data-theme='light'])[data-wallpaper='bloom'] {
     --desktop-bg:
-      linear-gradient(rgb(8 12 20 / 62%), rgb(8 12 20 / 62%)),
       url('./wallpaper-bloom.webp') center center / cover no-repeat,
       linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
   }
@@ -308,7 +344,6 @@
 }
 :root[data-theme='dark'][data-wallpaper='bloom'] {
   --desktop-bg:
-    linear-gradient(rgb(8 12 20 / 62%), rgb(8 12 20 / 62%)),
     url('./wallpaper-bloom.webp') center center / cover no-repeat,
     linear-gradient(160deg, #0a0e14 0%, #101720 45%, #0c1118 100%);
 }

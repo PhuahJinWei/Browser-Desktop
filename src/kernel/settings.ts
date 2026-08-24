@@ -41,7 +41,7 @@ export interface IconCell {
 export interface Settings {
   theme: ThemePreference;
   skin: SkinPreference;
-  accent: 'teal' | 'indigo' | 'amber' | 'rose';
+  accent: 'blue' | 'teal' | 'indigo' | 'amber' | 'rose';
   fontScale: 0.9 | 1 | 1.1 | 1.25;
   motion: MotionPreference;
   wallpaper: WallpaperPreference;
@@ -81,7 +81,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   skin: 'classic',
-  accent: 'teal',
+  accent: 'blue',
   fontScale: 1,
   motion: 'system',
   wallpaper: 'bloom',

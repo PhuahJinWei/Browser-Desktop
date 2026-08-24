@@ -2,10 +2,10 @@
   position: fixed;
   z-index: 1000006;
   min-width: 196px;
-  max-width: 300px;
+  max-width: 320px;
   padding: var(--space-1);
   background: var(--surface-3);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-window);
 }
@@ -16,6 +16,7 @@
   align-items: center;
   gap: var(--space-2);
   width: 100%;
+  min-height: 32px;
   padding: var(--space-2) var(--space-2);
   border: 0;
   border-radius: var(--radius-sm);
@@ -47,7 +48,7 @@
   background: var(--bad-subtle);
 }
 
-.check {
+.lead {
   display: grid;
   place-items: center;
   color: var(--accent);
@@ -133,7 +134,7 @@
  * black on grey, white on navy, and the disabled grey, all for free.
  */
 :global([data-skin='classic']) .shortcut,
-:global([data-skin='classic']) .check {
+:global([data-skin='classic']) .lead {
   color: inherit;
 }
 
@@ -169,7 +170,7 @@
   color: #ffffff;
 }
 
-:global([data-skin='classic']) .check {
+:global([data-skin='classic']) .lead {
   color: #000000;
 }
 
@@ -187,4 +188,105 @@
   :global([data-skin='classic']) .item {
     padding: var(--space-2) 6px;
   }
+}
+
+/* The default action — what double-clicking the same thing does — set in bold, as this era did. */
+.primary {
+  font-weight: 700;
+}
+
+/* -- Submenus ---------------------------------------------------------------------------------- */
+
+/* The row is the submenu's positioning context, which is the whole reason each one is wrapped. */
+.row {
+  position: relative;
+}
+
+/*
+ * A child panel opens at the right edge of the row that raised it, which leaves it overlapping the
+ * parent's own padding by a couple of pixels rather than sitting outside its border. That overlap
+ * is the point: two borders with a gap between them read as two boxes, while a child that runs
+ * slightly under its parent reads as one menu that has grown sideways. `top` pulls up by the same
+ * padding, so the first child row lines up with the row that opened it.
+ */
+.submenu {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  left: 100%;
+  margin-left: 2px;
+  /*
+   * Sized to its own longest row, not to what is left of its parent.
+   *
+   * An absolutely positioned box offset by `left: 100%` has exactly nothing left of its containing
+   * block to fill, so shrink-to-fit resolves to the *minimum* content width — a panel a few
+   * characters wide with every label ellipsised away to nothing. The modern skin hid this behind
+   * the 196px floor on `.menu`; classic sets no floor, so its submenus came out as empty grey
+   * stubs. `max-content` is what makes the width come from the rows instead of from the gap.
+   */
+  width: max-content;
+}
+
+.submenuFlipped {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 2px;
+}
+
+/*
+ * A row keeps its highlight while its submenu is open. Without this the pointer travels into the
+ * child and the parent goes quiet, leaving no sign of which row the open panel belongs to.
+ */
+.itemOpen:not(:disabled) {
+  background: var(--accent-subtle);
+}
+
+/*
+ * Drawn rather than typed, so each skin can shape it: the arrow is a border trick on an empty span
+ * instead of a character, which keeps it out of the accessible name and off the font's mercy.
+ */
+.chevron {
+  justify-self: end;
+  width: 6px;
+  height: 6px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  rotate: 45deg;
+  opacity: 0.55;
+}
+
+/*
+ * The era pointed with a filled triangle, not a hairline chevron, and its rows are tight enough
+ * that the shared 32px floor would stretch them back out into a modern menu wearing 1995 colours.
+ */
+:global([data-skin='classic']) .item {
+  min-height: 0;
+}
+
+:global([data-skin='classic']) .chevron {
+  width: 0;
+  height: 0;
+  border: 0;
+  border-left: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  rotate: none;
+  opacity: 1;
+}
+
+/* Open rows take the same navy as hovered ones — this era had exactly one highlight. */
+:global([data-skin='classic']) .itemOpen:not(:disabled) {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* A tighter panel needs a tighter overlap: 2px of padding to pull back, not 4. */
+:global([data-skin='classic']) .submenu {
+  top: -2px;
+  margin-left: 1px;
+}
+
+:global([data-skin='classic']) .submenuFlipped {
+  margin-left: 0;
+  margin-right: 1px;
 }

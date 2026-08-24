@@ -1,0 +1,828 @@
+.app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--surface-2);
+  /*
+   * The app is sized by its window, not by the viewport, so everything responsive here is a
+   * container query. A media query would ask the screen how wide it is and get the wrong answer
+   * for a 400px window on a 4K display — which is the case that matters, since a desktop's whole
+   * point is windows narrower than the screen.
+   */
+  container-type: inline-size;
+}
+
+/*
+ * The column tracks are set inline, by the component.
+ *
+ * They used to live here as a variable that container queries rewrote, with matching rules hiding
+ * the cells. Those two halves have to agree exactly, and when they did not — a cell hidden whose
+ * track stayed — every column after it slid one place along, still perfectly aligned with the
+ * header and describing the wrong thing. Which columns exist at a given width is now one decision
+ * in `Explorer.tsx`, and the track list is generated from it.
+ */
+
+.navRow,
+.commandBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2);
+  flex: 0 0 auto;
+  /* Neither bar wraps. Wrapping is what made this read as a phone app. */
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.navRow {
+  gap: var(--space-2);
+}
+
+.commandBar {
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.commandDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px var(--space-2);
+  background: var(--border-subtle);
+}
+
+.commandSpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Turns the back arrow into the forward one, and the sort arrow the other way up. */
+.flip {
+  transform: rotate(180deg);
+}
+
+.flipY {
+  transform: rotate(180deg);
+}
+
+/*
+ * The address bar. A sunken field holding the path, the way both explorers draw it — it reads as
+ * somewhere you are rather than as a row of links.
+ */
+.address {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.crumbSeparator {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+.crumbLink {
+  padding: 2px var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crumbLink:hover {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.crumbCurrent {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-1);
+  color: var(--text-primary);
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.filter {
+  width: 150px;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  font-size: var(--text-sm);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled):not(.iconButtonActive) {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sort {
+  height: 28px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+/*
+ * The places pane.
+ *
+ * Fixed width and its own surface, so the list beside it reads as the content and this reads as
+ * navigation. It is the single most recognisable thing about a desktop file manager and the one
+ * piece this app had no equivalent of.
+ */
+.places {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 172px;
+  padding: var(--space-2) var(--space-1);
+  gap: 1px;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  overflow-y: auto;
+}
+
+.place {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.place:hover:not(.placeActive) {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.placeActive {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.placeName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* -- the column header ------------------------------------------------------------------------- */
+
+/*
+ * The header and the rows are one grid split across two elements, so every box property that eats
+ * horizontal space has to match on both — the track sizes alone are not enough. That includes the
+ * 2px focus border the rows carry: without a transparent twin here, the header sat two pixels off
+ * its own columns, which is exactly the misalignment a header exists to prevent.
+ */
+.columns {
+  display: grid;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: 0 var(--space-3);
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.column {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.column:hover {
+  color: var(--text-primary);
+}
+
+.columnActive {
+  color: var(--text-primary);
+}
+
+.columnLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.columnArrow {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+/* A numeric column's heading sits over the right edge its figures align to. */
+.columnRight {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.listScroll,
+.gridScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.listScroll:focus-visible,
+.gridScroll:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.row {
+  display: grid;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  cursor: default;
+  user-select: none;
+  border-left: 2px solid transparent;
+}
+
+.row:hover:not(.rowSelected) {
+  background: var(--surface-1);
+}
+
+.rowSelected {
+  background: var(--accent-subtle);
+}
+
+.rowFocused {
+  border-left-color: var(--accent);
+}
+
+.rowIcon {
+  color: var(--text-muted);
+}
+
+.rowSelected .rowIcon {
+  color: var(--accent);
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rowText {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowIndexed {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.rowIndexSpacer {
+  display: inline-block;
+  width: 13px;
+}
+
+.renameInput {
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.tile {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tile:hover:not(.tileSelected) {
+  background: var(--surface-1);
+}
+
+.tileSelected {
+  background: var(--accent-subtle);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+/* A fixed box for the art, so a wide thumbnail and a tall one leave the names on the same line. */
+.tileArt {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 52px;
+}
+
+.tileImage {
+  max-width: 100%;
+  max-height: 52px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+.tileName {
+  width: 100%;
+  font-size: var(--text-xs);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+/*
+ * The selected tile shows its whole name.
+ *
+ * One clamped line is right for the other tiles — a grid of wrapped names is a wall of text — but
+ * the one you have picked is exactly the one whose name you are trying to read, and "Cup of
+ * coffee.we…" is the moment the truncation stops being tidy and starts being the problem.
+ *
+ * It grows over the row beneath rather than pushing it: relative positioning lifts the tile out of
+ * the grid's height calculation, so the surrounding tiles do not jump as the selection moves.
+ */
+.tileSelected .tileName {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-6);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty p {
+  font-size: var(--text-sm);
+}
+
+.emptyHint {
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  flex: 0 0 auto;
+}
+
+.statusDetail {
+  font-family: var(--font-mono);
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: var(--space-3);
+  display: grid;
+  place-items: center;
+  gap: var(--space-2);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * Explorer's list was a white well, not a grey panel: the toolbar and the status bar were the
+ * chrome, and the files sat on a sunken sheet of paper between them. That division is most of why
+ * the era's file manager reads as a file manager, and it is the reason to bother — one grey
+ * everywhere leaves nothing to say "your files are in here, the controls are out there".
+ *
+ * Selection is a solid navy fill with white text rather than a tint. The tint was the modern
+ * skin's idea and it does not survive this palette: #c8c8dc on #c0c0c0 is a difference you have to
+ * look for. Navy and white is both the period answer and, at 16:1, the highest-contrast state in
+ * either skin.
+ */
+:global([data-skin='classic']) .listScroll,
+:global([data-skin='classic']) .gridScroll {
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/* A list view of this era had no hover state at all. A faint one is kept because it costs nothing
+   and says the row is live — but it has to lose to selection, which the order below settles. */
+:global([data-skin='classic']) .row:hover:not(.rowSelected),
+:global([data-skin='classic']) .tile:hover:not(.tileSelected) {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .rowSelected,
+:global([data-skin='classic']) .tileSelected {
+  border-color: #000080;
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .rowSelected .rowIcon,
+:global([data-skin='classic']) .rowSelected .rowMeta,
+:global([data-skin='classic']) .rowSelected .rowText,
+:global([data-skin='classic']) .rowSelected .rowIndexed,
+:global([data-skin='classic']) .tileSelected .tileName {
+  color: #ffffff;
+  opacity: 1;
+}
+
+/* The keyboard cursor was a dotted rectangle inside the row, separate from selection — which is
+   also the honest way to show them apart, since a row can be focused without being selected. */
+:global([data-skin='classic']) .rowFocused {
+  border-left-color: transparent;
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+:global([data-skin='classic']) .rowSelected.rowFocused {
+  outline-color: #ffffff;
+}
+
+/* The well already draws its own edge; a second ring inside it is noise. */
+:global([data-skin='classic']) .listScroll:focus-visible,
+:global([data-skin='classic']) .gridScroll:focus-visible {
+  box-shadow: var(--bevel-thin-sunken);
+  outline: 2px dotted #000000;
+  outline-offset: -3px;
+}
+
+/* -- Status bar view toggle -------------------------------------------------------------------- */
+
+.statusPanel {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 1px var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The size panel is the narrower of the two, as the reference has it. */
+.statusSize {
+  flex: 0 0 116px;
+}
+
+.statusSpacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Bottom-right, where a file manager keeps it — not in the command bar competing with the actions. */
+.viewToggle {
+  display: flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.viewButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.viewButton:hover:not(.viewButtonActive) {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.viewButtonActive {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* -- Narrow windows ---------------------------------------------------------------------------- *
+ * A desktop sheds detail rather than stacking. In order: the places pane goes, then the command
+ * bar's labels, then the columns the name needs the room of. Every control stays reachable — this
+ * is the same rule the taskbar follows, applied to a window instead of a screen.
+ * ---------------------------------------------------------------------------------------------- */
+
+@container (max-width: 560px) {
+  .places {
+    display: none;
+  }
+
+  .buttonLabel {
+    display: none;
+  }
+
+  .button {
+    padding: 0 var(--space-2);
+  }
+}
+
+@container (max-width: 420px) {
+  .filter {
+    width: 92px;
+  }
+}
+
+/* -- Classic: the new chrome ------------------------------------------------------------------- *
+ * The structure this redesign added is the structure Explorer already had in 1995 — a toolbar, an
+ * address field, a tree pane, headed columns, a status bar. Only the paint differs, which is why
+ * the same markup serves both skins and this section is about surfaces rather than layout.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .navRow,
+:global([data-skin='classic']) .commandBar {
+  background: #c0c0c0;
+  border-bottom: 0;
+}
+
+/* One raised band under both bars rather than an edge under each: the era drew the toolbar as a
+   single panel however many rows of controls it held. */
+:global([data-skin='classic']) .commandBar {
+  box-shadow: var(--bevel-thin-raised);
+}
+
+/* The address bar was a sunken white field, and it is the clearest signal that the path is a place
+   you are rather than a row of links. */
+:global([data-skin='classic']) .address,
+:global([data-skin='classic']) .filter {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .crumbLink:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* The tree pane: white paper, sunken, exactly like the list beside it. */
+:global([data-skin='classic']) .places {
+  background: #ffffff;
+  border-right: 0;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/*
+ * A place is a row in that pane, not a push button — so it opts out of the bevel and the press
+ * nudge every `button` gets at zero specificity. Left in, each entry would be a raised grey key
+ * and the pane would read as a keypad.
+ */
+:global([data-skin='classic']) .place,
+:global([data-skin='classic']) .place:hover,
+:global([data-skin='classic']) .place:active {
+  border-radius: 0;
+  box-shadow: none;
+  translate: none;
+  color: #000000;
+}
+
+:global([data-skin='classic']) .place:hover:not(.placeActive) {
+  background: #ebebeb;
+}
+
+:global([data-skin='classic']) .placeActive,
+:global([data-skin='classic']) .placeActive:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .commandDivider {
+  width: 0;
+  background: transparent;
+  border-left: 1px solid #808080;
+  border-right: 1px solid #ffffff;
+}
+
+/*
+ * Column headers keep their bevel, and here that is the point rather than an accident: Explorer's
+ * headers really were raised buttons you pressed to sort. The one change is that they must not
+ * shift under the pointer, so the press is the sunken bevel alone.
+ */
+/*
+ * The header is one band, not a row of keys.
+ *
+ * The gap between grid cells is what made these read as separate buttons floating on grey, and the
+ * era's header control has no gap at all: each heading butts against the next, and the only thing
+ * between them is the single dark pixel of one bevel meeting the next. Closing the gap here means
+ * closing it on the rows too, or the two grids stop lining up — so the space the gap was providing
+ * moves inside each cell.
+ *
+ * They keep the raised bevel, because Explorer's headings really were buttons you pressed to sort.
+ * What they lose is the isolation.
+ */
+:global([data-skin='classic']) .columns,
+:global([data-skin='classic']) .row {
+  gap: 0;
+  /* Near-flush with the well, as the reference has it. Both, or they drift apart. */
+  padding: 0 2px;
+}
+
+:global([data-skin='classic']) .rowName,
+:global([data-skin='classic']) .rowText,
+:global([data-skin='classic']) .rowMeta {
+  padding-right: var(--space-2);
+}
+
+:global([data-skin='classic']) .rowName {
+  padding-left: var(--space-1);
+}
+
+:global([data-skin='classic']) .column {
+  height: 19px;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-right: 1px solid #808080;
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000000;
+  /* The era's headings were the window's own font at its own size, not a small caption. */
+  font-size: var(--text-sm);
+  font-weight: 400;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .column:active {
+  box-shadow: var(--bevel-thin-sunken);
+  translate: none;
+}
+
+:global([data-skin='classic']) .columnArrow {
+  color: #000000;
+}
+
+:global([data-skin='classic']) .statusBar {
+  border-top: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .viewButton {
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #000000;
+  box-shadow: none;
+  translate: none;
+}
+
+:global([data-skin='classic']) .viewButton:hover:not(.viewButtonActive) {
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-raised);
+}
+
+:global([data-skin='classic']) .viewButtonActive {
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+/* Each status panel is its own sunken well, which is what a status bar of this era actually was. */
+:global([data-skin='classic']) .statusPanel {
+  padding: 1px 4px;
+  box-shadow: var(--bevel-thin-sunken);
+}

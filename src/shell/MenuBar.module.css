@@ -1,0 +1,73 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+
+/*
+ * A menu title is not a push button, and this is where that has to be said out loud: the classic
+ * skin gives every `button` a bevel at zero specificity, so a title that painted nothing would come
+ * out as a row of raised grey keys. The whole affordance is the highlight while its menu is down.
+ */
+.title {
+  padding: 3px var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.title:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.titleOpen,
+.titleOpen:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/* A flat grey band: the era drew no edge between the menu bar and the window's client area, and
+   one here reads as a toolbar again. */
+:global([data-skin='classic']) .bar {
+  gap: 0;
+  padding: 1px 2px;
+  border-bottom: 0;
+  background: #c0c0c0;
+}
+
+:global([data-skin='classic']) .title,
+:global([data-skin='classic']) .title:hover {
+  padding: 2px 6px;
+  /* Set the band height from the text box, as the menus do — 13px MS Sans Serif with a default
+     line-height gives a 24px bar, and the era's is twenty. */
+  line-height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #000000;
+  box-shadow: none;
+  /* Titles do not depress; the classic press nudge would slide the word a pixel as its menu opens. */
+  translate: none;
+}
+
+:global([data-skin='classic']) .titleOpen,
+:global([data-skin='classic']) .titleOpen:hover {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* Inside a menu bar the dotted focus rectangle belongs around the word, not inset into it. */
+:global([data-skin='classic']) .title:focus-visible {
+  outline-offset: -1px;
+}

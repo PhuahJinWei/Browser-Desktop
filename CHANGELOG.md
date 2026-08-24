@@ -76,6 +76,51 @@ Fixed
   title so a window cannot impersonate a system one, so calling `setTitle` with the app's own name
   could only ever render as "Scratchpad — Scratchpad". Fence now titles itself after the note it
   has open, which is what the suffix is designed to sit behind. Find still does the older thing.
+- **Menus can nest.** A row with `items` instead of `run` opens a submenu rather than doing
+  something, and because a submenu is the same object as the menu that raised it, the panel renders
+  itself recursively — same rows, same keyboard, same skin, one component. Each level owns only
+  which of its own children is open, so closing one never reaches past itself. Hovering a row
+  settles what is open at that level, which is what stops a submenu hanging over the rows below it
+  once the pointer has moved on; the arrow keys walk in and out of levels, Escape closes the
+  submenu before it closes the menu, and the child flips to the other side or lifts itself when it
+  would otherwise leave the screen.
+- **A menu row can carry an icon**, in the same gutter the check mark already used — the gutter is
+  there whether or not anything is in it, so a menu mixing the two still has every label starting in
+  the same place. The desktop menu tried it and does not keep it: at that size the glyphs read as
+  decoration competing with the words rather than as help finding them.
+- **The desktop menu is grouped the way a desktop menu has been for thirty years**: what to do with
+  the icons, then what to make, then where to change how the place looks. It still does not carry
+  Paste or Undo — there is no desktop clipboard and no undo stack to put behind them, and a row that
+  is permanently greyed out is a picture of a feature rather than a feature.
+- **Refresh does the honest version of the gesture.** This desktop renders from live state, so there
+  is never a stale frame sitting there waiting to be redrawn the way there was on a machine that
+  painted its icons once and then remembered them — which makes Refresh easy to fake and worth not
+  faking. It re-reads the installed apps from storage, which is what the icons are actually drawn
+  from, and remounts the icon layer so the re-read is visible and the selection goes with it. Where
+  nothing has changed, which is the usual case, it is a real re-read that finds the same answer
+  followed by a repaint. That is all Refresh has ever been anywhere else either.
+- **Every submenu in the classic skin opened as an empty grey stub.** A panel positioned at
+  `left: 100%` has exactly nothing left of its containing block to fill, so shrink-to-fit resolved
+  to the _minimum_ content width — a box a few characters wide with every label ellipsised away to
+  nothing. The modern skin hid it behind the 196px floor on `.menu`; classic sets no floor, which
+  is the whole reason it showed up there and only there. Sized to `max-content` now, so the width
+  comes from the rows rather than from the gap.
+- **The system tray was a row of separate controls rather than one tray.** Every status item carried
+  its own pill and the clock its own box, in both skins — and worse in classic, where those sat
+  inside the tray's own sunken well and made three nested boxes where the machine being imitated had
+  exactly one. The tray is now a single panel with its contents lying flat on it, and because that
+  grouping is shape rather than decoration it lives in the shared layer: the skins differ only in
+  how the panel's edge is drawn and what its clock is lettered in — a soft bordered panel with
+  monospaced tabular figures in modern, a sunken bevel and the era's bitmap sans in classic.
+- `box-shadow: none` on those contents is load-bearing rather than tidiness. Classic gives every
+  `button` the era's raised bevel from a `:where()` rule, which carries no specificity and so loses
+  to any class rule — but only for the properties that class rule actually declares. Leaving the
+  shadow undeclared left the bell wearing a raised bevel while everything else about it had gone
+  flat, so the shared rule now states it and the shape is true by construction in both skins.
+- A tray icon had no hover state in 1995 and does not get one back, but it now has no chrome of its
+  own to say it is a button either, so classic keeps the era's dotted focus rectangle and its
+  one-pixel nudge on press. Modern answers the same problem in its own idiom, with a tint mixed from
+  the text colour so it reads the same on a light or a dark bar.
 - **A maximised Settings window left every control in the top-left corner.** The content column was
   capped at 640px and never centred, so a 1434px window stranded 770px of empty grey down one side
   — 24 pixels of margin on the left, 770 on the right. It centres now, and at the width the fields

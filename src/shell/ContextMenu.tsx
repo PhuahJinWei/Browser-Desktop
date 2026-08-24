@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isTypingTarget } from '../kernel/commands';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import styles from './ContextMenu.module.css';
 
 /**
@@ -25,17 +25,47 @@ import styles from './ContextMenu.module.css';
  * thing everywhere; React events still bubble through the React tree, so nothing else moves.
  */
 
-export interface MenuAction {
+interface MenuRowBase {
   id: string;
   label: string;
-  run: () => void;
   /** Rendered in the danger colour. Destructive, not merely important. */
   danger?: boolean;
   disabled?: boolean;
+  /**
+   * A leading glyph, in the same gutter the check mark uses.
+   *
+   * The gutter is always there whether or not anything is in it, so a menu where only some entries
+   * carry an icon still has every label starting at the same place.
+   */
+  icon?: IconName;
+}
+
+export interface MenuAction extends MenuRowBase {
+  run: () => void;
   /** Present makes this a checkable item; the value is its state. */
   checked?: boolean;
   /** Accelerator text, right-aligned. Display only — the binding lives in the command registry. */
   shortcut?: string;
+  /**
+   * The default action: what a double-click on the same thing would do.
+   *
+   * Drawn bold, which is how this era said it. Worth having as a flag rather than a convention,
+   * because a menu whose first entry is merely the topmost one and a menu whose first entry is the
+   * one already bound to double-click look identical otherwise.
+   */
+  primary?: boolean;
+}
+
+/**
+ * A row that opens rather than runs.
+ *
+ * Separate from `MenuAction` rather than an optional `items` beside an optional `run`, because the
+ * two are genuinely exclusive: a submenu has nothing to do when chosen, and an action has nothing
+ * to open. Splitting them means the compiler rejects the half-built row instead of the menu
+ * silently doing nothing when someone clicks it.
+ */
+export interface MenuSubmenu extends MenuRowBase {
+  items: MenuSpec;
 }
 
 export interface MenuSeparator {
@@ -43,7 +73,7 @@ export interface MenuSeparator {
   separator: true;
 }
 
-export type MenuItem = MenuAction | MenuSeparator;
+export type MenuItem = MenuAction | MenuSubmenu | MenuSeparator;
 
 /** Call sites build menus with conditionals, so falsy entries are expected and dropped. */
 export type MenuSpec = (MenuItem | false | null | undefined)[];
@@ -60,6 +90,10 @@ function isSeparator(item: MenuItem): item is MenuSeparator {
   return 'separator' in item;
 }
 
+function isSubmenu(item: MenuItem): item is MenuSubmenu {
+  return 'items' in item;
+}
+
 /** Drops falsy entries, then any separator that would sit at an edge or next to another. */
 function normalise(spec: MenuSpec): MenuItem[] {
   const items = spec.filter((item): item is MenuItem => Boolean(item));
@@ -71,10 +105,248 @@ function normalise(spec: MenuSpec): MenuItem[] {
   });
 }
 
+/**
+ * One level of the menu.
+ *
+ * Recursive, because a submenu is the same thing as the menu that opened it — same rows, same
+ * keyboard, same skin — and the alternative is two components that have to be kept in agreement
+ * forever. Each panel owns only which of its own children is open, so closing one never reaches
+ * past its own level.
+ */
+function MenuPanel({
+  items: spec,
+  onDismiss,
+  onCloseSelf,
+  autoFocus = false,
+  panelRef,
+  className,
+  style,
+}: {
+  items: MenuSpec;
+  /** Tear the whole menu down: an item ran, or the root was dismissed. */
+  onDismiss: () => void;
+  /** Close this level only, handing focus back to the row that opened it. Absent at the root. */
+  onCloseSelf?: (() => void) | undefined;
+  autoFocus?: boolean;
+  panelRef?: React.RefObject<HTMLDivElement | null> | undefined;
+  className?: string | undefined;
+  style?: React.CSSProperties | undefined;
+}) {
+  const own = useRef<HTMLDivElement>(null);
+  const ref = panelRef ?? own;
+  const items = normalise(spec);
+  const [open, setOpen] = useState<{ id: string; focusChild: boolean } | null>(null);
+
+  /*
+   * This panel's own rows, never a child's.
+   *
+   * `querySelectorAll` reaches straight through the nested panels, so without the `closest` test
+   * the arrow keys would walk out of the menu the user is in and into the one it just opened.
+   */
+  const rows = useCallback(
+    () =>
+      [...(ref.current?.querySelectorAll<HTMLButtonElement>('[data-menu-row]') ?? [])].filter(
+        (button) => button.closest('[data-menu-panel]') === ref.current && !button.disabled,
+      ),
+    [ref],
+  );
+
+  const focusRow = useCallback(
+    (id: string) => {
+      ref.current
+        ?.querySelector<HTMLButtonElement>(`[data-menu-row][data-row-id="${id}"]`)
+        ?.focus();
+    },
+    [ref],
+  );
+
+  useLayoutEffect(() => {
+    if (autoFocus) rows()[0]?.focus();
+  }, [autoFocus, rows]);
+
+  const move = (from: HTMLElement, direction: 1 | -1) => {
+    const list = rows();
+    if (list.length === 0) return;
+    const index = list.indexOf(from as HTMLButtonElement);
+    list[(index + direction + list.length) % list.length]?.focus();
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const rowId = target.dataset['rowId'];
+    const item = items.find((entry) => entry.id === rowId);
+
+    switch (event.key) {
+      case 'Escape':
+        // An open submenu takes the first Escape; the menu itself takes the next one.
+        if (open) setOpen(null);
+        else if (onCloseSelf) onCloseSelf();
+        else onDismiss();
+        break;
+      case 'ArrowDown':
+        move(target, 1);
+        break;
+      case 'ArrowUp':
+        move(target, -1);
+        break;
+      case 'ArrowRight':
+        if (item && isSubmenu(item)) setOpen({ id: item.id, focusChild: true });
+        else return;
+        break;
+      case 'ArrowLeft':
+        if (onCloseSelf) onCloseSelf();
+        else return;
+        break;
+      case 'Home':
+        rows()[0]?.focus();
+        break;
+      case 'End': {
+        const list = rows();
+        list[list.length - 1]?.focus();
+        break;
+      }
+      case 'Tab':
+        // Tabbing out of a context menu means dismissing it, not walking into the page behind.
+        onDismiss();
+        return;
+      default:
+        return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  return (
+    <div
+      ref={ref}
+      data-menu-panel
+      className={`${styles.menu} ${className ?? ''}`}
+      style={style}
+      role="menu"
+      aria-orientation="vertical"
+      onKeyDown={onKeyDown}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      {items.map((item) => {
+        if (isSeparator(item)) return <hr key={item.id} className={styles.separator} />;
+
+        const submenu = isSubmenu(item);
+        const expanded = open?.id === item.id;
+        const checked = isSubmenu(item) ? undefined : item.checked;
+
+        return (
+          <div key={item.id} className={styles.row}>
+            <button
+              type="button"
+              data-menu-row
+              data-row-id={item.id}
+              role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+              {...(checked === undefined ? {} : { 'aria-checked': checked })}
+              {...(submenu ? { 'aria-haspopup': 'menu' as const, 'aria-expanded': expanded } : {})}
+              className={`${styles.item} ${item.danger ? styles.danger : ''} ${
+                !isSubmenu(item) && item.primary ? styles.primary : ''
+              } ${expanded ? styles.itemOpen : ''}`}
+              disabled={item.disabled ?? false}
+              /*
+               * Hovering any row settles what is open at this level: a submenu opens, and every
+               * other row closes whichever one was. Without the second half, sliding down past a
+               * submenu leaves it hanging over the rows underneath it.
+               */
+              onPointerEnter={() => {
+                if (item.disabled) return;
+                setOpen(submenu ? { id: item.id, focusChild: false } : null);
+              }}
+              onClick={() => {
+                if (isSubmenu(item)) {
+                  setOpen(expanded ? null : { id: item.id, focusChild: true });
+                  return;
+                }
+                onDismiss();
+                item.run();
+              }}
+            >
+              <span className={styles.lead} aria-hidden>
+                {checked ? (
+                  <Icon name="check" size={13} />
+                ) : item.icon ? (
+                  <Icon name={item.icon} size={14} />
+                ) : null}
+              </span>
+              <span className={styles.label}>{item.label}</span>
+              {isSubmenu(item) ? (
+                <span className={styles.chevron} aria-hidden />
+              ) : item.shortcut ? (
+                <kbd className={styles.shortcut}>{item.shortcut}</kbd>
+              ) : null}
+            </button>
+
+            {isSubmenu(item) && expanded ? (
+              <Submenu
+                items={item.items}
+                onDismiss={onDismiss}
+                autoFocus={open?.focusChild ?? false}
+                onCloseSelf={() => {
+                  setOpen(null);
+                  focusRow(item.id);
+                }}
+              />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * A child panel, placed beside the row that opened it.
+ *
+ * CSS puts it at the parent's right edge; this corrects only the two cases CSS cannot see. A panel
+ * that would run off the right of the screen flips to the other side of its parent, and one that
+ * would run off the bottom is lifted by however much it overhangs — never past the top of the
+ * screen, which would trade one clipped edge for the other.
+ */
+function Submenu({
+  items,
+  onDismiss,
+  onCloseSelf,
+  autoFocus,
+}: {
+  items: MenuSpec;
+  onDismiss: () => void;
+  onCloseSelf: () => void;
+  autoFocus: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [lift, setLift] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const margin = 8;
+    const box = element.getBoundingClientRect();
+    if (box.right > globalThis.innerWidth - margin) setFlipped(true);
+    const overhang = box.bottom - (globalThis.innerHeight - margin);
+    if (overhang > 0) setLift(Math.min(overhang, Math.max(0, box.top - margin)));
+  }, []);
+
+  return (
+    <MenuPanel
+      panelRef={ref}
+      items={items}
+      onDismiss={onDismiss}
+      onCloseSelf={onCloseSelf}
+      autoFocus={autoFocus}
+      className={`${styles.submenu} ${flipped ? styles.submenuFlipped : ''}`}
+      style={lift ? { marginTop: -lift } : undefined}
+    />
+  );
+}
+
 export function ContextMenu({ request, onClose }: { request: MenuRequest; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: request.x, y: request.y });
-  const items = normalise(request.items);
 
   /*
    * Flip rather than clamp: a menu opened near the right edge should grow left, not straddle it.
@@ -123,91 +395,22 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
     };
   }, [onClose]);
 
-  /* Focus the first item, and hand focus back to whatever had it when the menu goes away. */
+  /* Hand focus back to whatever had it when the menu goes away; the panel takes it from there. */
   useLayoutEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    ref.current?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
     return () => {
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, []);
 
-  const move = useCallback((from: HTMLElement, direction: 1 | -1) => {
-    const buttons = [...(ref.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])].filter(
-      (button) => !button.disabled,
-    );
-    if (buttons.length === 0) return;
-    const index = buttons.indexOf(from as HTMLButtonElement);
-    const next = buttons[(index + direction + buttons.length) % buttons.length];
-    next?.focus();
-  }, []);
-
-  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement;
-    switch (event.key) {
-      case 'Escape':
-        onClose();
-        break;
-      case 'ArrowDown':
-        move(target, 1);
-        break;
-      case 'ArrowUp':
-        move(target, -1);
-        break;
-      case 'Home':
-        ref.current?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
-        break;
-      case 'End': {
-        const buttons = ref.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])');
-        buttons?.[buttons.length - 1]?.focus();
-        break;
-      }
-      case 'Tab':
-        // Tabbing out of a context menu means dismissing it, not walking into the page behind.
-        onClose();
-        return;
-      default:
-        return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
   return createPortal(
-    <div
-      ref={ref}
-      className={styles.menu}
+    <MenuPanel
+      panelRef={ref}
+      items={request.items}
+      onDismiss={onClose}
+      autoFocus
       style={{ left: position.x, top: position.y }}
-      role="menu"
-      aria-orientation="vertical"
-      onKeyDown={onKeyDown}
-      onContextMenu={(event) => event.preventDefault()}
-    >
-      {items.map((item) =>
-        isSeparator(item) ? (
-          <hr key={item.id} className={styles.separator} />
-        ) : (
-          <button
-            key={item.id}
-            type="button"
-            role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
-            {...(item.checked === undefined ? {} : { 'aria-checked': item.checked })}
-            className={`${styles.item} ${item.danger ? styles.danger : ''}`}
-            disabled={item.disabled ?? false}
-            onClick={() => {
-              onClose();
-              item.run();
-            }}
-          >
-            <span className={styles.check} aria-hidden>
-              {item.checked ? <Icon name="check" size={13} /> : null}
-            </span>
-            <span className={styles.label}>{item.label}</span>
-            {item.shortcut ? <kbd className={styles.shortcut}>{item.shortcut}</kbd> : null}
-          </button>
-        ),
-      )}
-    </div>,
+    />,
     document.body,
   );
 }

@@ -135,6 +135,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         onClick={onToggleLauncher}
         aria-expanded={launcherOpen}
         aria-label={`${launcherLabel}: open the app launcher`}
+        title="Click here to begin"
       >
         <AppIcon name="apps" size={17} />
         {/*

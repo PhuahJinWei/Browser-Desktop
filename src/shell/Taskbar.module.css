@@ -7,9 +7,15 @@
   height: calc(48px + env(safe-area-inset-bottom, 0px));
   flex: 0 0 calc(48px + env(safe-area-inset-bottom, 0px));
   padding: 0 var(--space-2) env(safe-area-inset-bottom, 0px);
-  background: color-mix(in oklab, var(--surface-2) 88%, transparent);
+  /*
+   * The bar has a colour of its own rather than a tint of the surface behind it, which is why this
+   * is a literal rather than a token: it is the one piece of chrome that sits on the wallpaper all
+   * the time. It stays opaque — a translucent bar over a photographic wallpaper is a different
+   * colour in every window position — so the blur that used to frost what showed through has
+   * nothing left to do and has gone with it.
+   */
+  background: var(--taskbar-bg);
   border-top: 1px solid var(--border-subtle);
-  backdrop-filter: blur(14px);
   z-index: 1000000;
 }
 
@@ -117,23 +123,48 @@
   text-overflow: ellipsis;
 }
 
+/*
+ * The tray: one panel holding the status icons and the clock.
+ *
+ * The grouping is shape rather than decoration, so it lives here and not in a skin — a tray is a
+ * tray in both. Each item used to carry its own pill and the clock its own box, which read as three
+ * unrelated controls that happened to end up beside each other rather than as the contents of one
+ * thing. All the skins differ on is how this panel's edge is drawn and what its contents are
+ * lettered in.
+ */
 .status {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding-left: var(--space-2);
-  border-left: 1px solid var(--border-subtle);
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
 }
 
-.chip {
+/*
+ * The contents lie flat on the tray; the panel around them is the only edge either skin draws.
+ *
+ * `box-shadow: none` is doing real work rather than restating a default. Classic gives every
+ * `button` the era's raised bevel from a global stylesheet, and because that rule is wrapped in
+ * `:where()` it has no specificity — which means it loses to this one, but only for the properties
+ * this one actually declares. Leaving the shadow undeclared let the bell keep a raised bevel while
+ * everything else about it went flat. Declaring it here makes the shape true by construction in
+ * both skins, instead of each skin having to remember to switch it off.
+ */
+.chip,
+.chipButton,
+.clock {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  height: 26px;
+  height: 22px;
   padding: 0 var(--space-2);
-  border-radius: 999px;
-  background: var(--surface-1);
-  border: 1px solid var(--border-subtle);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -142,23 +173,24 @@
 
 .chipButton {
   position: relative;
+  padding: 0 var(--space-1);
   cursor: pointer;
 }
 
+/* A tint rather than a border, so the hover happens inside the tray instead of drawing a second
+   edge within it. Mixed from the text colour, so it lands the same way on a light or dark bar. */
 .chipButton:hover {
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
   color: var(--text-primary);
-  border-color: var(--border-strong);
 }
 
 .chipBusy {
   color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
 }
 
 .chipOffline {
   color: var(--warn);
   background: var(--warn-subtle);
-  border-color: transparent;
 }
 
 .spinner {
@@ -203,10 +235,10 @@
   text-align: center;
 }
 
+/* Modern letters the clock in tabular figures, so the tray does not change width as it ticks.
+   Classic letters it differently further down; the shape it sits in is the same either way. */
 .clock {
-  padding: 0 var(--space-2);
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -238,13 +270,31 @@
   }
 }
 
-/* Fingers need a bigger target than a mouse does, whatever the screen width is. */
+/*
+ * Fingers need a bigger target than a mouse does, whatever the screen width is.
+ *
+ * Everything on the bar grows to the same 40px, the tray included — and the tray is the one that
+ * has to be said out loud, because it is a panel rather than a bare row: a bordered, filled pill
+ * with the bell and the clock inside it. It used to grow to 44 so that 40px contents would fit,
+ * which worked and left it two pixels taller than every button beside it. Against the bar's top
+ * border that reads as a bar whose right-hand end sits closer to the bottom edge than its left,
+ * which is exactly what it looked like on a phone.
+ *
+ * So the panel matches the buttons and its contents fit inside it instead: 40 less the two pixels
+ * of its own border leaves 38, and 36 keeps a pixel of air either side of them.
+ */
 @media (pointer: coarse) {
   .launcher,
   .search,
   .task,
-  .chipButton {
+  .status {
     height: 40px;
+  }
+
+  .chip,
+  .chipButton,
+  .clock {
+    height: 36px;
   }
 }
 
@@ -302,19 +352,20 @@
 }
 
 /* The tray: one sunken well holding the chips and the clock, rather than each floating alone. */
+/* The same tray with a different edge: a sunken well where the modern skin draws a soft panel. */
 :global([data-skin='classic']) .status {
   height: 26px;
   gap: 3px;
   padding: 0 4px;
-  /* The bevel is the well's edge; the shared `border-left` would draw a second line beside it. */
-  border-left: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: var(--bevel-thin-sunken);
 }
 
 :global([data-skin='classic']) .launcher,
 :global([data-skin='classic']) .search,
-:global([data-skin='classic']) .task,
-:global([data-skin='classic']) .chipButton {
+:global([data-skin='classic']) .task {
   border: 1px solid #000000;
   border-radius: 0;
   background: #c0c0c0;
@@ -341,31 +392,53 @@
 
 :global([data-skin='classic']) .launcher:hover:not(.launcherOpen),
 :global([data-skin='classic']) .search:hover,
-:global([data-skin='classic']) .task:hover:not(.taskActive),
-:global([data-skin='classic']) .chipButton:hover {
+:global([data-skin='classic']) .task:hover:not(.taskActive) {
   background: #c0c0c0;
   color: #000000;
 }
 
-/* Status chips and the clock sit in sunken wells rather than pills.
-
-   The clock is a `<time>`, so it stays inline unless told otherwise — its well was drawn straight
-   onto the glyphs, top and bottom, because zero vertical padding on an inline box is exactly as
-   tight as it sounds. Giving it a height and centring the text is what puts air inside the border. */
+/* Square corners and the era's black. Lying flat on the tray is the shared shape, not this skin's
+   idea — 1995 is simply where the shape came from. */
 :global([data-skin='classic']) .chip,
+:global([data-skin='classic']) .chipButton,
 :global([data-skin='classic']) .clock {
-  display: inline-flex;
-  align-items: center;
   height: 20px;
   border-radius: 0;
-  border: 1px solid transparent;
-  background: #c0c0c0;
-  box-shadow: var(--bevel-thin-sunken);
   color: #000000;
 }
 
+:global([data-skin='classic']) .chipButton {
+  padding: 0 3px;
+}
+
+/*
+ * The clock is the tray's only text, and it is a label rather than data: the era set it in the same
+ * bitmap sans as every other piece of chrome, not in the monospace the modern skin keeps for its
+ * figures.
+ */
 :global([data-skin='classic']) .clock {
-  padding: 0 8px;
+  padding: 0 5px 0 2px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+}
+
+/*
+ * A tray icon had no hover state in 1995, so the shared tint comes back off — but it is still a
+ * button, and one with no chrome of its own has to answer the keyboard all the louder. Focus is
+ * drawn with the era's dotted rectangle; the press is its one-pixel nudge, the only motion it had.
+ */
+:global([data-skin='classic']) .chipButton:hover {
+  background: transparent;
+  color: #000000;
+}
+
+:global([data-skin='classic']) .chipButton:active {
+  transform: translate(1px, 1px);
+}
+
+:global([data-skin='classic']) .chipButton:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -2px;
 }
 
 /* A finger needs the same 40px here as anywhere else. The shared `pointer: coarse` rule above
@@ -389,6 +462,7 @@
   }
 
   :global([data-skin='classic']) .chip,
+  :global([data-skin='classic']) .chipButton,
   :global([data-skin='classic']) .clock {
     height: 38px;
   }

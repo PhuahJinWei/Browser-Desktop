@@ -113,7 +113,7 @@ export default function SettingsApp() {
 
         <Field label="Accent">
           <div className={styles.swatches}>
-            {(['teal', 'indigo', 'amber', 'rose'] as const).map((accent) => (
+            {(['blue', 'teal', 'indigo', 'amber', 'rose'] as const).map((accent) => (
               <button
                 key={accent}
                 type="button"

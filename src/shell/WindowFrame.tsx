@@ -359,6 +359,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
           type="button"
           className={styles.titleIcon}
           aria-label={`System menu for ${win.title}`}
+          title="System menu"
           aria-haspopup="menu"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {

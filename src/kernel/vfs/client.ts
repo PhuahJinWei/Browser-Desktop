@@ -277,9 +277,10 @@ export function useDirectory(parentId: NodeId | null, includeTrashed = false): D
 }
 
 /** The trash listing, kept live the same way. */
-export function useTrash(): { nodes: VfsNode[]; loading: boolean } {
+export function useTrash(): { nodes: VfsNode[]; loading: boolean; reload: () => void } {
   const [nodes, setNodes] = useState<VfsNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,9 +296,9 @@ export function useTrash(): { nodes: VfsNode[]; loading: boolean } {
       cancelled = true;
       unsubscribe();
     };
-  }, []);
+  }, [nonce]);
 
-  return { nodes, loading };
+  return { nodes, loading, reload: () => setNonce((n) => n + 1) };
 }
 
 export function useVfsStats(): VfsStats | null {

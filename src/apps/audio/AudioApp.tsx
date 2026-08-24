@@ -224,6 +224,7 @@ export default function AudioApp({ windowId, args }: AppProps) {
                 className={styles.play}
                 onClick={togglePlay}
                 aria-label={playing ? 'Pause' : 'Play'}
+                title={playing ? 'Pause' : 'Play'}
               >
                 <Icon name={playing ? 'minimize' : 'chevron-right'} size={18} />
               </button>

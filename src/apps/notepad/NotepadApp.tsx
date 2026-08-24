@@ -4,7 +4,8 @@ import { closeWindow, setWindowTitle } from '../../kernel/windows';
 import { notifyError } from '../../kernel/notifications';
 import { useDirectory, vfs } from '../../kernel/vfs/client';
 import { ROOT_ID } from '../../kernel/vfs/types';
-import { ContextMenu, separator, useContextMenu, type MenuSpec } from '../../shell/ContextMenu';
+import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
+import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
 import { Icon } from '../../shell/Icon';
 import { nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './NotepadApp.module.css';
@@ -53,11 +54,10 @@ export default function NotepadApp({ windowId, args }: AppProps) {
   // On by default, unlike the original. This edits Markdown prose in a resizable window, where
   // wrapping off means every paragraph is one line you scroll sideways to read.
   const [wordWrap, setWordWrap] = useState(true);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const listing = useDirectory(folderId);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadedId = useRef<string | null>(null);
-  const { menu, open: openMenu, openUnder, close: closeMenu } = useContextMenu();
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   const notes = listing.nodes.filter((node) => node.kind === 'file');
 
@@ -264,7 +264,7 @@ export default function NotepadApp({ windowId, args }: AppProps) {
    * than the gap. Time/Date shows no accelerator for a related reason: the original bound it to F5,
    * and taking F5 away from someone trying to reload a web page is not a period detail worth having.
    */
-  const menuBar: { id: string; label: string; items: () => MenuSpec }[] = [
+  const menuBar: MenuBarMenu[] = [
     {
       id: 'file',
       label: 'File',
@@ -317,40 +317,6 @@ export default function NotepadApp({ windowId, args }: AppProps) {
     },
   ];
 
-  /*
-   * Opening, closing and sliding along the bar.
-   *
-   * `openMenuRef` exists because clicking an open title has to *close* it. The menu's own
-   * outside-pointerdown listener runs first, in the capture phase, and has already asked for a
-   * close by the time the title's click handler runs — so the handler would read null, decide the
-   * menu was shut, and reopen it. The ref still holds the pre-gesture value at pointerdown, which
-   * is the only moment the question can be answered honestly.
-   */
-  const openMenuRef = useRef<string | null>(null);
-  const reopenGuard = useRef(false);
-  useEffect(() => {
-    openMenuRef.current = openMenuId;
-  });
-
-  const closeBar = useCallback(() => {
-    closeMenu();
-    setOpenMenuId(null);
-  }, [closeMenu]);
-
-  const dropMenu = (entry: { id: string; items: () => MenuSpec }, anchor: HTMLElement) => {
-    setOpenMenuId(entry.id);
-    openUnder(anchor, entry.items());
-  };
-
-  const onBarKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    const titles = [...(event.currentTarget.parentElement?.querySelectorAll('button') ?? [])];
-    const index = titles.indexOf(event.currentTarget);
-    const step = event.key === 'ArrowRight' ? 1 : -1;
-    titles[(index + step + titles.length) % titles.length]?.focus();
-    event.preventDefault();
-  };
-
   /* Keyboard --------------------------------------------------------------------------------- */
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -397,56 +363,7 @@ export default function NotepadApp({ windowId, args }: AppProps) {
 
   return (
     <div className={styles.app} onKeyDown={onKeyDown}>
-      <div
-        className={styles.menuBar}
-        role="menubar"
-        aria-label="Notepad"
-        /*
-         * Sliding along an open bar moves the menu with it — the gesture everyone learned on these
-         * menus and nobody thinks about.
-         *
-         * One handler on the bar rather than `onPointerEnter` on each title. `pointerover` bubbles,
-         * so this is an ordinary delegated listener; enter and leave do not, and React has to
-         * reconstruct them by diffing target against relatedTarget. Fewer moving parts for the same
-         * behaviour, and it stays one handler however many menus the bar grows.
-         */
-        onPointerOver={(event) => {
-          if (!openMenuRef.current) return;
-          const title = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-menu-id]');
-          const id = title?.dataset.menuId;
-          if (!title || !id || id === openMenuRef.current) return;
-          const entry = menuBar.find((candidate) => candidate.id === id);
-          if (entry) dropMenu(entry, title);
-        }}
-      >
-        {menuBar.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            role="menuitem"
-            aria-haspopup="true"
-            aria-expanded={openMenuId === entry.id}
-            data-menu-id={entry.id}
-            // One title in the bar is tabbable and the arrow keys reach the rest, which is what a
-            // menu bar is: one stop in the tab order, not one per menu.
-            tabIndex={(openMenuId ?? menuBar[0]?.id) === entry.id ? 0 : -1}
-            className={`${styles.menuTitle} ${openMenuId === entry.id ? styles.menuTitleOpen : ''}`}
-            onPointerDown={() => {
-              reopenGuard.current = openMenuRef.current === entry.id;
-            }}
-            onClick={(event) => {
-              if (reopenGuard.current) {
-                reopenGuard.current = false;
-                return;
-              }
-              dropMenu(entry, event.currentTarget);
-            }}
-            onKeyDown={onBarKeyDown}
-          >
-            {entry.label}
-          </button>
-        ))}
-      </div>
+      <MenuBar menus={menuBar} label="Notepad" />
 
       <div className={styles.workspace}>
         <aside className={styles.sidebar}>
@@ -535,14 +452,7 @@ export default function NotepadApp({ windowId, args }: AppProps) {
         </main>
       </div>
 
-      {/*
-        Keyed so that sliding from one bar menu to the next is a fresh mount rather than a re-render
-        of the same one: the menu focuses its first item on mount and hands focus back on unmount,
-        and reusing the instance would leave focus on a button that no longer exists.
-      */}
-      {menu ? (
-        <ContextMenu key={openMenuId ?? 'context'} request={menu} onClose={closeBar} />
-      ) : null}
+      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
     </div>
   );
 }

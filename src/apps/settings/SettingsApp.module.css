@@ -134,6 +134,9 @@
   border-color: var(--text-primary);
 }
 
+.blue {
+  background: #005fb8;
+}
 .teal {
   background: #0d7a6f;
 }

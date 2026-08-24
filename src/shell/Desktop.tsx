@@ -27,9 +27,11 @@ import { Launcher } from './Launcher';
 import { CommandPalette } from './CommandPalette';
 import { NotificationLayer } from './Notifications';
 import { PermissionPrompt } from './PermissionPrompt';
+import { loadInstalledApps } from '../kernel/installedApps';
 import { DesktopIcons, iconLayoutMenu } from './DesktopIcons';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { LimitedNotice } from './LimitedNotice';
+import { Tooltips } from './Tooltips';
 import styles from './Desktop.module.css';
 
 /**
@@ -162,29 +164,70 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
     windowStore.set((state) => ({ ...state, focusedId: null }));
   }, []);
 
-  /* The desktop's own menu. Everything here acts on the desktop rather than on any one window. */
+  /*
+   * Refresh.
+   *
+   * This desktop renders from live state, so there is never a stale frame sitting here waiting to
+   * be redrawn the way there was on a machine that painted its icons once and then remembered them.
+   * That makes Refresh easy to fake and worth not faking: it re-reads the installed apps from
+   * storage, which is what the icons are actually drawn from, and remounts the icon layer so the
+   * re-read is visible and the selection is dropped with it. Somewhere nothing has changed — the
+   * usual case — it is a genuine re-read that finds the same answer, followed by a repaint. Which
+   * is all Refresh has ever been anywhere else, too.
+   */
+  const [refreshToken, setRefreshToken] = useState(0);
+  const refreshDesktop = useCallback(() => {
+    void loadInstalledApps();
+    setRefreshToken((token) => token + 1);
+  }, []);
+
+  /*
+   * The desktop's own menu. Everything here acts on the desktop rather than on any one window.
+   *
+   * Grouped the way a desktop menu has been grouped for thirty years: what to do with the icons,
+   * then what to make, then where to change how the place looks. It still does not carry Paste or
+   * Undo, because the desktop has no clipboard and no undo stack to put behind them, and a row that
+   * is permanently greyed out is a picture of a feature rather than a feature.
+   */
   const backgroundMenu = (): MenuSpec => [
     {
-      id: 'desktop.newFolder',
-      label: 'New folder',
-      run: () => {
-        void vfs
-          .createDirectory(ROOT_ID, 'New folder')
-          .then((node) => launchApp('files', { args: { directoryId: ROOT_ID, selectId: node.id } }))
-          .catch((error: unknown) => notifyError('Could not create the folder', error));
-      },
+      id: 'desktop.view',
+      label: 'View',
+      items: iconLayoutMenu(rowsForHeight(viewport.height), settings.hiddenIcons.length),
     },
     {
-      id: 'desktop.newNote',
-      label: 'New note',
-      run: () => void launchApp('notes', { args: { create: true } }),
+      id: 'desktop.refresh',
+      label: 'Refresh',
+      run: refreshDesktop,
     },
     separator('desktop.s1'),
-    ...iconLayoutMenu(rowsForHeight(viewport.height), settings.hiddenIcons.length),
+    {
+      id: 'desktop.new',
+      label: 'New',
+      items: [
+        {
+          id: 'desktop.newFolder',
+          label: 'Folder',
+          run: () => {
+            void vfs
+              .createDirectory(ROOT_ID, 'New folder')
+              .then((node) =>
+                launchApp('files', { args: { directoryId: ROOT_ID, selectId: node.id } }),
+              )
+              .catch((error: unknown) => notifyError('Could not create the folder', error));
+          },
+        },
+        {
+          id: 'desktop.newNote',
+          label: 'Note',
+          run: () => void launchApp('notes', { args: { create: true } }),
+        },
+      ],
+    },
     separator('desktop.s2'),
     {
       id: 'desktop.wallpaper',
-      label: 'Change wallpaper…',
+      label: 'Personalise…',
       run: () => {
         void pickWallpaperImage().catch((error: unknown) =>
           notifyError('That picture could not be used', error),
@@ -193,11 +236,15 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
     },
     {
       id: 'desktop.settings',
-      label: 'Appearance and settings',
+      label: 'Display settings',
       shortcut: 'Ctrl+,',
       run: () => void launchApp('settings'),
     },
-    { id: 'desktop.tasks', label: 'Task Manager', run: () => void launchApp('tasks') },
+    {
+      id: 'desktop.tasks',
+      label: 'Task Manager',
+      run: () => void launchApp('tasks'),
+    },
     windows.length > 0 && separator('desktop.s3'),
     windows.length > 0 && {
       id: 'desktop.closeAll',
@@ -224,7 +271,8 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
         }}
         role="presentation"
       >
-        <DesktopIcons />
+        {/* Keyed so Refresh rebuilds the layer rather than merely re-rendering it. */}
+        <DesktopIcons key={refreshToken} />
         <LimitedNotice />
 
         {previewRect ? (
@@ -262,6 +310,8 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
       {paletteOpen ? <CommandPalette onClose={() => setPaletteOpen(false)} /> : null}
       <NotificationLayer />
       <PermissionPrompt />
+      {/* One listener for every `title` on the desktop; see Tooltips.tsx. */}
+      <Tooltips />
     </div>
   );
 }

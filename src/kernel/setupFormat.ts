@@ -104,7 +104,7 @@ function cleanSettings(input: unknown): PortableSettings {
   const out: PortableSettings = {};
 
   if (oneOf(input['theme'], ['system', 'light', 'dark'] as const)) out.theme = input['theme'];
-  if (oneOf(input['accent'], ['teal', 'indigo', 'amber', 'rose'] as const)) {
+  if (oneOf(input['accent'], ['blue', 'teal', 'indigo', 'amber', 'rose'] as const)) {
     out.accent = input['accent'];
   }
   if (oneOf(input['fontScale'], [0.9, 1, 1.1, 1.25] as const)) out.fontScale = input['fontScale'];

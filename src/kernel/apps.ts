@@ -98,6 +98,20 @@ export const APPS: AppDefinition[] = [
     openPriority: 5,
   },
   {
+    // The wastebasket on the desktop is the oldest piece of this metaphor there is, and it was
+    // reachable only from a pane inside Files. It is the same view — a mode Files already had —
+    // rather than a second implementation of it.
+    // The id stays 'trash' although the app is called the Recycle Bin: it is the key a saved icon
+    // position and a restored session are written under, and the metaphor is older than either name.
+    id: 'trash',
+    name: 'Recycle Bin',
+    icon: 'trash',
+    description: 'Files you have thrown away, until you empty it',
+    component: lazy(() => import('../apps/recycle-bin/RecycleBinApp')),
+    defaultSize: { width: 940, height: 600 },
+    singleton: true,
+  },
+  {
     id: 'viewer',
     name: 'Viewer',
     icon: 'file-text',

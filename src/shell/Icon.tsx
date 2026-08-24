@@ -26,6 +26,7 @@ export type IconName =
   | 'note'
   | 'trash'
   | 'restore'
+  | 'refresh'
   | 'chevron-right'
   | 'chevron-down'
   | 'close'
@@ -77,6 +78,8 @@ const PATHS: Record<IconName, string> = {
   note: 'M6 3.5h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1ZM8.5 10h7M8.5 13.5h7M8.5 17h4',
   trash: 'M4.5 7h15M9.5 7V5h5v2M6.5 7l1 13h9l1-13M10.5 10.5v6M13.5 10.5v6',
   restore: 'M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4',
+  // The mirror of restore: the arc runs the other way and the head sits top-right.
+  refresh: 'M20 12a8 8 0 1 1-2.5-5.8M20 4v4h-4',
   'chevron-right': 'M9.5 5.5 16 12l-6.5 6.5',
   'chevron-down': 'M5.5 9.5 12 16l6.5-6.5',
   close: 'M6 6l12 12M18 6 6 18',

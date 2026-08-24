@@ -1,0 +1,37 @@
+.tip {
+  position: fixed;
+  z-index: 1000007;
+  max-width: 320px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  box-shadow: var(--shadow-raised);
+  /* Hints carry newlines — a file's is its name, then its type and size, then when it changed. */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  /* It follows the pointer around; it must never be under it. */
+  pointer-events: none;
+}
+
+/* Above the context menu is deliberate: a menu item with a hint is the one place they overlap. */
+
+/* -- Classic ----------------------------------------------------------------------------------- */
+
+/*
+ * The yellow box. Not a colour from this skin's palette — `#ffffe1` is the tooltip's own, the one
+ * shade in the era that belonged to exactly one control — with a hairline black border and no
+ * bevel, because a tooltip was the one surface that never pretended to be raised.
+ */
+:global([data-skin='classic']) .tip {
+  padding: 1px 4px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #ffffe1;
+  color: #000000;
+  box-shadow: none;
+  line-height: 1.3;
+}
