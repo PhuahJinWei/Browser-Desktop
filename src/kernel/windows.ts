@@ -397,19 +397,62 @@ export function closeAllWindows(): void {
 /* -------------------------------------------------------------------------------------------- */
 
 export interface WindowSession {
-  windows: Omit<WindowState, 'zIndex'>[];
+  /**
+   * In **taskbar order** — the order the user arranged, not the order they opened.
+   *
+   * That order used to be free: the array was serialised sorted by `zIndex`, and restoring in
+   * sequence rebuilt the stack without storing a single index. Now that the taskbar can be
+   * rearranged, position means something of its own, so the stack has to be carried rather than
+   * implied. One number per window buys two orders that are genuinely independent, which they are.
+   *
+   * Optional, because `setupFormat` rebuilds windows field by field from a whitelist and will drop
+   * anything it does not know: a setup file still restores, falling back to array order for the
+   * stack rather than failing.
+   */
+  windows: (Omit<WindowState, 'zIndex'> & { zIndex?: number })[];
   focusedId: string | null;
+}
+
+/**
+ * Moves a taskbar button to a position, pushing the others along.
+ *
+ * The taskbar renders the window array in order, so arranging it is moving one element — there is
+ * no second list to keep in step, and the session carries the result without extra plumbing.
+ */
+export function moveWindowToIndex(id: string, index: number): void {
+  windowStore.set((current) => {
+    const from = current.windows.findIndex((window) => window.id === id);
+    if (from === -1) return current;
+    const to = Math.max(0, Math.min(index, current.windows.length - 1));
+    if (from === to) return current;
+    const next = [...current.windows];
+    const [moving] = next.splice(from, 1);
+    next.splice(to, 0, moving!);
+    return { ...current, windows: next };
+  });
+}
+
+/**
+ * The same move, one place at a time.
+ *
+ * A drag is unreachable without a pointer, so the window menu offers this instead — the taskbar
+ * would otherwise be the one arrangeable surface in the desktop that a keyboard cannot arrange.
+ */
+export function nudgeWindowOrder(id: string, delta: -1 | 1): void {
+  const from = windowStore.get().windows.findIndex((window) => window.id === id);
+  if (from === -1) return;
+  moveWindowToIndex(id, from + delta);
+}
+
+/** Where a window sits in the taskbar, for menus that need to know if it can move further. */
+export function windowOrderIndex(id: string): number {
+  return windowStore.get().windows.findIndex((window) => window.id === id);
 }
 
 export function serializeSession(): WindowSession {
   const { windows, focusedId } = windowStore.get();
-  return {
-    // Sorted by z so restoring in order rebuilds the stack without storing raw indices.
-    windows: [...windows]
-      .sort((a, b) => a.zIndex - b.zIndex)
-      .map(({ zIndex: _zIndex, ...rest }) => rest),
-    focusedId,
-  };
+  // Array order is the taskbar's and is preserved as-is; `zIndex` rides along for the stack.
+  return { windows, focusedId };
 }
 
 export function restoreSession(
@@ -426,12 +469,14 @@ export function restoreSession(
   windowStore.set((current) => ({
     ...current,
     viewport,
-    nextZ: session.windows.length + 1,
+    nextZ: Math.max(0, ...session.windows.map((window, index) => window.zIndex ?? index + 1)) + 1,
     focusedId: session.focusedId,
     windows: session.windows.map((window, index) => ({
       ...window,
       ...restoredGeometry(window, viewport, compact),
-      zIndex: index + 1,
+      // The stored stack when the file has one; array order otherwise, which is what a setup file
+      // sanitised by `setupFormat` arrives as.
+      zIndex: window.zIndex ?? index + 1,
     })),
   }));
 }

@@ -334,11 +334,46 @@
 }
 
 /* Task buttons are wider and flat-topped, and their text sits left where a title would. */
+/*
+ * Task buttons share the bar rather than queue along it.
+ *
+ * This is the difference that made them read as "a row of buttons" instead of a taskbar. The
+ * originals divided the available width equally and got narrower as more windows opened, down to
+ * the icon alone; ours were a fixed 140px in a strip that scrolled sideways once they no longer
+ * fit — which no taskbar of this era ever did.
+ *
+ * `flex: 1 1 0` with `min-width: 0` is the whole mechanism: equal shares of whatever is left,
+ * shrinking together, capped so three windows do not each take a third of a wide screen.
+ */
 :global([data-skin='classic']) .task {
   height: 26px;
-  min-width: 140px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 160px;
   justify-content: flex-start;
   padding: 0 6px;
+  /* So the label can answer to the button's own width rather than the window's. */
+  container-type: inline-size;
+}
+
+/*
+ * Past a certain narrowness the label stops being a label. An ellipsis alone in a 40px button is
+ * noise; the icon still says which window it is, which is what the original fell back to.
+ */
+@container (max-width: 58px) {
+  :global([data-skin='classic']) .taskLabel {
+    display: none;
+  }
+}
+
+/* The strip no longer scrolls, because the buttons in it no longer overflow. */
+:global([data-skin='classic']) .windows {
+  overflow-x: hidden;
+}
+
+/* A latched button is pressed, so its contents sit where a pressed button's do. */
+:global([data-skin='classic']) .taskActive {
+  padding: 1px 5px 0 7px;
 }
 
 :global([data-skin='classic']) .search {

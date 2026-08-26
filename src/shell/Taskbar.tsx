@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getApp } from '../kernel/apps';
 import {
   closeAllWindows,
@@ -6,6 +6,8 @@ import {
   focusWindow,
   minimizeAllWindows,
   minimizeWindow,
+  moveWindowToIndex,
+  nudgeWindowOrder,
   snapWindow,
   toggleMaximize,
   useFocusedWindowId,
@@ -76,6 +78,60 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
+  /*
+   * Dragging a task button to rearrange the bar.
+   *
+   * Pointer events rather than HTML5 drag-and-drop, which is the same choice the window drag and
+   * the desktop icons made (ADR 9): the native API cannot follow the pointer without a drag image,
+   * fires nothing useful on touch, and would need its own dance to be cancelled.
+   *
+   * The four-pixel threshold is what keeps this from stealing clicks — a button is only dragging
+   * once the pointer has actually travelled, so a click that wobbles still activates the window.
+   * `suppressClick` then swallows the click that a real drag would otherwise end with.
+   *
+   * Reordering happens live, on the button under the pointer, so the bar rearranges itself as the
+   * cursor moves rather than jumping once on release.
+   */
+  const dragging = useRef<{ id: string; startX: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+
+  const onTaskPointerDown = useCallback((event: React.PointerEvent, id: string) => {
+    // Left button only: the right one belongs to the context menu, and the middle to the browser.
+    if (event.button !== 0) return;
+    dragging.current = { id, startX: event.clientX, moved: false };
+
+    const onMove = (move: PointerEvent) => {
+      const state = dragging.current;
+      if (!state) return;
+      if (!state.moved && Math.abs(move.clientX - state.startX) < 4) return;
+      state.moved = true;
+
+      const over = document
+        .elementFromPoint(move.clientX, move.clientY)
+        ?.closest<HTMLElement>('[data-task-id]');
+      const overId = over?.dataset['taskId'];
+      if (!overId || overId === state.id) return;
+
+      const order = [...document.querySelectorAll<HTMLElement>('[data-task-id]')].map(
+        (element) => element.dataset['taskId'],
+      );
+      const target = order.indexOf(overId);
+      if (target !== -1) moveWindowToIndex(state.id, target);
+    };
+
+    const onUp = () => {
+      suppressClick.current = dragging.current?.moved ?? false;
+      dragging.current = null;
+      globalThis.removeEventListener('pointermove', onMove);
+      globalThis.removeEventListener('pointerup', onUp);
+      globalThis.removeEventListener('pointercancel', onUp);
+    };
+
+    globalThis.addEventListener('pointermove', onMove);
+    globalThis.addEventListener('pointerup', onUp);
+    globalThis.addEventListener('pointercancel', onUp);
+  }, []);
+
   const taskMenu = (id: string, minimized: boolean, snapped: boolean): MenuSpec => [
     {
       id: 'task.restore',
@@ -85,6 +141,21 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
     { id: 'task.maximize', label: 'Maximise', run: () => toggleMaximize(id) },
     snapped && { id: 'task.unsnap', label: 'Free the window', run: () => snapWindow(id, null) },
     separator('task.s1'),
+    // The keyboard's way to do what a drag does, so the taskbar is not the one arrangeable
+    // surface here that needs a pointer.
+    {
+      id: 'task.left',
+      label: 'Move left',
+      disabled: windows[0]?.id === id,
+      run: () => nudgeWindowOrder(id, -1),
+    },
+    {
+      id: 'task.right',
+      label: 'Move right',
+      disabled: windows[windows.length - 1]?.id === id,
+      run: () => nudgeWindowOrder(id, 1),
+    },
+    separator('task.s2'),
     { id: 'task.close', label: 'Close', run: () => closeWindow(id), danger: true },
   ];
 
@@ -179,7 +250,17 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
               className={`${styles.task} ${active ? styles.taskActive : ''} ${
                 window.minimized ? styles.taskMinimized : ''
               }`}
-              onClick={() => (active ? minimizeWindow(window.id) : focusWindow(window.id))}
+              data-task-id={window.id}
+              onPointerDown={(event) => onTaskPointerDown(event, window.id)}
+              onClick={() => {
+                // A drag ends in a click; that one is not the user asking to minimise.
+                if (suppressClick.current) {
+                  suppressClick.current = false;
+                  return;
+                }
+                if (active) minimizeWindow(window.id);
+                else focusWindow(window.id);
+              }}
               onContextMenu={(event) =>
                 openMenu(event, taskMenu(window.id, window.minimized, window.snap !== null))
               }
