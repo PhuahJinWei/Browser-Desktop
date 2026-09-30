@@ -161,10 +161,7 @@ export function Tooltips() {
     if (!element || !tip) return;
     const { width, height } = element.getBoundingClientRect();
     const margin = 6;
-    const x = Math.max(
-      margin,
-      Math.min(tip.x + OFFSET.x, globalThis.innerWidth - width - margin),
-    );
+    const x = Math.max(margin, Math.min(tip.x + OFFSET.x, globalThis.innerWidth - width - margin));
     // Above the pointer rather than below it when there is no room, which is what runs out first.
     const below = tip.y + OFFSET.y;
     const y = below + height > globalThis.innerHeight - margin ? tip.y - height - 8 : below;

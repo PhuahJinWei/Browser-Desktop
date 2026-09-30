@@ -259,7 +259,16 @@ html[data-cursors='classic'] * {
 /* Text is a different tool, and always was. */
 html[data-cursors='classic']
   :is(
-    input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+    input:not(
+      [type='button'],
+      [type='submit'],
+      [type='reset'],
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='color'],
+      [type='file']
+    ),
     textarea,
     [contenteditable='true']
   ) {

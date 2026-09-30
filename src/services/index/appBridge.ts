@@ -26,4 +26,3 @@ export async function searchForApps(
     score: hit.score,
   }));
 }
-

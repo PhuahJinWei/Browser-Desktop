@@ -95,7 +95,10 @@ function asOptionalString(value: unknown, label: string): string | null {
 
 export interface HostDependencies {
   embed: (texts: string[]) => Promise<Float32Array[]>;
-  search: (query: string, limit: number) => Promise<{ fileId: string; fileName: string; snippet: string; score: number }[]>;
+  search: (
+    query: string,
+    limit: number,
+  ) => Promise<{ fileId: string; fileName: string; snippet: string; score: number }[]>;
 }
 
 /**
@@ -137,7 +140,8 @@ export async function handleAppCall(
     case 'fs.readText':
     case 'fs.readBytes': {
       const id = asString(args[0], 'file id');
-      const permitted = id === context.openedFileId || (await isInsideAppFolder(context.manifest, id));
+      const permitted =
+        id === context.openedFileId || (await isInsideAppFolder(context.manifest, id));
       if (!permitted) {
         throw new Error('An app may only read its own files, or the file it was opened with');
       }
@@ -187,7 +191,6 @@ export async function handleAppCall(
       const limit = Math.min(50, Math.max(1, Number(args[1]) || 10));
       return deps.search(query, limit);
     }
-
 
     /* Window and shell ----------------------------------------------------------------------- */
 

@@ -123,7 +123,11 @@ export function AppsPanel() {
                       type="button"
                       className={`${styles.smallButton} ${styles.danger}`}
                       onClick={() => {
-                        if (confirm(`Remove ${app.manifest.name}? Its permissions and settings go too.`)) {
+                        if (
+                          confirm(
+                            `Remove ${app.manifest.name}? Its permissions and settings go too.`,
+                          )
+                        ) {
                           void uninstallApp(app.id);
                         }
                       }}

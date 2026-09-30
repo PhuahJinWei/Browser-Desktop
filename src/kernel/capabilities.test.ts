@@ -71,7 +71,6 @@ describe('preferredBackend', () => {
     const noGpu = caps({ gpu: gpu({ available: false }), crossOriginIsolated: false });
     expect(preferredBackend(noGpu, 'text-embedding')).toBe('wasm');
   });
-
 });
 
 describe('probeCapabilities', () => {

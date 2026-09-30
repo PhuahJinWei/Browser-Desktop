@@ -2,5 +2,6 @@ dist
 coverage
 public/coi-serviceworker.js
 docs/benchmarks/*.json
-# Written by tools/fetch-watch-stills.mjs; formatting it by hand would be undone on the next run.
-src/apps/watch/stills/README.md
+# The vendored model is written by `npm run sync:weights` and verified against pinned SHA-256
+# digests; reformatting it would change the bytes those digests describe.
+public/models/

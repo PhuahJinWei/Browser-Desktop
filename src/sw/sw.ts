@@ -130,8 +130,7 @@ self.addEventListener('fetch', (event) => {
       // Runtime and weights: serve from their own caches, filling them on the way past. This is
       // what makes search work with the network off, and it survives HTTP-cache eviction.
       const url = new URL(request.url);
-      const heavyCache =
-        url.origin === self.location.origin ? heavyAssetCache(url.pathname) : null;
+      const heavyCache = url.origin === self.location.origin ? heavyAssetCache(url.pathname) : null;
       if (heavyCache) {
         const store = await caches.open(heavyCache);
         const hit = await store.match(request);
