@@ -94,22 +94,22 @@ Task Manager shows the whole request log so you can check all of this rather tha
 
 ## What it does
 
-|                  |                                                                                                                                                                                         |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.                        |
-| **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                   |
-| **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                             |
-| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                  |
-| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                     |
-| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                        |
-| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                       |
-| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                                |
-| **Portfolio**    | The author's other work, handed to a real browser tab. Nothing is fetched — not even a favicon — so the network log stays empty while you use it.                                       |
-| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                         |
-| **Settings**     | Theme, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
-| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                            |
-| **Skins**        | A 1990s desktop by default: Start menu, bevels, one grey, pixel icons, scrollbar arrows. Modern is a switch away.                                                                       |
-| **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                            |
+|                  |                                                                                                                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.                       |
+| **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                  |
+| **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                            |
+| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                 |
+| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                    |
+| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                       |
+| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                      |
+| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                               |
+| **Portfolio**    | The author's other work, handed to a real browser tab. Nothing is fetched — not even a favicon — so the network log stays empty while you use it.                                      |
+| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                        |
+| **Settings**     | Skin, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
+| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                           |
+| **Skins**        | A 1990s desktop by default: Start menu, bevels, one grey, pixel icons, scrollbar arrows. Modern is a switch away.                                                                      |
+| **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                           |
 
 ## Measured, not asserted
 
@@ -128,7 +128,8 @@ From the reference machine (Windows 11, AMD RDNA-3, 16 cores), in the deployed b
 
 The WASM result contradicted the plan's assumption that the GPU would always win, so the code
 changed: backend selection is per task and cites the measurement. That is what the benchmark
-harness in **About** is for — it is still there, and you can re-run it on your own machine.
+harness in **My Computer → Performance** is for — it is still there, and you can re-run it on your
+own machine.
 
 ## Running it
 

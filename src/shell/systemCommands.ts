@@ -83,24 +83,14 @@ export function registerSystemCommands(): () => void {
       when: () => windowStore.get().windows.length > 0,
     },
     {
-      id: 'view.theme.toggle',
-      title: 'Toggle light and dark theme',
+      // What the light/dark toggle used to be. There is one palette now, so the only appearance
+      // choice worth a keystroke is which decade the desktop is from.
+      id: 'view.skin.toggle',
+      title: 'Switch between the modern and classic skin',
       section: 'View',
-      keywords: ['dark mode', 'light mode', 'appearance'],
+      keywords: ['skin', 'classic', 'modern', 'appearance', 'theme'],
       run: () => {
-        const current = settingsStore.get().theme;
-        // From "system", switch to the opposite of what the system is currently showing.
-        const systemDark =
-          typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
-        const next =
-          current === 'system'
-            ? systemDark
-              ? 'light'
-              : 'dark'
-            : current === 'dark'
-              ? 'light'
-              : 'dark';
-        updateSettings({ theme: next });
+        updateSettings({ skin: settingsStore.get().skin === 'classic' ? 'modern' : 'classic' });
       },
     },
     {

@@ -73,7 +73,7 @@ export function Shell() {
 
         // Ask the browser not to evict what the user puts here. Deliberately not awaited: the
         // answer is the browser's to give on its own schedule, Firefox gives it by prompting, and
-        // nothing below depends on it. About reports whatever it decides.
+        // nothing below depends on it. My Computer reports whatever it decides.
         void ensurePersistentStorage();
 
         setBootStep('search', 'running');

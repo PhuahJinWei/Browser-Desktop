@@ -6,7 +6,7 @@
  * (ADR 1, and a licensing matter besides).
  *
  * One 24-unit grid, 1.75 stroke, round caps, `currentColor` throughout, so an icon inherits the
- * colour of whatever it sits in and stays legible in both themes.
+ * colour of whatever it sits in and stays legible in both skins.
  */
 
 export type IconName =
@@ -40,6 +40,7 @@ export type IconName =
   | 'check'
   | 'alert'
   | 'cpu'
+  | 'computer'
   | 'drive'
   | 'bolt'
   | 'bell'
@@ -94,6 +95,7 @@ const PATHS: Record<IconName, string> = {
   check: 'M5 12.5 10 17.5 19 7',
   alert: 'M12 4.5 21 19.5H3ZM12 10v4M12 17h.01',
   cpu: 'M8 8h8v8H8zM4.5 10h3.5M4.5 14h3.5M16 10h3.5M16 14h3.5M10 4.5V8M14 4.5V8M10 16v3.5M14 16v3.5',
+  computer: 'M3.5 4.5h17v11h-17zM7.5 19.5h9M12 15.5v4M6.5 7.5h11',
   drive:
     'M4 12.5h16M5.5 12.5 8 5.5h8l2.5 7M4 12.5v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5M7 16h.01M10.5 16h3',
   bolt: 'M13.5 3.5 5.5 13.5h5l-1 7 8-10h-5z',

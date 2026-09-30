@@ -22,10 +22,10 @@ describe('parseSetup', () => {
 
   it('keeps the settings it recognises', () => {
     const setup = parseSetup(
-      file({ settings: { theme: 'dark', accent: 'rose', fontScale: 1.25, autoIndex: false } }),
+      file({ settings: { skin: 'classic', accent: 'rose', fontScale: 1.25, autoIndex: false } }),
     );
     expect(setup.settings).toEqual({
-      theme: 'dark',
+      skin: 'classic',
       accent: 'rose',
       fontScale: 1.25,
       autoIndex: false,
@@ -36,7 +36,7 @@ describe('parseSetup', () => {
     const setup = parseSetup(
       file({
         settings: {
-          theme: 'neon',
+          skin: 'aqua',
           accent: 'javascript:alert(1)',
           fontScale: 400,
           backend: 'cuda',

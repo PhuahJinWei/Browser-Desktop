@@ -155,9 +155,9 @@ export const APPS: AppDefinition[] = [
     id: 'tasks',
     name: 'Task Manager',
     icon: 'gauge',
-    description: 'Jobs, models, storage and every network request',
+    description: 'Apps, background work, performance and network activity',
     component: lazy(() => import('../apps/tasks/TaskManagerApp')),
-    defaultSize: { width: 820, height: 560 },
+    defaultSize: { width: 940, height: 620 },
     singleton: true,
   },
   {
@@ -166,14 +166,19 @@ export const APPS: AppDefinition[] = [
     icon: 'settings',
     description: 'Appearance, indexing, storage and data',
     component: lazy(() => import('../apps/settings/SettingsApp')),
-    defaultSize: { width: 760, height: 580 },
+    // Wide enough for the page rail plus a full-measure page beside it; the old 760 predates the
+    // rail and would have opened every page 190px narrower than it is laid out for.
+    defaultSize: { width: 920, height: 620 },
     singleton: true,
   },
   {
     id: 'about',
-    name: 'About',
-    icon: 'info',
-    description: 'What this machine can do, and how fast',
+    // Keep the id: restored sessions, desktop positions and hidden-icon choices already use it.
+    // The old About report grew into the machine-level surface, so this is a rename rather than a
+    // second app competing for the same information.
+    name: 'My Computer',
+    icon: 'computer',
+    description: 'System specifications, capabilities and performance',
     component: lazy(() => import('../apps/system-report/SystemReportApp')),
     defaultSize: { width: 960, height: 640 },
     singleton: true,

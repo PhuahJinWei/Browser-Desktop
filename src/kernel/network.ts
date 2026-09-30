@@ -62,7 +62,7 @@ export function getNetworkLog(): NetworkEntry[] {
   }
 }
 
-/** Summary for the taskbar and the About panel. */
+/** Summary for the taskbar and My Computer. */
 export function networkSummary(): { total: number; thirdParty: number; hosts: string[] } {
   const entries = getNetworkLog();
   const hosts = [

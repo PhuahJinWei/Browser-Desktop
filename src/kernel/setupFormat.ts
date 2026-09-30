@@ -15,7 +15,8 @@ export const SETUP_VERSION = 1;
 
 /** The settings that describe a desktop, rather than the state of one particular visit. */
 export const PORTABLE_KEYS = [
-  'theme',
+  'skin',
+  'classicCursors',
   'accent',
   'fontScale',
   'motion',
@@ -103,7 +104,8 @@ function cleanSettings(input: unknown): PortableSettings {
   if (!isRecord(input)) return {};
   const out: PortableSettings = {};
 
-  if (oneOf(input['theme'], ['system', 'light', 'dark'] as const)) out.theme = input['theme'];
+  if (oneOf(input['skin'], ['modern', 'classic'] as const)) out.skin = input['skin'];
+  if (typeof input['classicCursors'] === 'boolean') out.classicCursors = input['classicCursors'];
   if (oneOf(input['accent'], ['blue', 'teal', 'indigo', 'amber', 'rose'] as const)) {
     out.accent = input['accent'];
   }

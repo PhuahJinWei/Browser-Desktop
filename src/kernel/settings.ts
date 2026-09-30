@@ -4,14 +4,12 @@ import type { WindowSession } from './windows';
 /**
  * Settings, persisted synchronously.
  *
- * localStorage rather than IndexedDB on purpose: the theme has to be known before the first paint,
- * and an async read means a flash of the wrong colours. The payload is a few hundred bytes.
+ * localStorage rather than IndexedDB on purpose: the skin has to be known before the first paint,
+ * and an async read means a flash of the wrong desktop. The payload is a few hundred bytes.
  *
  * Storage keys are namespaced because every GitHub Pages project site shares one origin
  * (`<user>.github.io`), so a neighbouring project would otherwise collide with this one.
  */
-
-export type ThemePreference = 'system' | 'light' | 'dark';
 
 /**
  * The visual skin, which is a different axis from light/dark.
@@ -20,9 +18,6 @@ export type ThemePreference = 'system' | 'light' | 'dark';
  * two-tone bevels, one grey. It is era-inspired rather than an impersonation — no vendor's logos,
  * wordmarks, icons or fonts — because the goal is the contrast between an old face and new
  * machinery, and cloning someone's shell would trade that for a lawsuit.
- *
- * Classic defines its own complete palette, so `theme` has no effect while it is on; 1995 did not
- * have a dark mode and pretending otherwise would look like neither.
  *
  * Classic is the default. Modern is one switch away, and nothing about it changed to make room.
  */
@@ -39,7 +34,6 @@ export interface IconCell {
 }
 
 export interface Settings {
-  theme: ThemePreference;
   skin: SkinPreference;
   accent: 'blue' | 'teal' | 'indigo' | 'amber' | 'rose';
   fontScale: 0.9 | 1 | 1.1 | 1.25;
@@ -79,7 +73,6 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  theme: 'system',
   skin: 'classic',
   accent: 'blue',
   fontScale: 1,
@@ -203,7 +196,6 @@ export function applySettings(settings: Settings): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  root.dataset['theme'] = settings.theme;
   root.dataset['skin'] = settings.skin;
   root.dataset['accent'] = settings.accent;
   root.dataset['wallpaper'] = settings.wallpaper;
@@ -214,30 +206,10 @@ export function applySettings(settings: Settings): void {
     settings.skin === 'classic' && settings.classicCursors ? 'classic' : 'system';
   root.style.setProperty('--font-scale', String(settings.fontScale));
 
-  // `color-scheme` drives form controls, scrollbars and the default canvas colour. Classic
-  // supplies its own light palette whatever the theme says, so it must not be told 'dark'.
-  // 'dark light' rather than a resolved value, so the UA keeps following the OS by itself.
-  root.style.colorScheme =
-    settings.skin === 'classic'
-      ? 'light'
-      : settings.theme === 'system'
-        ? 'dark light'
-        : settings.theme === 'dark'
-          ? 'dark'
-          : 'light';
-
-  // The browser's own chrome tint, which takes a colour rather than a pair and so has to be
-  // resolved here. index.html ships the classic grey, so the frame painted before this function
-  // exists is already right; from here it follows what is actually on screen.
-  const dark =
-    settings.skin !== 'classic' &&
-    (settings.theme === 'dark' ||
-      (settings.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches));
-
+  // The browser's own chrome tint. index.html ships the classic grey, so the frame painted before
+  // this function exists is already right; from here it follows whichever skin is on. Both skins
+  // are light, so `color-scheme` is set once in the stylesheet rather than resolved per render.
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute(
-      'content',
-      settings.skin === 'classic' ? '#c0c0c0' : dark ? '#0b0d10' : '#f6f7f9',
-    );
+    ?.setAttribute('content', settings.skin === 'classic' ? '#c0c0c0' : '#f6f7f9');
 }

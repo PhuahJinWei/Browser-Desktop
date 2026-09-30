@@ -395,8 +395,11 @@ sentence "in 2026 a complete desktop is just static files" is about the machiner
 screen said so. A **classic** skin — a 1990s desktop, square, bevelled, one grey — makes the
 contrast the first thing a visitor sees rather than something they have to be told.
 
-It is a fourth token axis beside theme, accent and wallpaper, and **it is the default**; Modern is
-one control away. Homage rather than impersonation: the visual grammar is reproduced in detail, and
+It is a token axis beside accent and wallpaper, and **it is the default**; Modern is one control
+away. It began as a fourth axis beside a light/dark theme, which has since been removed outright
+([ADR 22](./docs/adr/0022-one-palette-no-dark-mode.md)) — the skin is what makes this desktop look
+like more than one desktop, and a brightness switch under it was answering a question nobody was
+asking twice. Homage rather than impersonation: the visual grammar is reproduced in detail, and
 nothing identifying a vendor is — no logo, no wordmark, no copied artwork, no font file, and the
 Start menu's banner reads Tabula ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md),
 [ADR 1](./docs/adr/0001-static-hosting-zero-backend.md)).

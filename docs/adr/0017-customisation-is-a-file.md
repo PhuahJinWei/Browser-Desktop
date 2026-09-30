@@ -1,6 +1,8 @@
 # 17. The desktop is customisable, and the customisation is a file
 
-Status: accepted (M6)
+Status: accepted (M6). The list of what a setup carries is amended by
+[ADR 22](./0022-one-palette-no-dark-mode.md): `theme` left it, `skin` and `classicCursors` took its
+place.
 
 ## Context
 

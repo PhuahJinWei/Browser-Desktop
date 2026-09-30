@@ -321,7 +321,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
             openMenu(event, [
               {
                 id: 'clock.about',
-                label: 'About this machine',
+                label: 'My Computer',
                 run: () => void launchApp('about'),
               },
             ])

@@ -7,6 +7,7 @@ import {
   hideIcon,
   layoutIcons,
   moveIcons,
+  orderDesktopIds,
   resetIconLayout,
   rowsForHeight,
   showAllIcons,
@@ -70,7 +71,11 @@ export function DesktopIcons() {
 
   const shortcuts = useMemo<Shortcut[]>(() => {
     const hidden = new Set(settings.hiddenIcons);
-    const builtIn: Shortcut[] = launcherApps()
+    const apps = launcherApps();
+    const byId = new Map(apps.map((app) => [app.id, app]));
+    const builtIn: Shortcut[] = orderDesktopIds(apps.map((app) => app.id))
+      .map((id) => byId.get(id))
+      .filter((app) => app !== undefined)
       .filter((app) => !hidden.has(app.id))
       .map((app) => ({
         key: app.id,

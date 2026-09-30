@@ -114,6 +114,18 @@ function runApp(source: string): void {
   document.head.append(script);
 }
 
+/**
+ * Puts the desktop's look onto this document.
+ *
+ * Shared by `boot` and `appearance` so the two can never drift: the first call dresses the app and
+ * every later one re-dresses it. Everything visual is expressed as these two attributes, so
+ * nothing else has to be re-run for a skin change to take.
+ */
+function applyAppearance(look: { skin: string; cursors: string }): void {
+  document.documentElement.dataset['skin'] = look.skin;
+  document.documentElement.dataset['cursors'] = look.cursors;
+}
+
 globalThis.addEventListener('message', (event: MessageEvent<ToSandbox>) => {
   const message = event.data;
   if (!message || typeof message !== 'object') return;
@@ -124,9 +136,7 @@ globalThis.addEventListener('message', (event: MessageEvent<ToSandbox>) => {
     booted = true;
     token = (message as BootMessage).token;
 
-    document.documentElement.dataset['theme'] = message.theme;
-    document.documentElement.dataset['skin'] = message.skin;
-    document.documentElement.dataset['cursors'] = message.cursors;
+    applyAppearance(message);
     (window as unknown as { __tabulaOs: unknown }).__tabulaOs = makeApi(
       message.manifest,
       message.args,
@@ -143,6 +153,13 @@ globalThis.addEventListener('message', (event: MessageEvent<ToSandbox>) => {
         ...(error instanceof Error && error.stack ? { stack: error.stack } : {}),
       });
     }
+    return;
+  }
+
+  // No token check: this changes nothing an app owns, and a frame that refused to restyle itself
+  // because a message arrived unsigned would simply be the wrong colour for the rest of its life.
+  if (message.kind === 'appearance') {
+    applyAppearance(message);
     return;
   }
 

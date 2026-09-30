@@ -22,6 +22,48 @@ export const ICON_CELL = {
   originY: 12,
 } as const;
 
+/**
+ * Desktop order is not launcher order.
+ *
+ * A launcher is an app catalogue; a fresh Windows desktop starts with the machine and its file
+ * system, then the things a person works with, then media and administration. Keeping that order
+ * here also means a new built-in can be added to the launcher without quietly scattering every
+ * icon that follows it on the desktop.
+ *
+ * At the usual six rows this forms two deliberate columns:
+ *   My Computer · Files · Recycle Bin · Notepad · Search · Portfolio
+ *   Photos · Audio · Video · Watch · Settings · Task Manager
+ * Installed apps begin in the next free cell, alphabetically as supplied by their registry.
+ */
+export const DEFAULT_DESKTOP_ORDER = [
+  'about',
+  'files',
+  'trash',
+  'notes',
+  'search',
+  'links',
+  'photos',
+  'audio',
+  'video',
+  'watch',
+  'settings',
+  'tasks',
+] as const;
+
+const desktopRank = new Map<string, number>(DEFAULT_DESKTOP_ORDER.map((id, index) => [id, index]));
+
+/** Curated built-ins first; unknown future ids retain their registry order at the end. */
+export function orderDesktopIds(ids: readonly string[]): string[] {
+  return ids
+    .map((id, index) => ({ id, index }))
+    .sort(
+      (left, right) =>
+        (desktopRank.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+          (desktopRank.get(right.id) ?? Number.MAX_SAFE_INTEGER) || left.index - right.index,
+    )
+    .map(({ id }) => id);
+}
+
 export function cellToPixels(cell: IconCell): { x: number; y: number } {
   return {
     x: ICON_CELL.originX + cell.col * ICON_CELL.width,
@@ -184,7 +226,7 @@ export function arrangeIcons(orderedIds: string[], rows: number): void {
   updateSettings({ iconPositions: positions });
 }
 
-/** Forgets every manual position, so icons flow again in registry order. */
+/** Forgets every manual position, so icons flow again in the desktop's curated order. */
 export function resetIconLayout(): void {
   updateSettings({ iconPositions: {}, hiddenIcons: [] });
 }

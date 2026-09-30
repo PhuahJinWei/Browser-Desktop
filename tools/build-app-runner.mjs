@@ -43,7 +43,8 @@ async function cursorPack() {
   const css = await readFile('src/shell/classic.css', 'utf8');
   const start = css.indexOf(START);
   const end = css.indexOf(END);
-  if (start === -1 || end === -1) throw new Error('classic.css: the cursor-pack markers are missing');
+  if (start === -1 || end === -1)
+    throw new Error('classic.css: the cursor-pack markers are missing');
   return css
     .slice(start + START.length, end)
     .trim()
@@ -70,9 +71,9 @@ const CSP = [
   "default-src 'none'",
   "script-src 'unsafe-inline' blob:",
   "style-src 'unsafe-inline'",
-  "img-src data: blob:",
-  "media-src blob:",
-  "font-src data:",
+  'img-src data: blob:',
+  'media-src blob:',
+  'font-src data:',
   "connect-src 'none'",
   "form-action 'none'",
   "base-uri 'none'",
@@ -94,32 +95,25 @@ const script = result.outputFiles?.[0]?.text ?? '';
 if (!script) throw new Error('The runner bundle came out empty');
 
 /**
- * A small stylesheet so an app starts on a surface that matches the desktop's theme instead of a
- * white rectangle. Apps can override all of it; this is a starting point, not a framework.
+ * A small stylesheet so an app starts on a surface that matches the desktop instead of a bare white
+ * rectangle. Apps can override all of it; this is a starting point, not a framework.
  */
 /**
  * The sandbox stylesheet, kept as its own string so it can be hashed.
  *
  * It has to be: a srcdoc document inherits its embedder's CSP, the desktop's `style-src` is
  * `'self'` with no `'unsafe-inline'`, and an inline <style> under that policy is dropped silently.
- * Which is exactly what happened — every app ran with browser default styling, and the theme the
+ * Which is exactly what happened — every app ran with browser default styling, and the skin the
  * boot message carried had nowhere to land. Allowing it by hash rather than by `'unsafe-inline'`
  * keeps the policy as tight as it was: this one stylesheet, pinned to this build.
  */
 const css = `      :root {
-        color-scheme: light dark;
+        color-scheme: light;
         --bg: #ffffff;
         --fg: #12161c;
         --muted: #6b7684;
         --line: #dfe4ea;
         --accent: #0d7a6f;
-      }
-      html[data-theme='dark'] {
-        --bg: #171c23;
-        --fg: #e8edf3;
-        --muted: #7b8593;
-        --line: #262e38;
-        --accent: #5eead4;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
@@ -152,7 +146,7 @@ const css = `      :root {
       code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
       /*
-       * The classic skin, sent in the boot message beside the theme.
+       * The classic skin, which is what the boot message carries.
        *
        * A sandboxed app is a separate document with an opaque origin: it cannot import the
        * desktop's stylesheet and should not be forced to. So the skin arrives as an attribute and
@@ -162,7 +156,6 @@ const css = `      :root {
        * against the variables.
        */
       html[data-skin='classic'] {
-        color-scheme: light;
         --bg: #c0c0c0;
         --fg: #000000;
         --muted: #404040;
@@ -230,7 +223,7 @@ ${await cursorPack()}
 `;
 
 const html = `<!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" content="${CSP}" />
@@ -250,8 +243,11 @@ await writeFile(OUT, html);
 // The desktop's CSP is inherited by the sandbox, so it must allow this exact script. A hash
 // pins it to this build: change a byte of the runner and the digest changes with it.
 const digest = createHash('sha256').update(script, 'utf8').digest('base64');
-await writeFile('.app-runner-hash', `sha256-${digest}
-`);
+await writeFile(
+  '.app-runner-hash',
+  `sha256-${digest}
+`,
+);
 
 // The stylesheet needs the same treatment and for the same reason. Sliced back out of the
 // generated document rather than hashed from the `css` constant: what the browser hashes is
@@ -269,9 +265,14 @@ if (!styleBody.includes('--accent')) {
   throw new Error('The extracted stylesheet does not look like the stylesheet');
 }
 const styleDigest = createHash('sha256').update(styleBody, 'utf8').digest('base64');
-await writeFile('.app-runner-style-hash', `sha256-${styleDigest}
-`);
-console.log(`app-runner.html built (${(html.length / 1024).toFixed(1)} KB, script ${(script.length / 1024).toFixed(1)} KB)`);
+await writeFile(
+  '.app-runner-style-hash',
+  `sha256-${styleDigest}
+`,
+);
+console.log(
+  `app-runner.html built (${(html.length / 1024).toFixed(1)} KB, script ${(script.length / 1024).toFixed(1)} KB)`,
+);
 console.log('  sandbox policy: no network, no storage, no parent access');
 console.log(`  script hash: sha256-${digest.slice(0, 16)}…`);
 console.log(`  style hash:  sha256-${styleDigest.slice(0, 16)}…`);

@@ -9,7 +9,7 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 │ SHELL (main thread, React)                                                                │
 │   desktop · window frames · taskbar · launcher · command palette · notifications · boot   │
 │   apps: Files · Viewer · Notepad · Search · Photos · Audio · Video · Settings ·           │
-│         Task Manager · About                                                              │
+│         Task Manager · My Computer                                                        │
 │                                                                                           │
 │ KERNEL (TypeScript, main thread)                                                          │
 │   window manager · VFS client · job scheduler · command registry · settings ·             │
@@ -20,7 +20,7 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 │   index.worker  embedding model + vector index + BM25 + text extraction (pdf.js)          │
 │                 + thumbnails                                                              │
 │   probe.worker  worker-only capability answers                                            │
-│   bench.worker  the M0 benchmark harness, still in About                                  │
+│   bench.worker  the M0 benchmark harness, now in My Computer → Performance                │
 │                                                                                           │
 │ STORAGE                                                                                   │
 │   OPFS: content-addressed blobs        IndexedDB: file tree, index snapshot               │
@@ -31,7 +31,7 @@ Version 0.2 — reflects M1, where the desktop actually exists.
 
 ## Boot
 
-1. Apply settings to `<html>` before the first paint, so the theme never flashes.
+1. Apply settings to `<html>` before the first paint, so the skin never flashes.
 2. Register the service worker. If the page is not cross-origin isolated, reload **once** so its
    COOP/COEP headers apply to the document.
 3. Probe capabilities — on the main thread, and again inside a worker for the questions only a
@@ -212,6 +212,6 @@ Eviction is the other half of that problem, and the cheaper half to address. Bro
 (`src/kernel/persistence.ts`). It is not awaited: Firefox answers by prompting, and a desktop that
 will not finish starting until someone resolves a dialog about storage policy is a worse desktop
 than one that asks quietly and carries on. The answer is mostly not ours to give — Chromium decides
-from engagement heuristics and normally declines on a first visit — so About reports what the
+from engagement heuristics and normally declines on a first visit — so My Computer reports what the
 browser actually said rather than what was hoped for. It prevents future eviction; it cannot
 recover bytes already gone.

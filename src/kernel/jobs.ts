@@ -53,7 +53,7 @@ const store = createStore<SchedulerState>({ jobs: [], running: 0 });
  * Two, not "hardware concurrency": the ML runtime already uses up to four threads internally, and
  * the point of a limit here is to leave the main thread enough room to stay at 60 fps.
  */
-const MAX_CONCURRENT = 2;
+export const MAX_CONCURRENT = 2;
 
 /** Finished jobs are kept briefly so the Task Manager can show what just happened. */
 const KEEP_FINISHED = 40;

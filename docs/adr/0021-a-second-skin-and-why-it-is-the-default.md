@@ -1,7 +1,8 @@
 # 21. A second skin, why it is an homage rather than a copy, and why it is the default
 
 Status: accepted (post-M6). Records a decision that had been shipping for several commits without
-a record — which is the failure this file also exists to correct.
+a record — which is the failure this file also exists to correct. The "fourth axis" below is now
+the third: [ADR 22](./0022-one-palette-no-dark-mode.md) removed the theme this one sat beside.
 
 ## Context
 

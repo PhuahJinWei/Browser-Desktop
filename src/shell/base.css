@@ -23,9 +23,18 @@ body {
   text-size-adjust: 100%;
 }
 
+/*
+ * The reset used to stop at h3, which held for as long as nothing went deeper. Settings' group
+ * boxes are h4, and the browser's own 1.33em block margin on those put the legend 16px below where
+ * its `top` had placed it — an absolutely positioned box still takes its margins. Whatever level a
+ * heading happens to sit at is a fact about the document outline, not about how much air it wants.
+ */
 h1,
 h2,
 h3,
+h4,
+h5,
+h6,
 p,
 figure {
   margin: 0;

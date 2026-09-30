@@ -55,14 +55,17 @@ export interface BootMessage {
   /** Opaque token the app must echo on every call; proves the message came from this instance. */
   token: string;
   args: unknown;
-  theme: 'light' | 'dark';
   /**
    * Which skin the desktop is wearing.
    *
-   * Sent for the same reason as `theme`: an app that starts on a surface unlike everything around
-   * it looks broken rather than distinct. The runner turns it into a `data-skin` attribute and a
-   * set of variables; an app that overrides them still wins, because this is a starting point
-   * rather than a rule.
+   * Sent because an app that starts on a surface unlike everything around it looks broken rather
+   * than distinct. The runner turns it into a `data-skin` attribute and a set of variables; an app
+   * that overrides them still wins, because this is a starting point rather than a rule.
+   *
+   * There was a `theme` beside this once, carrying light or dark. There is one palette now, so
+   * there is nothing for an app to be told about it — see ADR 22.
+   *
+   * This is the value at boot; `AppearanceMessage` carries later ones.
    */
   skin: 'modern' | 'classic';
   /**
@@ -74,6 +77,20 @@ export interface BootMessage {
    * A frame does not inherit its embedder's cursor, so without this an app's window is the one
    * rectangle on a classic desktop still showing the modern pointing hand.
    */
+  cursors: 'classic' | 'system';
+}
+
+/**
+ * Host to sandbox: the appearance changed while the app was running.
+ *
+ * Carries exactly what `boot` carries about how things look, and for the same reason — a frame is
+ * a separate document, so it learns nothing about the desktop's settings unless it is told. Sent
+ * whenever either of the two changes, which is what keeps an open window from wearing the skin the
+ * desktop was using when it opened.
+ */
+export interface AppearanceMessage {
+  kind: 'appearance';
+  skin: 'modern' | 'classic';
   cursors: 'classic' | 'system';
 }
 
@@ -128,7 +145,8 @@ export interface CrashMessage {
   stack?: string;
 }
 
-export type ToSandbox = BootMessage | ResultMessage | ErrorMessage | EventMessage;
+export type ToSandbox =
+  BootMessage | AppearanceMessage | ResultMessage | ErrorMessage | EventMessage;
 export type FromSandbox = HelloMessage | CallMessage | ReadyMessage | CrashMessage;
 
 /* -------------------------------------------------------------------------------------------- */

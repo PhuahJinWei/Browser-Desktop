@@ -47,8 +47,8 @@ function clearBackground(): void {
 /**
  * Brings the desktop background in line with the settings.
  *
- * Cheap to call repeatedly: the file is only re-read when the chosen node changes, so a theme
- * toggle or a text-size change costs a string assignment.
+ * Cheap to call repeatedly: the file is only re-read when the chosen node changes, so a skin
+ * switch or a text-size change costs a string assignment.
  */
 export async function refreshWallpaper(): Promise<void> {
   if (typeof document === 'undefined') return;

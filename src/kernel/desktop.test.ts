@@ -4,6 +4,7 @@ import {
   cellToPixels,
   layoutIcons,
   nearestFreeCell,
+  orderDesktopIds,
   pixelsToCell,
   rowsForHeight,
 } from './desktop';
@@ -13,6 +14,20 @@ const cells = (layout: Map<string, IconCell>) =>
   Object.fromEntries([...layout].map(([id, cell]) => [id, `${cell.col},${cell.row}`]));
 
 describe('desktop icon layout', () => {
+  it('starts like a Windows desktop rather than repeating launcher order', () => {
+    expect(
+      orderDesktopIds(['files', 'search', 'photos', 'trash', 'about', 'settings', 'new-app']),
+    ).toEqual(['about', 'files', 'trash', 'search', 'photos', 'settings', 'new-app']);
+  });
+
+  it('keeps unknown future apps in their registry order', () => {
+    expect(orderDesktopIds(['later-b', 'files', 'later-a'])).toEqual([
+      'files',
+      'later-b',
+      'later-a',
+    ]);
+  });
+
   it('flows unplaced icons down the first column, then across', () => {
     const layout = layoutIcons(['a', 'b', 'c', 'd'], {}, 3);
     expect(cells(layout)).toEqual({ a: '0,0', b: '0,1', c: '0,2', d: '1,0' });

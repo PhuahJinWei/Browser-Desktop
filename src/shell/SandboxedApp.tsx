@@ -28,6 +28,16 @@ interface SandboxArgs {
   [key: string]: unknown;
 }
 
+/**
+ * How the desktop currently looks, in the two values a sandboxed frame understands.
+ *
+ * One function, so boot and every later update cannot describe the same desktop differently.
+ */
+function appearance(): Pick<BootMessage, 'skin' | 'cursors'> {
+  const { skin, classicCursors } = settingsStore.get();
+  return { skin, cursors: skin === 'classic' && classicCursors ? 'classic' : 'system' };
+}
+
 export default function SandboxedApp({ windowId, args }: AppProps) {
   const parsed = (args as SandboxArgs | undefined) ?? {};
   const appId = parsed.appId ?? '';
@@ -123,31 +133,39 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
 
     const sendBoot = () => {
       if (started) return;
-      const theme = settingsStore.get().theme;
-      const resolvedTheme =
-        theme === 'system'
-          ? matchMedia('(prefers-color-scheme: dark)').matches
-            ? 'dark'
-            : 'light'
-          : theme;
-
-      // Read at boot rather than subscribed to: an app that restyled itself mid-session would be
-      // a surprise, and the window is cheap to reopen.
       const boot: BootMessage = {
         kind: 'boot',
         manifest: app.manifest,
         source: app.source,
         token,
         args: parsed,
-        theme: resolvedTheme,
-        skin: settingsStore.get().skin,
-        cursors:
-          settingsStore.get().skin === 'classic' && settingsStore.get().classicCursors
-            ? 'classic'
-            : 'system',
+        ...appearance(),
       };
       post(boot);
     };
+
+    /*
+     * Appearance is pushed for as long as the app runs, not read once at boot.
+     *
+     * It used to be a boot-time snapshot, on the reasoning that an app restyling itself mid-session
+     * would be a surprise and the window is cheap to reopen. That was wrong in the one case that
+     * matters: the skin is a property of the whole desktop, so an open window still wearing the old
+     * one after a switch does not read as stable, it reads as broken — a modern app sitting on a
+     * 1995 desktop.
+     *
+     * Here rather than in each app, because a frame is a separate document with no access to the
+     * desktop's settings: there is no version of this an app could implement for itself, and every
+     * sandboxed app gets it without knowing the message exists.
+     */
+    const pushAppearance = () => {
+      if (!started) return;
+      post({ kind: 'appearance', ...appearance() });
+    };
+
+    // Settings are the only input now. There used to be a `prefers-color-scheme` listener here as
+    // well, because `theme: 'system'` could resolve differently without any setting changing;
+    // with one palette there is nothing outside the store that can alter how an app should look.
+    const stopWatchingSettings = settingsStore.subscribe(pushAppearance);
 
     const frame = frameRef.current;
     frame?.addEventListener('load', sendBoot);
@@ -166,6 +184,7 @@ export default function SandboxedApp({ windowId, args }: AppProps) {
 
     return () => {
       globalThis.removeEventListener('message', onMessage);
+      stopWatchingSettings();
       frame?.removeEventListener('load', sendBoot);
       clearInterval(retry);
       clearTimeout(giveUp);

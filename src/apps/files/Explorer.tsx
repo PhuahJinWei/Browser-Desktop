@@ -768,7 +768,11 @@ export function Explorer({ windowId, args }: AppProps) {
       id: 'help',
       label: 'Help',
       items: () => [
-        { id: 'help.about', label: 'About Tabula', run: () => void launchApp('about') },
+        {
+          id: 'help.about',
+          label: 'About Tabula',
+          run: () => void launchApp('about', { args: { section: 'about' } }),
+        },
       ],
     },
   ];

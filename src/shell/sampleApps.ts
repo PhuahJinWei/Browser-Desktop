@@ -16,7 +16,7 @@ const CALCULATOR = `/* tabula-app
 {
   "id": "tabula.calculator",
   "name": "Calculator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A calculator that asks for no permissions at all",
   "author": "Tabula",
   "permissions": [],
@@ -27,14 +27,25 @@ const CALCULATOR = `/* tabula-app
 // Nothing here needs the desktop's help, so this app was granted nothing and is never prompted.
 // It is the honest floor of the platform: useful, sandboxed, and completely inert.
 
+// The keypad is laid out to fit whatever window it is given rather than to a fixed height. It used
+// to be a stack of fixed-size rows adding up to 24px more than the default window could show, so it
+// opened with a scrollbar down the side — and any window shorter than the default scrolled too. A
+// column that fills the height, with the grid taking whatever is left, has no size it can overflow.
+document.body.style.cssText =
+  'display:flex;flex-direction:column;height:100%;overflow:hidden;padding:12px;gap:10px';
+
 var display = document.createElement('input');
 display.readOnly = true;
 display.value = '0';
 display.style.cssText =
-  'width:100%;font-size:28px;text-align:right;padding:12px;margin-bottom:12px;font-family:ui-monospace,monospace';
+  'flex:0 0 auto;width:100%;font-size:28px;text-align:right;padding:10px 12px;font-family:ui-monospace,monospace';
 
 var grid = document.createElement('div');
-grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px';
+// minmax(0,1fr) rather than a plain 1fr: a grid row's automatic minimum is its own content, so 1fr
+// rows refuse to shrink past the buttons inside them and the overflow comes straight back.
+grid.style.cssText =
+  'flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);' +
+  'grid-template-rows:repeat(5,minmax(0,1fr));gap:8px';
 
 var current = '0';
 var previous = null;
@@ -87,7 +98,9 @@ var keys = ['C','±','%','÷','7','8','9','×','4','5','6','-','1','2','3','+','
 keys.forEach(function (key) {
   var button = document.createElement('button');
   button.textContent = key;
-  button.style.cssText = 'padding:14px 0;font-size:17px';
+  // No vertical padding: the row decides how tall a key is, so the keypad divides the space it
+  // has rather than demanding a height of its own.
+  button.style.cssText = 'padding:0;font-size:17px;min-height:0';
   if (key === '0') button.style.gridColumn = 'span 2';
   if (key === '=') { button.style.background = 'var(--accent)'; button.style.color = 'var(--bg)'; }
   button.addEventListener('click', function () { press(key); });
