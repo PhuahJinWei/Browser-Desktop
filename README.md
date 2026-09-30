@@ -28,8 +28,8 @@ your own files, at an offset you can open and check.
 
 1. Open the page. A small set of sample documents is generated on your device — including two real
    PDFs, written by the app itself.
-2. Open **Search** and click the example _invoice for the monitor_. The top result is the invoice,
-   and you get the passage, not just the file name.
+2. Open the **Start** menu, type _invoice for the monitor_ and press **Enter**. Files opens on the
+   results: the top one is the invoice, and you get the passage, not just the file name.
 3. Open **Notepad**, type a sentence and press **Ctrl+S**. It saves as an ordinary Markdown file
    and is searchable seconds later.
 4. Open **Video → Sample**. The desktop draws a short film and encodes it, live, in front of you —
@@ -85,22 +85,22 @@ Task Manager shows the whole request log so you can check all of this rather tha
 
 ## What it does
 
-|                  |                                                                                                                                                                                        |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.     |
-| **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                  |
-| **Paint**        | Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse; two colours, undo, zoom, flips. Pictures save as PNGs in Pictures, and one can be the wallpaper.              |
-| **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                            |
-| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                 |
-| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                    |
-| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                       |
-| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                      |
-| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                               |
-| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                        |
-| **Settings**     | Skin, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
-| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                           |
-| **Skins**        | A 1990s desktop by default: Start menu, bevels, one grey, pixel icons, scrollbar arrows. Modern is a switch away.                                                                      |
-| **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                           |
+|                  |                                                                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.           |
+| **Search**       | In Files, the Start menu and the command palette. Typing filters a folder by name; Enter searches inside every file, by meaning and keyword, with every result labelled by how it was found. |
+| **Paint**        | Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse; two colours, undo, zoom, flips. Pictures save as PNGs in Pictures, and one can be the wallpaper.                    |
+| **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                                  |
+| **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                       |
+| **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                          |
+| **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                             |
+| **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                            |
+| **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                                     |
+| **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                              |
+| **Settings**     | Skin, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled.       |
+| **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                                 |
+| **Skins**        | A 1990s desktop by default: Start menu, bevels, one grey, pixel icons, scrollbar arrows. Modern is a switch away.                                                                            |
+| **Your desktop** | Select and arrange icons, right-click anything, set any picture as the wallpaper, and carry the whole arrangement to another machine as a file you can read.                                 |
 
 ## Measured, not asserted
 
@@ -159,7 +159,7 @@ src/kernel     window manager · VFS · job scheduler · commands · settings ·
                capability probe · worker RPC · network monitor
 src/services   ai/ (runtime config) · index/ (embeddings, vectors, BM25, thumbnails) ·
                audio/ (waveform) · video/ (frame and clip export) · extract/ · bench/
-src/apps       files · viewer · notes · paint · search · photos · audio · video · settings · tasks ·
+src/apps       files (with search) · viewer · notes · paint · photos · audio · video · settings · tasks ·
                system-report
 src/sw         the service worker: cross-origin isolation + offline shell
 tools          build plugins and generators (registry, runtime sync, Pages simulator)

@@ -1,23 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
-import { launcherApps, launchApp, launchInstalledApp } from '../kernel/apps';
+import { launcherApps, launchApp, launchInstalledApp, searchFiles } from '../kernel/apps';
 import { useInstalledApps } from '../kernel/installedApps';
 import { hideIcon, isIconHidden, showIcon } from '../kernel/desktop';
 import { ContextMenu, separator, useContextMenu } from './ContextMenu';
+import { Icon } from './Icon';
 import { AppIcon } from './PixelIcon';
 import styles from './Launcher.module.css';
 
 /**
- * The app launcher.
+ * The app launcher — the Start menu, in the classic skin.
  *
- * Deliberately small: a grid of apps and nothing else. Anything cleverer — searching files,
- * running commands — belongs in the command palette, and duplicating it here would create two
- * places to keep in step.
+ * A grid of apps under a search box. Typing narrows the apps by name; anything that is not an app
+ * is handed to Files as a search inside every file, so the launcher adds a way in to search without
+ * adding a second place results are shown. Running commands stays in the command palette.
  */
 export function Launcher({ onClose }: { onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-  const apps = launcherApps();
-  const installed = useInstalledApps();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const needle = query.trim().toLowerCase();
+  const apps = launcherApps().filter((app) => app.name.toLowerCase().includes(needle));
+  const installed = useInstalledApps().filter((app) =>
+    app.manifest.name.toLowerCase().includes(needle),
+  );
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
   /* The launcher is where an app that was removed from the desktop can be put back. */
@@ -32,8 +37,10 @@ export function Launcher({ onClose }: { onClose: () => void }) {
     ];
   };
 
+  // Focus starts in the search box, so opening the menu and typing is a search — as it is on the
+  // desktops this imitates. The grid is one arrow key below it.
   useEffect(() => {
-    panelRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    searchRef.current?.focus();
   }, []);
 
   // Clicking anywhere outside closes, which is what a popover is expected to do.
@@ -56,13 +63,43 @@ export function Launcher({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  const search = () => {
+    searchFiles(query.trim());
+    onClose();
+  };
+
+  /*
+   * Arrow keys move through whatever is listed now, read from the DOM rather than from an index
+   * into the app list: filtering changes what is listed, and the search row is not an app.
+   */
   const onKeyDown = (event: React.KeyboardEvent) => {
-    const columns = 3;
+    const items = [
+      ...(panelRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []),
+    ];
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+
+    if (event.target === searchRef.current) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        items[0]?.focus();
+      } else if (event.key === 'Enter' && needle) {
+        // The best match is the first thing listed: an app if the name matches one, otherwise the
+        // search itself.
+        event.preventDefault();
+        items[0]?.click();
+      }
+      return;
+    }
+
+    const columns =
+      getComputedStyle(panelRef.current?.querySelector(`.${styles.grid}`) ?? document.body)
+        .gridTemplateColumns.split(' ')
+        .filter(Boolean).length || 1;
     const move = (delta: number) => {
       event.preventDefault();
-      const next = Math.max(0, Math.min(apps.length - 1, index + delta));
-      setIndex(next);
-      panelRef.current?.querySelectorAll('button')[next]?.focus();
+      const next = current + delta;
+      if (next < 0) searchRef.current?.focus();
+      else items[Math.min(items.length - 1, next)]?.focus();
     };
     if (event.key === 'ArrowRight') move(1);
     else if (event.key === 'ArrowLeft') move(-1);
@@ -78,16 +115,29 @@ export function Launcher({ onClose }: { onClose: () => void }) {
       role="menu"
       aria-label="Apps"
     >
+      <label className={styles.search}>
+        <Icon name="search" size={15} />
+        <input
+          ref={searchRef}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search apps and files"
+          aria-label="Search apps by name, or press Enter to search inside every file"
+          type="search"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </label>
+
       <p className={styles.heading}>Apps</p>
       <div className={styles.grid}>
-        {apps.map((app, position) => (
+        {apps.map((app) => (
           <button
             key={app.id}
             type="button"
             role="menuitem"
             className={styles.app}
             onClick={() => open(app.id)}
-            onFocus={() => setIndex(position)}
             onContextMenu={(event) =>
               openMenu(
                 event,
@@ -131,6 +181,16 @@ export function Launcher({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+        </>
+      ) : null}
+
+      {needle ? (
+        <>
+          <p className={styles.heading}>Files</p>
+          <button type="button" role="menuitem" className={styles.searchRow} onClick={search}>
+            <Icon name="search" size={16} />
+            <span>Search inside every file for “{query.trim()}”</span>
+          </button>
         </>
       ) : null}
 

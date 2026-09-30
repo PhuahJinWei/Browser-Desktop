@@ -11,6 +11,23 @@ Added
   Photos, and one menu item from being the wallpaper. Saving is explicit with a flush on close, as
   in Notepad; a JPEG or GIF opened for editing is saved as a PNG beside the original, never over it.
 
+- **Search moved into Files and the Start menu.** Files' search box filters the folder by name as
+  you type, and Enter searches inside every file, showing the same labelled passages in place of
+  the listing; Back returns to the folder. The Start menu gains a search box that narrows the apps
+  by name and hands anything else to Files, and the command palette ends with the same hand-off.
+  `Ctrl+Shift+F` opens Files with the cursor in the search box.
+
+Changed
+
+- The **Search** app is gone; everything it did is reached from Files, the Start menu and the
+  palette ([ADR 23](./docs/adr/0023-a-default-desktop.md)).
+
+Fixed
+
+- A window no longer takes focus back from the app inside it. When an app's code was already
+  loaded, its own focus — a search box, an editor — ran first and was then overridden by the frame.
+- An empty folder's icon and caption sat at opposite ends of the pane instead of together.
+
 Removed
 
 - **Watch** and **Portfolio**. The desktop now ships what a fresh desktop ships, and neither was

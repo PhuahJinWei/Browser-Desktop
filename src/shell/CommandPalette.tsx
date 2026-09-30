@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatShortcut, searchCommands, useCommands, type CommandMatch } from '../kernel/commands';
-import { openFile } from '../kernel/apps';
+import { openFile, searchFiles } from '../kernel/apps';
 import { vfs } from '../kernel/vfs/client';
 import { iconForFile, Icon } from './Icon';
 import type { VfsNode } from '../kernel/vfs/types';
@@ -61,9 +61,17 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     };
   }, [query]);
 
-  const items: ({ type: 'command'; match: CommandMatch } | { type: 'file'; match: FileMatch })[] = [
+  const trimmed = query.trim();
+  const items: (
+    | { type: 'command'; match: CommandMatch }
+    | { type: 'file'; match: FileMatch }
+    | { type: 'search'; query: string }
+  )[] = [
     ...matches.map((match) => ({ type: 'command' as const, match })),
     ...files.map((match) => ({ type: 'file' as const, match })),
+    // Last, because a name or a command is the likelier intent — but always there, so a query that
+    // matches neither still goes somewhere instead of ending at "No matches".
+    ...(trimmed.length >= 2 ? [{ type: 'search' as const, query: trimmed }] : []),
   ];
 
   useEffect(() => {
@@ -80,7 +88,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (!item) return;
     onClose();
     if (item.type === 'command') void item.match.command.run();
-    else openFile(item.match.node);
+    else if (item.type === 'file') openFile(item.match.node);
+    else searchFiles(item.query);
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -153,6 +162,31 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                     {command.shortcut ? (
                       <kbd className={styles.shortcut}>{formatShortcut(command.shortcut)}</kbd>
                     ) : null}
+                  </li>
+                );
+              }
+
+              if (item.type === 'search') {
+                return (
+                  <li
+                    key="search"
+                    id={`palette-item-${index}`}
+                    role="option"
+                    aria-selected={active}
+                    className={`${styles.item} ${active ? styles.itemActive : ''}`}
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      activate(index);
+                    }}
+                    onPointerEnter={() => setSelected(index)}
+                  >
+                    <span className={styles.section}>
+                      <Icon name="search" size={13} />
+                    </span>
+                    <span className={styles.label}>
+                      Search inside every file for “{item.query}”
+                    </span>
+                    <span className={styles.hint}>Files</span>
                   </li>
                 );
               }

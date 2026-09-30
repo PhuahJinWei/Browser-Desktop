@@ -314,8 +314,16 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
 
   /* Render ----------------------------------------------------------------------------------- */
 
+  /*
+   * Only when focus is not already inside. A child's effects run before its parent's, so an app
+   * whose code was already loaded puts focus where it wants it — a search box, an editor — and then
+   * had it taken back by the frame. An app still loading mounts later and is unaffected either way.
+   */
   useEffect(() => {
-    if (focused) frameRef.current?.focus({ preventScroll: true });
+    const frame = frameRef.current;
+    if (focused && frame && !frame.contains(document.activeElement)) {
+      frame.focus({ preventScroll: true });
+    }
   }, [focused]);
 
   if (win.minimized) return null;

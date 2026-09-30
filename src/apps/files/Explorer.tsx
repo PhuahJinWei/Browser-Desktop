@@ -20,6 +20,7 @@ import { closeWindow } from '../../kernel/windows';
 import { Icon, iconForFile } from '../../shell/Icon';
 import { useVirtualList } from '../../shell/useVirtualList';
 import { thumbnailUrl } from '../../services/index/thumbnails';
+import { ContentSearch } from './ContentSearch';
 import { collectDroppedEntries, pickDirectory, pickFiles } from './import';
 import styles from './Explorer.module.css';
 
@@ -85,6 +86,11 @@ interface ExplorerArgs {
   selectId?: string;
   /** Open looking at the Recycle Bin. What apps/recycle-bin/RecycleBinApp.tsx passes. */
   recycle?: boolean;
+  /**
+   * Open with this in the search box. Non-empty also runs it as a search inside every file, which
+   * is how the Start menu and the command palette hand a query over; empty just focuses the box.
+   */
+  search?: string;
 }
 
 const ROW_HEIGHT = 34;
@@ -193,7 +199,18 @@ export function Explorer({ windowId, args }: AppProps) {
   const [view, setView] = useState<ViewMode>('list');
   const [sort, setSort] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<1 | -1>(1);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(initial.search ?? '');
+  /**
+   * Whether the search box is filtering this folder by name or searching inside every file.
+   *
+   * One box for both, as a file manager has: typing narrows the folder you are looking at, and
+   * Enter widens it to everything. The mode is separate from the text so that editing a search does
+   * not drop you back into the folder with every keystroke.
+   */
+  const [searching, setSearching] = useState(
+    Boolean(initial.search?.trim()) && !(initial.recycle ?? false),
+  );
+  const searchBox = useRef<HTMLInputElement>(null);
   const [dropActive, setDropActive] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -306,6 +323,7 @@ export function Explorer({ windowId, args }: AppProps) {
   const navigate = useCallback((id: string) => {
     // Navigating anywhere leaves the bin, the same way it does in the thing being imitated.
     setRecycle(false);
+    setSearching(false);
     setNav((current) => {
       if (current.stack[current.index] === id) return current;
       // Going somewhere new discards what "forward" used to mean, which is what every file manager
@@ -315,15 +333,19 @@ export function Explorer({ windowId, args }: AppProps) {
     });
   }, []);
 
-  const back = useCallback(
-    () => setNav((c) => (c.index > 0 ? { ...c, index: c.index - 1 } : c)),
-    [],
-  );
+  // Back from search results is the folder they were searched from, not the one before it.
+  const back = useCallback(() => {
+    if (searching) {
+      setSearching(false);
+      return;
+    }
+    setNav((c) => (c.index > 0 ? { ...c, index: c.index - 1 } : c));
+  }, [searching]);
   const forward = useCallback(
     () => setNav((c) => (c.index < c.stack.length - 1 ? { ...c, index: c.index + 1 } : c)),
     [],
   );
-  const canBack = nav.index > 0;
+  const canBack = nav.index > 0 || searching;
   const canForward = nav.index < nav.stack.length - 1;
 
   /* A column header both chooses the column and, on a second click, reverses it. */
@@ -347,9 +369,23 @@ export function Explorer({ windowId, args }: AppProps) {
       setWindowTitle(windowId, 'Recycle Bin');
       return;
     }
+    if (searching) {
+      setWindowTitle(windowId, 'Search Results');
+      return;
+    }
     const title = path.at(-1)?.name ?? 'Files';
     setWindowTitle(windowId, title === 'Home' ? 'Files' : title);
-  }, [windowId, path, recycle]);
+  }, [windowId, path, recycle, searching]);
+
+  useEffect(() => {
+    if (initial.search !== undefined) searchBox.current?.focus();
+    // Once, on open: it is the caller asking for the box, not a standing instruction.
+  }, []);
+
+  const searchEverything = useCallback(() => {
+    setSelection(new Set());
+    setSearching(true);
+  }, []);
 
   /*
    * Moving to another folder starts with nothing selected. Only moving, though: an effect also runs
@@ -1090,6 +1126,10 @@ export function Explorer({ windowId, args }: AppProps) {
             <span className={styles.crumbCurrent}>
               <Icon name="trash" size={14} /> Recycle Bin
             </span>
+          ) : searching ? (
+            <span className={styles.crumbCurrent}>
+              <Icon name="search" size={14} /> Search Results
+            </span>
           ) : (
             path.map((node, index) => (
               <span key={node.id} className={styles.crumb}>
@@ -1115,11 +1155,26 @@ export function Explorer({ windowId, args }: AppProps) {
         </nav>
 
         <input
+          ref={searchBox}
           className={styles.filter}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
-          placeholder="Search this folder"
-          aria-label="Filter this folder by name"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !recycle && filter.trim()) {
+              event.preventDefault();
+              searchEverything();
+            } else if (event.key === 'Escape' && (filter || searching)) {
+              event.preventDefault();
+              setFilter('');
+              setSearching(false);
+            }
+          }}
+          placeholder={recycle ? 'Search the Recycle Bin' : 'Search'}
+          aria-label={
+            recycle
+              ? 'Filter the Recycle Bin by name'
+              : 'Search: type to filter this folder by name, press Enter to search inside every file'
+          }
           type="search"
         />
       </div>
@@ -1306,120 +1361,133 @@ export function Explorer({ windowId, args }: AppProps) {
         </nav>
 
         <div className={styles.pane}>
-          {/*
+          {searching ? (
+            <ContentSearch query={filter} onQuery={setFilter} />
+          ) : (
+            <>
+              {!recycle && filter.trim() ? (
+                <button type="button" className={styles.searchOffer} onClick={searchEverything}>
+                  <Icon name="search" size={14} />
+                  <span>Search inside every file for “{filter.trim()}”</span>
+                  <kbd>Enter</kbd>
+                </button>
+              ) : null}
+              {/*
             The column header is what turns a list of rows into a table you can interrogate: it
             names what the two unlabelled columns of numbers were, and it is where sorting belongs.
             It only exists in list view, because a grid has no columns to head.
           */}
-          {view === 'list' ? (
-            <div className={styles.columns} style={{ gridTemplateColumns: tracks }}>
-              {/*
+              {view === 'list' ? (
+                <div className={styles.columns} style={{ gridTemplateColumns: tracks }}>
+                  {/*
                 No gutter cells at either end. The icon a row draws is part of what that row is
                 called, so the Name heading covers it — which is what both file managers this is
                 modelled on do, and why their header runs edge to edge instead of starting after a
                 blank stub. The last heading absorbs the trailing track the same way. Everything
                 between places itself, and the spans keep the columns on the tracks the rows use.
               */}
-              {columns.map((column, index) => (
-                <SortHeader
-                  key={column.key}
-                  column={column}
-                  sort={sort}
-                  dir={sortDir}
-                  onSort={toggleSort}
-                  span={index === 0 || index === columns.length - 1}
-                />
-              ))}
-            </div>
-          ) : null}
+                  {columns.map((column, index) => (
+                    <SortHeader
+                      key={column.key}
+                      column={column}
+                      sort={sort}
+                      dir={sortDir}
+                      onSort={toggleSort}
+                      span={index === 0 || index === columns.length - 1}
+                    />
+                  ))}
+                </div>
+              ) : null}
 
-          <div
-            className={view === 'list' ? styles.listScroll : styles.gridScroll}
-            ref={view === 'list' ? virtual.ref : containerRef}
-            onKeyDown={onKeyDown}
-            onContextMenu={(event) => openMenu(event, folderMenu())}
-            onClick={(event) => {
-              if (event.target === event.currentTarget) setSelection(new Set());
-            }}
-            tabIndex={0}
-            role="listbox"
-            aria-multiselectable
-            aria-label={recycle ? 'Recycle Bin contents' : 'Folder contents'}
-          >
-            {empty ? (
-              <div className={styles.empty}>
-                {recycle ? (
-                  <>
-                    <Icon name="trash" size={26} />
-                    <p>The Recycle Bin is empty.</p>
-                    <p className={styles.emptyHint}>
-                      Anything you throw away in Files waits here until you empty it.
-                    </p>
-                  </>
-                ) : filter ? (
-                  <>
-                    <Icon name="search" size={26} />
-                    <p>Nothing here matches “{filter}”.</p>
-                  </>
+              <div
+                className={view === 'list' ? styles.listScroll : styles.gridScroll}
+                ref={view === 'list' ? virtual.ref : containerRef}
+                onKeyDown={onKeyDown}
+                onContextMenu={(event) => openMenu(event, folderMenu())}
+                onClick={(event) => {
+                  if (event.target === event.currentTarget) setSelection(new Set());
+                }}
+                tabIndex={0}
+                role="listbox"
+                aria-multiselectable
+                aria-label={recycle ? 'Recycle Bin contents' : 'Folder contents'}
+              >
+                {empty ? (
+                  <div className={styles.empty}>
+                    {recycle ? (
+                      <>
+                        <Icon name="trash" size={26} />
+                        <p>The Recycle Bin is empty.</p>
+                        <p className={styles.emptyHint}>
+                          Anything you throw away in Files waits here until you empty it.
+                        </p>
+                      </>
+                    ) : filter ? (
+                      <>
+                        <Icon name="search" size={26} />
+                        <p>Nothing here matches “{filter}”.</p>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="upload" size={26} />
+                        <p>This folder is empty.</p>
+                        <p className={styles.emptyHint}>Drop files here, or use Import.</p>
+                      </>
+                    )}
+                  </div>
+                ) : view === 'list' ? (
+                  <div style={{ height: virtual.totalHeight, position: 'relative' }}>
+                    <div style={{ transform: `translateY(${virtual.offsetY}px)` }}>
+                      {nodes
+                        .slice(virtual.startIndex, virtual.startIndex + virtual.visibleCount)
+                        .map((node, offset) => {
+                          const index = virtual.startIndex + offset;
+                          return (
+                            <FileRow
+                              key={node.id}
+                              node={node}
+                              columns={columns}
+                              tracks={tracks}
+                              origin={origins.get(node.trashedFrom ?? '')}
+                              selected={selection.has(node.id)}
+                              cut={cutIds.has(node.id)}
+                              focused={index === cursor}
+                              renaming={renaming === node.id}
+                              onRename={(name) => void rename(node.id, name)}
+                              onCancelRename={() => setRenaming(null)}
+                              onPointerDown={(event) => selectAt(index, event)}
+                              onDoubleClick={() => open(node)}
+                              onContextMenu={(event) => {
+                                if (!selection.has(node.id)) selectAt(index);
+                                openMenu(event, fileMenu(node));
+                              }}
+                            />
+                          );
+                        })}
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <Icon name="upload" size={26} />
-                    <p>This folder is empty.</p>
-                    <p className={styles.emptyHint}>Drop files here, or use Import.</p>
-                  </>
+                  <div className={styles.grid}>
+                    {nodes.map((node, index) => (
+                      <Tile
+                        key={node.id}
+                        node={node}
+                        origin={origins.get(node.trashedFrom ?? '')}
+                        selected={selection.has(node.id)}
+                        cut={cutIds.has(node.id)}
+                        onPointerDown={(event) => selectAt(index, event)}
+                        onDoubleClick={() => open(node)}
+                        onContextMenu={(event) => {
+                          if (!selection.has(node.id)) selectAt(index);
+                          openMenu(event, fileMenu(node));
+                        }}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-            ) : view === 'list' ? (
-              <div style={{ height: virtual.totalHeight, position: 'relative' }}>
-                <div style={{ transform: `translateY(${virtual.offsetY}px)` }}>
-                  {nodes
-                    .slice(virtual.startIndex, virtual.startIndex + virtual.visibleCount)
-                    .map((node, offset) => {
-                      const index = virtual.startIndex + offset;
-                      return (
-                        <FileRow
-                          key={node.id}
-                          node={node}
-                          columns={columns}
-                          tracks={tracks}
-                          origin={origins.get(node.trashedFrom ?? '')}
-                          selected={selection.has(node.id)}
-                          cut={cutIds.has(node.id)}
-                          focused={index === cursor}
-                          renaming={renaming === node.id}
-                          onRename={(name) => void rename(node.id, name)}
-                          onCancelRename={() => setRenaming(null)}
-                          onPointerDown={(event) => selectAt(index, event)}
-                          onDoubleClick={() => open(node)}
-                          onContextMenu={(event) => {
-                            if (!selection.has(node.id)) selectAt(index);
-                            openMenu(event, fileMenu(node));
-                          }}
-                        />
-                      );
-                    })}
-                </div>
-              </div>
-            ) : (
-              <div className={styles.grid}>
-                {nodes.map((node, index) => (
-                  <Tile
-                    key={node.id}
-                    node={node}
-                    origin={origins.get(node.trashedFrom ?? '')}
-                    selected={selection.has(node.id)}
-                    cut={cutIds.has(node.id)}
-                    onPointerDown={(event) => selectAt(index, event)}
-                    onDoubleClick={() => open(node)}
-                    onContextMenu={(event) => {
-                      if (!selection.has(node.id)) selectAt(index);
-                      openMenu(event, fileMenu(node));
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1429,9 +1497,11 @@ export function Explorer({ windowId, args }: AppProps) {
       */}
       <div className={styles.statusBar}>
         <span className={styles.statusPanel}>
-          {selection.size > 0
-            ? `${selection.size} object(s) selected`
-            : `${nodes.length} object(s)`}
+          {searching
+            ? 'Searching every file'
+            : selection.size > 0
+              ? `${selection.size} object(s) selected`
+              : `${nodes.length} object(s)`}
         </span>
         <span className={`${styles.statusPanel} ${styles.statusSize}`}>
           {shownBytes > 0 ? formatBytes(shownBytes) : ''}

@@ -46,15 +46,6 @@ export const APPS: AppDefinition[] = [
     defaultSize: { width: 940, height: 600 },
   },
   {
-    id: 'search',
-    name: 'Search',
-    icon: 'search',
-    description: 'Find documents by meaning, not just by name',
-    component: lazy(() => import('../apps/search/SearchApp')),
-    defaultSize: { width: 820, height: 620 },
-    singleton: true,
-  },
-  {
     // The id stays 'notes' although the app is called Notepad. It is the key that saved icon
     // positions, hidden-icon lists and restored sessions were written under, so changing it would
     // quietly scatter the arrangement of every desktop that already exists.
@@ -246,6 +237,15 @@ export function launchInstalledApp(
     args: { appId, ...(options.args ?? {}) },
     ...(options.size ?? { width: 720, height: 520 }),
   });
+}
+
+/**
+ * Opens Files on a search. A query runs as a search inside every file; an empty one just puts the
+ * cursor in the search box. This is where the Start menu, the palette and Ctrl+Shift+F all land,
+ * so there is one search surface rather than one per entry point.
+ */
+export function searchFiles(query = ''): string | null {
+  return launchApp('files', { args: { search: query }, title: 'Search Results' });
 }
 
 /** Opens a file with the best-matching app. Directories open in Files. */

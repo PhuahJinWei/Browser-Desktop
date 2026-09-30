@@ -16,8 +16,8 @@ const cells = (layout: Map<string, IconCell>) =>
 describe('desktop icon layout', () => {
   it('starts like a Windows desktop rather than repeating launcher order', () => {
     expect(
-      orderDesktopIds(['files', 'search', 'photos', 'trash', 'about', 'settings', 'new-app']),
-    ).toEqual(['about', 'files', 'trash', 'search', 'photos', 'settings', 'new-app']);
+      orderDesktopIds(['files', 'paint', 'photos', 'trash', 'about', 'settings', 'new-app']),
+    ).toEqual(['about', 'files', 'trash', 'paint', 'photos', 'settings', 'new-app']);
   });
 
   it('keeps unknown future apps in their registry order', () => {

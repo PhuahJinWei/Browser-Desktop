@@ -234,9 +234,10 @@ page, and Settings can remove every trace of them.
 
 ## Try this
 
-Open the Search app. It offers a few example queries as chips — click one. You will get
+Open the Start menu, type what you are looking for and press Enter. Files opens on
 the passage that answers it, not just a file name, because matching happens on meaning
-rather than on the exact words you typed.
+rather than on the exact words you typed. In Files itself, typing in the search box
+filters the folder by name, and Enter searches inside every file.
 
 Every result is labelled with how it was found: by meaning, by keyword, or by both. A
 search that cannot explain itself is one you end up not trusting.

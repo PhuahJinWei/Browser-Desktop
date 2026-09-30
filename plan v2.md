@@ -65,7 +65,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 **30-second path (recruiter, non-technical)**
 
 1. Open the URL → desktop boots in < 2 s on a repeat visit; sample files are already there ("Sample data — clear anytime").
-2. Press the launcher key (or click Search) → type _"invoice for the monitor"_ → ranked results with highlighted passages from the sample PDFs → Enter opens the PDF at that page.
+2. Open the Start menu → type _"invoice for the monitor"_ → Enter → Files shows ranked results with highlighted passages from the sample PDFs → Enter opens the PDF at that page.
 3. Open **Video → Sample** → the desktop draws and encodes a short film in front of you, then save the frame you are looking at or cut ten seconds out of it. No model, no download.
 4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."**
 5. Switch the OS's airplane-mode toggle (or the browser offline) → search again → **still works, semantic half included** (verified with the server stopped).

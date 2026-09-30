@@ -1,4 +1,4 @@
-import { APPS, launchApp } from '../kernel/apps';
+import { APPS, launchApp, searchFiles } from '../kernel/apps';
 import { registerCommands, type Command } from '../kernel/commands';
 import { arrangeIcons, resetIconLayout, rowsForHeight } from '../kernel/desktop';
 import { pickFile } from '../kernel/pickFile';
@@ -36,17 +36,24 @@ export function registerSystemCommands(): () => void {
     keywords: [app.description],
     ...(app.id === 'files'
       ? { shortcut: 'Ctrl+Shift+E' }
-      : app.id === 'search'
-        ? { shortcut: 'Ctrl+Shift+F' }
-        : app.id === 'notes'
-          ? { shortcut: 'Ctrl+Shift+N' }
-          : app.id === 'settings'
-            ? { shortcut: 'Ctrl+,' }
-            : {}),
+      : app.id === 'notes'
+        ? { shortcut: 'Ctrl+Shift+N' }
+        : app.id === 'settings'
+          ? { shortcut: 'Ctrl+,' }
+          : {}),
     run: () => void launchApp(app.id),
   }));
 
   const system: Command[] = [
+    {
+      // The shortcut the Search app had, kept for the place search now lives.
+      id: 'files.search',
+      title: 'Search files',
+      section: 'Search',
+      keywords: ['find', 'search inside files', 'meaning'],
+      shortcut: 'Ctrl+Shift+F',
+      run: () => void searchFiles(),
+    },
     {
       id: 'window.cycle',
       title: 'Switch window',

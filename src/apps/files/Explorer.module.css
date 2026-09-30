@@ -494,6 +494,8 @@
 .empty {
   display: grid;
   place-items: center;
+  /* Without this the rows share the height, and the icon and its caption drift to opposite halves. */
+  align-content: center;
   gap: var(--space-2);
   height: 100%;
   padding: var(--space-6);
@@ -841,4 +843,40 @@
 :global([data-skin='classic']) .statusPanel {
   padding: 1px 4px;
   box-shadow: var(--bevel-thin-sunken);
+}
+
+/* The way from a name filter to a content search, shown while a filter is typed. */
+.searchOffer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchOffer span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchOffer kbd {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+:global([data-skin='classic']) .searchOffer {
+  background: #ffffe1;
+  box-shadow: none;
 }
