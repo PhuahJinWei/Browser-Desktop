@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "A local-first AI desktop that runs entirely in a browser tab. Static files, no backend.",
+  "description": "A default desktop that runs entirely in a browser tab. Static files, no backend, works offline.",
   "license": "MIT",
   "engines": {
     "node": ">=20.19"

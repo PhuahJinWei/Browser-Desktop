@@ -15,7 +15,7 @@ authors. If a tool adds such a trailer automatically, remove it before the commi
 
 ## What this project is
 
-Tabula: a local-first AI desktop that runs entirely in a browser tab, deployed as static files to
+Tabula: a local-first desktop that runs entirely in a browser tab, deployed as static files to
 GitHub Pages at zero cost. See `plan v2.md` for the roadmap and `docs/adr/` for decisions already
 made — read the relevant ADR before changing anything it covers.
 

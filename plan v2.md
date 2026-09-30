@@ -1,4 +1,4 @@
-# Browser AI Desktop — Plan v2
+# Tabula — Plan v2
 
 **Status:** draft v2 · 2026-08-22 · supersedes `initial plan.txt`
 **Owner:** project owner (sole author — see §11 Authorship)

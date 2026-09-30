@@ -655,7 +655,7 @@ export function SystemReport({ initialPage = 'general' }: { initialPage?: Comput
               <Group title="About this desktop">
                 <div className={styles.aboutCopy}>
                   <p>
-                    Tabula is a local-first AI desktop that runs entirely in one browser tab. Its
+                    Tabula is a local-first desktop that runs entirely in one browser tab. Its
                     windows, files, apps, search index and models are delivered as static files.
                   </p>
                   <p>
