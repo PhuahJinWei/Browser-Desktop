@@ -136,6 +136,15 @@ class Vfs {
     return moved;
   }
 
+  async copy(ids: NodeId[], targetId: NodeId): Promise<VfsNode[]> {
+    const { top, created } = await this.rpc.call('copy', [ids, targetId]);
+    // Every created node, not just the top level. The indexer queues exactly the ids it is told
+    // about and never looks inside a folder, so announcing only the copied folder would leave every
+    // file in it unsearchable.
+    this.announce({ parents: [targetId], nodes: created, reason: 'create' });
+    return top;
+  }
+
   async trash(ids: NodeId[]): Promise<NodeId[]> {
     const before = await this.statMany(ids);
     const affected = await this.rpc.call('trash', [ids]);

@@ -94,15 +94,24 @@ function isSubmenu(item: MenuItem): item is MenuSubmenu {
   return 'items' in item;
 }
 
-/** Drops falsy entries, then any separator that would sit at an edge or next to another. */
-function normalise(spec: MenuSpec): MenuItem[] {
-  const items = spec.filter((item): item is MenuItem => Boolean(item));
-  return items.filter((item, index) => {
-    if (!isSeparator(item)) return true;
-    const previous = items[index - 1];
-    const next = items[index + 1];
-    return Boolean(previous) && Boolean(next) && !isSeparator(previous!) && !isSeparator(next!);
-  });
+/**
+ * Drops falsy entries, then tidies the separators they leave behind: none at either edge, and a run
+ * of them collapsed to one.
+ *
+ * Collapsed to one, not removed. When conditional rows empty out a middle group, the separators on
+ * both sides of it end up adjacent, and what they still mean is "the group above ends here". Dropping
+ * every separator that touches another threw that away, and the groups either side ran together —
+ * which is how the Recycle Bin's Empty Recycle Bin came to sit flush against Select all.
+ */
+export function normalise(spec: MenuSpec): MenuItem[] {
+  const kept: MenuItem[] = [];
+  for (const item of spec) {
+    if (!item) continue;
+    if (isSeparator(item) && (kept.length === 0 || isSeparator(kept[kept.length - 1]!))) continue;
+    kept.push(item);
+  }
+  while (kept.length > 0 && isSeparator(kept[kept.length - 1]!)) kept.pop();
+  return kept;
 }
 
 /**

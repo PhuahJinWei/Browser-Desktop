@@ -50,6 +50,8 @@ export type IconName =
   | 'arrow-left'
   | 'arrow-up'
   | 'copy'
+  | 'cut'
+  | 'paste'
   | 'edit'
   | 'download'
   | 'link'
@@ -108,6 +110,11 @@ const PATHS: Record<IconName, string> = {
   'arrow-left': 'M19 12H5M11 6 5 12l6 6',
   'arrow-up': 'M12 19V5M6 11l6-6 6 6',
   copy: 'M9 9h9.5a.5.5 0 0 1 .5.5V19a.5.5 0 0 1-.5.5H9a.5.5 0 0 1-.5-.5V9.5A.5.5 0 0 1 9 9ZM5.5 15V5.5A.5.5 0 0 1 6 5h9.5',
+  // Two finger loops at the bottom, blades crossing to open tips at the top.
+  cut: 'M9 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM20 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM8.4 15.6 17 4.5M15.6 15.6 7 4.5',
+  // A clipboard: the board, the clip across its top edge, and two lines of what is on it.
+  paste:
+    'M8.5 5.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-2.5M9 4h6v3H9zM8.5 12h7M8.5 15.5h5',
   edit: 'M4.5 19.5h4L19 9a2.1 2.1 0 0 0-3-3L5.5 16.5zM14.5 7.5l2 2',
   download: 'M12 4.5V16M7.5 11.5 12 16l4.5-4.5M4.5 15v3.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V15',
   link: 'M9.5 14.5 14.5 9.5M11 7.6l1.9-1.9a3.6 3.6 0 1 1 5.1 5.1L16.1 12.7M7.9 11.3 6 13.2a3.6 3.6 0 1 0 5.1 5.1l1.9-1.9',

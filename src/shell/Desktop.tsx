@@ -27,6 +27,7 @@ import { Launcher } from './Launcher';
 import { CommandPalette } from './CommandPalette';
 import { NotificationLayer } from './Notifications';
 import { PermissionPrompt } from './PermissionPrompt';
+import { canPaste, pasteFiles } from '../kernel/fileClipboard';
 import { loadInstalledApps } from '../kernel/installedApps';
 import { DesktopIcons, iconLayoutMenu } from './DesktopIcons';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
@@ -185,9 +186,9 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
    * The desktop's own menu. Everything here acts on the desktop rather than on any one window.
    *
    * Grouped the way a desktop menu has been grouped for thirty years: what to do with the icons,
-   * then what to make, then where to change how the place looks. It still does not carry Paste or
-   * Undo, because the desktop has no clipboard and no undo stack to put behind them, and a row that
-   * is permanently greyed out is a picture of a feature rather than a feature.
+   * then what to paste or make, then where to change how the place looks. It still does not carry
+   * Undo, because there is no undo stack to put behind it, and a row that is permanently greyed out
+   * is a picture of a feature rather than a feature.
    */
   const backgroundMenu = (): MenuSpec => [
     {
@@ -201,6 +202,25 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
       run: refreshDesktop,
     },
     separator('desktop.s1'),
+    /*
+     * The desktop holds app shortcuts rather than files, so there is nowhere on it for a pasted file
+     * to appear. It lands in Home and Files opens there with it selected — the same answer New ›
+     * Folder gives, for the same reason. No accelerator is shown: none is bound out here, where Ctrl+V
+     * would otherwise be taken from every text field in every window.
+     */
+    {
+      id: 'desktop.paste',
+      label: 'Paste',
+      disabled: !canPaste(),
+      run: () => {
+        void pasteFiles(ROOT_ID)
+          .then(([first]) => {
+            if (first) launchApp('files', { args: { directoryId: ROOT_ID, selectId: first.id } });
+          })
+          .catch((error: unknown) => notifyError('Could not paste', error));
+      },
+    },
+    separator('desktop.s4'),
     {
       id: 'desktop.new',
       label: 'New',

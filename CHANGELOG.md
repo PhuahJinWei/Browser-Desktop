@@ -49,9 +49,45 @@ Added
   does not pad the wait so it can be admired — on a warm cache it is gone in a blink. Firmware runs
   before the operating system has a theme, so it ignores the skin setting on purpose. Homage, not
   copy, on the same terms as the skin: no logo, no wordmark, no font file.
+- **Cut, Copy and Paste for files and folders** — on Files' toolbar, in its Edit menu, on its
+  right-click menus, on Ctrl+X, Ctrl+C and Ctrl+V, and as Paste on the desktop. The toolbar group
+  sits between Import and Rename, the order the era's Explorer used, with scissors and clipboard
+  glyphs drawn to the same 24-unit stroke grid as the rest of the icon set. It is the desktop's own clipboard rather
+  than the system's, because a web page can hand another program text or a picture but never a file.
+  A copy costs one small record, not a second set of bytes: blobs are content-addressed and
+  reference-counted, so a copy shares its original's hash, and deleting either leaves the bytes for
+  the other — on the real file system, permanently deleting an original freed nothing until its last
+  copy went too. Copies are indexed like any new file, including every file inside a copied folder,
+  which the indexer would otherwise never have been told about. A cut marks rather than moves, as it
+  always did: the icon ghosts until it is pasted somewhere, Esc abandons it, and nothing has happened
+  to the files in the meantime. Paste is greyed while there is nothing to paste and live the moment
+  there is — a real feature in its off state rather than a row that is permanently grey. The desktop
+  holds app shortcuts rather than files, so a paste there lands in Home and Files opens on it.
+- **Undo stays out**, deliberately. It would need a journal of inverse operations across every file
+  action, and the Recycle Bin already covers most of what it would be for.
 
 Fixed
 
+- **The Recycle Bin's right-click menu offered New folder and Import.** Files and the bin are one
+  component, and the menu for empty space was the same in both — so in the bin those two created and
+  imported into a folder the bin was not showing, out of sight of whoever asked. The bin now offers
+  what it can act on: Empty Recycle Bin, behind the same confirmation as the File menu's.
+- **A menu whose middle group emptied out lost the divider around it altogether.** Conditional rows
+  leave their separators behind, and the rule that tidied them dropped _every_ separator touching
+  another — both of a pair, not the duplicate — so the groups either side ran together. It now
+  collapses a run to one and trims the ends, which is what put a divider back between Empty Recycle
+  Bin and Select all. Every other menu came out the same.
+- **Asking Files to open with something selected never selected it.** The desktop's New › Folder,
+  Notepad's link to its folder, "Show in folder" and a system command all open Files with a
+  `selectId`, and every one arrived with nothing highlighted: the effect that clears the selection
+  when the folder changes also runs on mount, and cleared the requested one before it was ever drawn.
+  It now resets only when the folder actually changes — compared against what was last shown rather
+  than skipped once with a flag, because development builds run mount effects twice and a skip-once
+  flag is spent by the first run.
+- **Every tooltip in Files' Icons view named the page's own address.** Tiles were never given the
+  folder a binned item came from, and a bare `origin` in that component does not fail to compile —
+  it resolves to `window.origin` — so each one read "From http://…". Tiles now get the same origin
+  rows do.
 - **Sandboxed apps have never been styled — since M3.** A srcdoc document inherits its embedder's
   CSP, the desktop's `style-src` is `'self'` with no `'unsafe-inline'`, and the runner's stylesheet
   was refused every time. What every sandboxed app was actually wearing was the browser's default

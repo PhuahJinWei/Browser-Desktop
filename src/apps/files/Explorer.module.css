@@ -359,6 +359,22 @@
   color: var(--accent);
 }
 
+/*
+ * A cut item is ghosted until it is pasted somewhere or the cut is abandoned — its icon, not its
+ * name. That was the era's way of saying "about to move", and it leaves the name as legible as any
+ * other, because the name is the part someone scans for.
+ *
+ * `filter`, not `opacity`, and not for style. The classic skin forces `opacity: 1` onto everything
+ * in a selected row so that nothing dims against the navy, and a cut row is nearly always selected
+ * — it is what was just cut. On `opacity` the two rules fight, and the classic one wins on
+ * specificity. The ghost is a separate effect from that skin's legibility rule, so it is written on
+ * a separate property, where the two compose instead of competing.
+ */
+.rowCut .rowIcon,
+.tileCut .tileArt {
+  filter: opacity(0.45);
+}
+
 .rowName {
   overflow: hidden;
   text-overflow: ellipsis;

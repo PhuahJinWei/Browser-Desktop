@@ -38,6 +38,7 @@ export type VfsMethods = {
   createDirectory: (parentId: NodeId, name: string) => VfsNode;
   rename: (id: NodeId, name: string) => VfsNode;
   move: (ids: NodeId[], targetId: NodeId) => VfsNode[];
+  copy: (ids: NodeId[], targetId: NodeId) => { top: VfsNode[]; created: NodeId[] };
   trash: (ids: NodeId[]) => NodeId[];
   restore: (ids: NodeId[]) => NodeId[];
   deleteForever: (ids: NodeId[]) => { nodes: NodeId[]; blobs: number };
@@ -75,6 +76,7 @@ exposeRpc<VfsMethods>({
   createDirectory: async ([parentId, name]) => vfs.createDirectory(parentId, name),
   rename: async ([id, name]) => vfs.rename(id, name),
   move: async ([ids, targetId]) => vfs.move(ids, targetId),
+  copy: async ([ids, targetId]) => vfs.copy(ids, targetId),
   trash: async ([ids]) => vfs.trash(ids),
   restore: async ([ids]) => vfs.restore(ids),
   deleteForever: async ([ids]) => vfs.deleteForever(ids),

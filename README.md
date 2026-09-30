@@ -96,7 +96,7 @@ Task Manager shows the whole request log so you can check all of this rather tha
 
 |                  |                                                                                                                                                                                        |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Files**        | Browse, import by drag-and-drop or picker, rename, move, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.                       |
+| **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.     |
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                  |
 | **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                            |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                 |

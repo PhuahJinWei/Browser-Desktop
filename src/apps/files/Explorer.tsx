@@ -4,6 +4,13 @@ import { appsFor, launchApp, openFile } from '../../kernel/apps';
 import { setWindowTitle } from '../../kernel/windows';
 import { notify, notifyError } from '../../kernel/notifications';
 import { PRIORITY, schedule } from '../../kernel/jobs';
+import {
+  cancelCut,
+  copyFiles,
+  cutFiles,
+  pasteFiles,
+  useFileClipboard,
+} from '../../kernel/fileClipboard';
 import { useDirectory, usePath, useTrash, vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, formatBytes, type VfsNode } from '../../kernel/vfs/types';
 import { isWallpaperCandidate, setWallpaperFromFile } from '../../kernel/wallpaper';
@@ -344,7 +351,19 @@ export function Explorer({ windowId, args }: AppProps) {
     setWindowTitle(windowId, title === 'Home' ? 'Files' : title);
   }, [windowId, path, recycle]);
 
+  /*
+   * Moving to another folder starts with nothing selected. Only moving, though: an effect also runs
+   * when the window first mounts, and resetting then threw away the `selectId` a caller had asked
+   * for — so "show it in Files" opened the right folder with nothing highlighted, for every caller.
+   *
+   * Compared against what was last shown rather than skipped once with a flag, because development
+   * builds run mount effects twice. A skip-once flag is spent by the first run and the second clears
+   * the selection anyway; a comparison gives the same answer however often it is asked.
+   */
+  const shown = useRef({ directoryId, recycle });
   useEffect(() => {
+    if (shown.current.directoryId === directoryId && shown.current.recycle === recycle) return;
+    shown.current = { directoryId, recycle };
     setCursor(0);
     setSelection(new Set());
   }, [directoryId, recycle]);
@@ -438,6 +457,40 @@ export function Explorer({ windowId, args }: AppProps) {
       notifyError('Could not move to Trash', error);
     }
   }, [selectedNodes]);
+
+  /* The clipboard --------------------------------------------------------------------------- */
+
+  const clipboard = useFileClipboard();
+  /* Cut items are drawn ghosted until they are pasted somewhere or the cut is abandoned. */
+  const cutIds = useMemo(
+    () => new Set(clipboard?.mode === 'cut' ? clipboard.ids : []),
+    [clipboard],
+  );
+
+  const copySelected = useCallback(
+    () => copyFiles(selectedNodes.map((node) => node.id)),
+    [selectedNodes],
+  );
+
+  const cutSelected = useCallback(
+    () => cutFiles(selectedNodes.map((node) => node.id)),
+    [selectedNodes],
+  );
+
+  const pasteInto = useCallback(
+    async (targetId: string) => {
+      try {
+        const landed = await pasteFiles(targetId);
+        // What arrived is selected, the way a new folder is — but only if it arrived in this view.
+        if (targetId === directoryId && landed.length > 0) {
+          setSelection(new Set(landed.map((node) => node.id)));
+        }
+      } catch (error) {
+        notifyError('Could not paste', error);
+      }
+    },
+    [directoryId],
+  );
 
   const restoreSelected = useCallback(async () => {
     if (selectedNodes.length === 0) return;
@@ -619,6 +672,41 @@ export function Explorer({ windowId, args }: AppProps) {
             setSelection(new Set(nodes.map((node) => node.id)));
           }
           break;
+        /*
+         * Bound here, on the list, rather than on the window: a text field anywhere else in the app
+         * keeps its own Ctrl+C, and so does the rename box inside a row, which is why the whole
+         * handler stands down while renaming. The Recycle Bin gets none of the three — nothing can
+         * be pasted into it, and its items only ever leave by being restored.
+         */
+        case 'c':
+        case 'C':
+          if ((event.ctrlKey || event.metaKey) && !recycle) {
+            event.preventDefault();
+            copySelected();
+          }
+          break;
+        case 'x':
+        case 'X':
+          if ((event.ctrlKey || event.metaKey) && !recycle) {
+            event.preventDefault();
+            cutSelected();
+          }
+          break;
+        case 'v':
+        case 'V':
+          if ((event.ctrlKey || event.metaKey) && !recycle) {
+            event.preventDefault();
+            void pasteInto(directoryId);
+          }
+          break;
+        case 'Escape':
+          // Only when there is a cut to abandon; otherwise Escape belongs to whatever is above this.
+          if (clipboard?.mode === 'cut') {
+            event.preventDefault();
+            event.stopPropagation();
+            cancelCut();
+          }
+          break;
         default:
           break;
       }
@@ -634,6 +722,11 @@ export function Explorer({ windowId, args }: AppProps) {
       trashSelected,
       recycle,
       deleteSelected,
+      copySelected,
+      cutSelected,
+      pasteInto,
+      directoryId,
+      clipboard,
     ],
   );
 
@@ -712,6 +805,30 @@ export function Explorer({ windowId, args }: AppProps) {
       id: 'edit',
       label: 'Edit',
       items: () => [
+        !recycle && {
+          id: 'edit.cut',
+          label: 'Cut',
+          shortcut: 'Ctrl+X',
+          disabled: selection.size === 0,
+          run: cutSelected,
+        },
+        !recycle && {
+          id: 'edit.copy',
+          label: 'Copy',
+          shortcut: 'Ctrl+C',
+          disabled: selection.size === 0,
+          run: copySelected,
+        },
+        // Greyed while the clipboard is empty, and live the moment it is not — a real feature in its
+        // off state, rather than a row that is permanently grey.
+        !recycle && {
+          id: 'edit.paste',
+          label: 'Paste',
+          shortcut: 'Ctrl+V',
+          disabled: clipboard === null,
+          run: () => void pasteInto(directoryId),
+        },
+        separator('edit.s1'),
         {
           id: 'edit.all',
           label: 'Select All',
@@ -816,6 +933,15 @@ export function Explorer({ windowId, args }: AppProps) {
         disabled: many,
       })),
       separator('file.s1'),
+      { id: 'cut', label: 'Cut', shortcut: 'Ctrl+X', run: cutSelected },
+      { id: 'copy', label: 'Copy', shortcut: 'Ctrl+C', run: copySelected },
+      node.kind === 'directory' && {
+        id: 'pasteInto',
+        label: 'Paste into folder',
+        disabled: clipboard === null,
+        run: () => void pasteInto(node.id),
+      },
+      separator('file.clip'),
       {
         id: 'rename',
         label: 'Rename',
@@ -841,9 +967,14 @@ export function Explorer({ windowId, args }: AppProps) {
   };
 
   /* The menu for the empty space below the files, which is about the folder rather than a file. */
+  /*
+   * The same menu opens in the Recycle Bin, which is a view rather than a folder. Anything that
+   * creates or pastes acts on `directoryId` — a folder the bin is not showing — so there it would put
+   * things somewhere the user cannot see from where they asked. The bin offers what it can act on.
+   */
   const folderMenu = (): MenuSpec => [
-    { id: 'folder.new', label: 'New folder', run: () => void newFolder() },
-    {
+    !recycle && { id: 'folder.new', label: 'New folder', run: () => void newFolder() },
+    !recycle && {
       id: 'folder.import',
       label: 'Import files…',
       run: () => {
@@ -852,7 +983,22 @@ export function Explorer({ windowId, args }: AppProps) {
         });
       },
     },
+    recycle && {
+      id: 'folder.empty',
+      label: 'Empty Recycle Bin',
+      disabled: trash.nodes.length === 0,
+      danger: true,
+      run: () => void emptyBin(),
+    },
     separator('folder.s1'),
+    !recycle && {
+      id: 'folder.paste',
+      label: 'Paste',
+      shortcut: 'Ctrl+V',
+      disabled: clipboard === null,
+      run: () => void pasteInto(directoryId),
+    },
+    separator('folder.s2'),
     {
       id: 'folder.selectAll',
       label: 'Select all',
@@ -1056,6 +1202,39 @@ export function Explorer({ windowId, args }: AppProps) {
             <button
               type="button"
               className={styles.iconButton}
+              onClick={cutSelected}
+              disabled={selection.size === 0}
+              title="Cut (Ctrl+X)"
+              aria-label="Cut"
+            >
+              <Icon name="cut" size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={copySelected}
+              disabled={selection.size === 0}
+              title="Copy (Ctrl+C)"
+              aria-label="Copy"
+            >
+              <Icon name="copy" size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => void pasteInto(directoryId)}
+              disabled={clipboard === null}
+              title="Paste (Ctrl+V)"
+              aria-label="Paste"
+            >
+              <Icon name="paste" size={16} />
+            </button>
+
+            <span className={styles.commandDivider} aria-hidden />
+
+            <button
+              type="button"
+              className={styles.iconButton}
               onClick={() => selectedNodes[0] && setRenaming(selectedNodes[0].id)}
               disabled={selection.size !== 1}
               title="Rename (F2)"
@@ -1124,7 +1303,6 @@ export function Explorer({ windowId, args }: AppProps) {
               <span className={styles.placeName}>{node.name}</span>
             </button>
           ))}
-
         </nav>
 
         <div className={styles.pane}>
@@ -1206,6 +1384,7 @@ export function Explorer({ windowId, args }: AppProps) {
                           tracks={tracks}
                           origin={origins.get(node.trashedFrom ?? '')}
                           selected={selection.has(node.id)}
+                          cut={cutIds.has(node.id)}
                           focused={index === cursor}
                           renaming={renaming === node.id}
                           onRename={(name) => void rename(node.id, name)}
@@ -1227,7 +1406,9 @@ export function Explorer({ windowId, args }: AppProps) {
                   <Tile
                     key={node.id}
                     node={node}
+                    origin={origins.get(node.trashedFrom ?? '')}
                     selected={selection.has(node.id)}
+                    cut={cutIds.has(node.id)}
                     onPointerDown={(event) => selectAt(index, event)}
                     onDoubleClick={() => open(node)}
                     onContextMenu={(event) => {
@@ -1336,13 +1517,22 @@ function hoverLabel(node: VfsNode, origin: string | undefined): string {
  */
 function Tile({
   node,
+  origin,
   selected,
+  cut,
   onPointerDown,
   onDoubleClick,
   onContextMenu,
 }: {
   node: VfsNode;
+  /*
+   * Where a binned item came from, as a row is given it. Losing this prop would still compile: a bare
+   * `origin` in this function resolves to the browser's own `window.origin`, and every tooltip would
+   * quietly name the page's address instead.
+   */
+  origin: string | undefined;
   selected: boolean;
+  cut: boolean;
   onPointerDown: (event: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (event: React.MouseEvent) => void;
@@ -1366,7 +1556,7 @@ function Tile({
   return (
     <button
       type="button"
-      className={`${styles.tile} ${selected ? styles.tileSelected : ''}`}
+      className={`${styles.tile} ${selected ? styles.tileSelected : ''} ${cut ? styles.tileCut : ''}`}
       onClick={onPointerDown}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -1437,6 +1627,7 @@ interface FileRowProps {
   tracks: string;
   origin: string | undefined;
   selected: boolean;
+  cut: boolean;
   focused: boolean;
   renaming: boolean;
   onRename: (name: string) => void;
@@ -1452,6 +1643,7 @@ function FileRow({
   tracks,
   origin,
   selected,
+  cut,
   focused,
   renaming,
   onRename,
@@ -1474,7 +1666,7 @@ function FileRow({
 
   return (
     <div
-      className={`${styles.row} ${selected ? styles.rowSelected : ''} ${focused ? styles.rowFocused : ''}`}
+      className={`${styles.row} ${selected ? styles.rowSelected : ''} ${focused ? styles.rowFocused : ''} ${cut ? styles.rowCut : ''}`}
       style={{ height: ROW_HEIGHT, gridTemplateColumns: tracks }}
       // A name column is the first thing to be truncated, and the row was the one place on this
       // desktop that could not tell you what it had cut off.

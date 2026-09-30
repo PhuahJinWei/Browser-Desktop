@@ -1,4 +1,5 @@
 import { idb, openDatabase, transact, type StoreSchema } from '../idb';
+import { planCopy } from './copy';
 import {
   DIRECTORY_MIME,
   ROOT_ID,
@@ -488,6 +489,68 @@ export async function move(ids: NodeId[], targetId: NodeId): Promise<VfsNode[]> 
       moved.push(updated);
     }
     return moved;
+  });
+}
+
+/**
+ * Copy nodes — and everything under the folders among them — into a folder.
+ *
+ * Unlike `move`, copying into the folder something already lives in is allowed: that is how a
+ * duplicate is made, and it lands as "name (2)". Copying a folder into itself, or into anything
+ * inside it, is not — the copy would keep finding its own copy to copy.
+ *
+ * The subtree is read in full before anything is written, so the walk can never wander into the
+ * records it is in the middle of creating. The whole thing is one transaction: a copy that fails
+ * halfway leaves nothing behind rather than half a folder.
+ *
+ * Returns the top-level copies, which is what the caller asked for, and every created id, which is
+ * what the indexer needs to be told about.
+ */
+export async function copy(
+  ids: NodeId[],
+  targetId: NodeId,
+): Promise<{ top: VfsNode[]; created: NodeId[] }> {
+  const handle = await db();
+  return transact(handle, 'nodes', 'readwrite', async (tx) => {
+    const store = tx.objectStore('nodes');
+    const target = await idb.get<VfsNode>(store, targetId);
+    // `move` does not need the trashed check because it is only ever aimed at what is on screen. A
+    // paste can be aimed at a folder that was binned since the clipboard was filled.
+    if (!target || target.kind !== 'directory' || target.trashed) {
+      throw new Error('Destination is not a folder');
+    }
+
+    const sources: VfsNode[] = [];
+    for (const id of ids) {
+      const node = await idb.get<VfsNode>(store, id);
+      if (!node || node.id === ROOT_ID || node.trashed) continue;
+      if (node.kind === 'directory' && (await isAncestor(store, node.id, targetId))) {
+        throw new Error(`Cannot copy ${node.name} into itself`);
+      }
+      sources.push(node);
+    }
+
+    const children = new Map<NodeId, VfsNode[]>();
+    const queue = sources.filter((node) => node.kind === 'directory').map((node) => node.id);
+    while (queue.length) {
+      const current = queue.pop()!;
+      const live = (await idb.getAll<VfsNode>(store.index('by_parent'), current)).filter(
+        (child) => !child.trashed,
+      );
+      children.set(current, live);
+      for (const child of live) if (child.kind === 'directory') queue.push(child.id);
+    }
+
+    const plan = planCopy(
+      sources,
+      children,
+      targetId,
+      await childNames(store, targetId),
+      Date.now(),
+      newId,
+    );
+    for (const record of plan.records) await idb.put(store, record);
+    return { top: plan.top, created: plan.records.map((record) => record.id) };
   });
 }
 
