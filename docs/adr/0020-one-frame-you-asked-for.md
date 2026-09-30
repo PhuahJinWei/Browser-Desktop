@@ -1,7 +1,8 @@
 # 20. One frame, and only the one you asked for
 
-Status: accepted (M7). Supersedes the YouTube half of
-[ADR 19](./0019-no-browser-inside-the-browser.md); the general browser stays refused.
+Status: superseded by [ADR 23](./0023-a-default-desktop.md) — Watch has been removed. It
+superseded the YouTube half of [ADR 19](./0019-no-browser-inside-the-browser.md); the general
+browser stays refused.
 
 ## Context
 

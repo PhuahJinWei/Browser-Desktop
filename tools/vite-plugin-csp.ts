@@ -42,10 +42,7 @@ const policy = () =>
     "font-src 'self'",
     "media-src 'self' blob:",
     "manifest-src 'self'",
-    // Watch, and only Watch: the embed endpoint exists to be framed. `connect-src` deliberately
-    // stays without it — the desktop itself still cannot talk to YouTube, it can only show a frame
-    // that does, which is the difference the app's whole claim rests on.
-    "frame-src 'self' blob: https://www.youtube-nocookie.com",
+    "frame-src 'self' blob:",
     ['connect-src', "'self'", 'blob:', 'data:'].join(' '),
   ].join('; ');
 

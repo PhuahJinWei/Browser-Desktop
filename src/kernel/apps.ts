@@ -1,7 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { IconName } from '../shell/Icon';
 import type { VfsNode } from './vfs/types';
-import { openWindow } from './windows';
+import { openWindow, type WindowSession } from './windows';
 
 /**
  * The application registry.
@@ -134,24 +134,6 @@ export const APPS: AppDefinition[] = [
     hidden: true,
   },
   {
-    id: 'watch',
-    name: 'Watch',
-    icon: 'tv',
-    description: 'Play a YouTube video in a window, by pasting a link',
-    component: lazy(() => import('../apps/watch/WatchApp')),
-    defaultSize: { width: 940, height: 640 },
-    singleton: true,
-  },
-  {
-    id: 'links',
-    name: 'Portfolio',
-    icon: 'link',
-    description: 'Other things I have built, opened in a real browser tab',
-    component: lazy(() => import('../apps/links/LinksApp')),
-    defaultSize: { width: 720, height: 560 },
-    singleton: true,
-  },
-  {
     id: 'tasks',
     name: 'Task Manager',
     icon: 'gauge',
@@ -187,6 +169,22 @@ export const APPS: AppDefinition[] = [
 
 export function getApp(id: string): AppDefinition | undefined {
   return APPS.find((app) => app.id === id);
+}
+
+/**
+ * A saved session without windows whose app no longer exists.
+ *
+ * Sessions and setup files outlive the apps they name — Watch and Portfolio were removed with
+ * sessions still pointing at them — and a window with no app renders as an empty frame that cannot
+ * load anything.
+ */
+export function withKnownApps(session: WindowSession): WindowSession {
+  const windows = session.windows.filter((window) => getApp(window.appId));
+  if (windows.length === session.windows.length) return session;
+  const focusedId = windows.some((window) => window.id === session.focusedId)
+    ? session.focusedId
+    : null;
+  return { ...session, windows, focusedId };
 }
 
 export function launcherApps(): AppDefinition[] {

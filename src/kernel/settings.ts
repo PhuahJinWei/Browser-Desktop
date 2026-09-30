@@ -64,12 +64,6 @@ export interface Settings {
   welcomeDismissed: boolean;
   /** The small-screen notice has been read once; do not show it again. */
   limitedNoticeDismissed: boolean;
-  /**
-   * Watch may load a frame from youtube-nocookie.com. False until the consent card is accepted,
-   * and set back to false by Settings, which is what makes the consent reversible rather than
-   * a one-way door.
-   */
-  watchConsent: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -89,7 +83,6 @@ export const DEFAULT_SETTINGS: Settings = {
   sampleDataLoaded: false,
   welcomeDismissed: false,
   limitedNoticeDismissed: false,
-  watchConsent: false,
 };
 
 const SETTINGS_KEY = 'tabula:settings';

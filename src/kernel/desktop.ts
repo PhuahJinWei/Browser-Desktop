@@ -31,8 +31,8 @@ export const ICON_CELL = {
  * icon that follows it on the desktop.
  *
  * At the usual six rows this forms two deliberate columns:
- *   My Computer · Files · Recycle Bin · Notepad · Search · Portfolio
- *   Photos · Audio · Video · Watch · Settings · Task Manager
+ *   My Computer · Files · Recycle Bin · Notepad · Search
+ *   Photos · Audio · Video · Settings · Task Manager
  * Installed apps begin in the next free cell, alphabetically as supplied by their registry.
  */
 export const DEFAULT_DESKTOP_ORDER = [
@@ -41,11 +41,9 @@ export const DEFAULT_DESKTOP_ORDER = [
   'trash',
   'notes',
   'search',
-  'links',
   'photos',
   'audio',
   'video',
-  'watch',
   'settings',
   'tasks',
 ] as const;

@@ -59,9 +59,9 @@ function readEmitted(names: string[]): string {
  * weight this install refuses — it already declines 36 MB of inference stack on the same grounds.
  *
  * Named rather than a bare extension test because a plain `webp` rule is wrong in a way that does
- * not announce itself: it also matches the seventeen Watch stills, and quietly turned a 76 KB
- * addition into 432 KB downloaded during install by every visitor, including the ones who never
- * open Watch. Those are app content and are fetched when that app asks for them.
+ * not announce itself: it would also match any picture an app ships as content, and turn a 76 KB
+ * addition into whatever those weigh, downloaded during install by every visitor. App content is
+ * fetched when that app asks for it.
  */
 function isShell(name: string): boolean {
   return /\.(js|css|html)$/.test(name) || /(^|\/)wallpaper-[^/]*\.webp$/.test(name);

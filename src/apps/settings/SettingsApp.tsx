@@ -501,24 +501,6 @@ export default function SettingsApp() {
 
             {page === 'apps' ? (
               <>
-                {/*
-                Watch's consent lives here rather than inside Watch, because a permission you can
-                only withdraw from the thing holding it is not really withdrawable. Turning it off
-                does not stop a video that is already loaded — Stop does that — it means the next
-                one asks again.
-              */}
-                <Group title="Permissions">
-                  <Field
-                    label="Watch may load videos from YouTube"
-                    hint="The one exception to “nothing here talks to anyone”. Off means Watch asks again before the next video."
-                  >
-                    <Toggle
-                      checked={settings.watchConsent}
-                      onChange={(next) => set('watchConsent', next)}
-                    />
-                  </Field>
-                </Group>
-
                 <Group title="Installed">
                   <AppsPanel />
                 </Group>

@@ -31,7 +31,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 
 - **G1 — A real desktop.** Window management, file system, app lifecycle, settings, notifications, clipboard, keyboard-first UX, session restore. Judged on polish.
 - **G2 — Local AI as a system service.** Text embeddings as a kernel service any app can call; background indexing; instant search. _Narrowed after M4:_ image, speech and text-recognition services were built and removed (ADR 15); embeddings remain.
-- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.) _Exception, shipped in M7:_ the **Watch** app frames YouTube, only while a video the user pasted is loaded, with a live chip on the window naming the host and the request visible in the monitor. `connect-src` still allows no external host, so the desktop cannot talk to YouTube — only show a frame that does. The claim becomes "nothing, except the one thing you asked for, and here it is" ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
+- **G3 — Zero cost, zero backend, verifiable privacy.** Static hosting; **exactly one host is ever contacted** — the origin serving the page, which carries the code, the model and the demo data. A network monitor inside the OS proves it. (v2 allowed a second host, `huggingface.co`, for consented weights; vendoring the one remaining model closed it.) _M7 added one exception, a YouTube frame for the Watch app; Watch was removed after M7 and the claim is absolute again_ ([ADR 23](./docs/adr/0023-a-default-desktop.md)).
 - **G4 — Portfolio-grade.** 30-second demo with bundled sample data; Stats panel; architecture write-up with ADRs; benchmarks with hardware listed; honest limitations.
 - **G5 — A platform.** Apps are built against an SDK; third-party apps run sandboxed with capability-based permissions.
 
@@ -41,7 +41,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 - No cloud AI, and no text generation at all — local or otherwise.
 - **Nothing downloaded on demand.** No consent dialogs, no "enable this feature", no weights fetched at runtime. What the page can do, it can do the moment it loads.
 - Not a Windows/macOS clone — no Microsoft/Apple assets, icons or wallpapers (also an IP issue).
-- No networking apps (browser-in-browser, chat clients). The in-page browser is the most-asked-for feature and stays refused; a **Portfolio** app hands links to the real browser instead ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)). The one exception is narrow and named, and shipped in M7: a **YouTube player**, not a browser — one embed frame, user-initiated, visible, revocable ([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
+- No networking apps (browser-in-browser, chat clients). The in-page browser is the most-asked-for feature and stays refused ([ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md)). The Portfolio app and the M7 YouTube player were removed after M7 ([ADR 23](./docs/adr/0023-a-default-desktop.md)).
 - Mobile is best-effort, not a milestone gate, and not a second repository ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)). Single user per browser profile.
 
 ---
@@ -67,7 +67,7 @@ The plan below aimed wider — image, speech and text-recognition models, fetche
 1. Open the URL → desktop boots in < 2 s on a repeat visit; sample files are already there ("Sample data — clear anytime").
 2. Press the launcher key (or click Search) → type _"invoice for the monitor"_ → ranked results with highlighted passages from the sample PDFs → Enter opens the PDF at that page.
 3. Open **Video → Sample** → the desktop draws and encodes a short film in front of you, then save the frame you are looking at or cut ten seconds out of it. No model, no download.
-4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."** _(After M7, one more beat: open Watch, paste a link, and point at the one new entry — and at the chip on the window that says so.)_
+4. Open Task Manager → model resident, backend, **"Network: 0 requests since boot."**
 5. Switch the OS's airplane-mode toggle (or the browser offline) → search again → **still works, semantic half included** (verified with the server stopped).
 
 **5-minute path (engineer)**
@@ -340,7 +340,7 @@ file system, with a fit setting; desktop setup export and import as a JSON file 
 ([ADR 17](./docs/adr/0017-customisation-is-a-file.md)); a compact layout below 720 px with a stated
 limited mode ([ADR 18](./docs/adr/0018-mobile-is-a-visit-not-a-target.md)).
 
-**Apps:** **Portfolio** — the author's other work, opened in a real browser tab. This is the answer
+**Apps:** **Portfolio** _(removed after M7, ADR 23)_ — the author's other work, opened in a real browser tab. This is the answer
 to "put a browser in the desktop", and the reasoning for the answer being no is
 [ADR 19](./docs/adr/0019-no-browser-inside-the-browser.md).
 
@@ -409,7 +409,7 @@ contrast bar, with any departure named; switching is instant and neither skin re
 
 ---
 
-### M7 — Watch · v0.6 (~1 FTE-week) · **shipped; the gate measured and passed**
+### M7 — Watch · v0.6 (~1 FTE-week) · **shipped, then removed** ([ADR 23](./docs/adr/0023-a-default-desktop.md))
 
 **What it is.** A YouTube player in a window, and deliberately not a browser. The distinction is
 the whole design: a browser-in-browser fails the first time a visitor types `google.com` (sites
@@ -540,23 +540,21 @@ browser, which stays refused.
 
 ## 10. Risks and mitigations
 
-| Risk                                  | Impact                     | Mitigation                                                                                                                       |
-| ------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Scope creep (genuine desktop)         | never ships                | milestone DoD gates; M4 a pool, not a list; polish over breadth                                                                  |
-| Time-to-first-result (downloads)      | visitors bounce            | **closed:** nothing is downloaded at all — the one model is in the build (ADR 15)                                                |
-| Memory/VRAM exhaustion                | crashes                    | largely moot with one 23 MB quantized model resident                                                                             |
-| WebGPU driver bugs / device lost      | broken demo                | WASM fallback; device-lost recovery; tested matrix                                                                               |
-| Cross-browser gaps (FSA, OPFS perf)   | confusing UX               | capability detection + explicit "limited mode" banner; Chromium-first messaging                                                  |
-| OPFS quota/eviction                   | data-loss fear             | `persist()`; usage UI; "Export all (zip)"                                                                                        |
-| Watch (M7) muddies the one-host claim | credibility                | one frame, one app, user-initiated; live chip on the window; monitor entry; consent once; nothing fetched before the user pastes |
-| Watch works only on Chromium          | "broken" on Firefox/Safari | stated on the stage, not discovered; Open on YouTube ↗ as the fallback; spike before building                                    |
-| Hugging Face outage / rate limit      | download fails             | **closed:** not contacted at runtime; only `npm run sync:weights` touches it                                                     |
-| COI service-worker quirks             | broken first load          | tested paths; single-thread fallback; WebGPU path does not require COI                                                           |
-| Pages bandwidth spike                 | throttling                 | lean bundle; SW caching; 23 MB of weights per first visit, well inside the budget                                                |
-| Design/polish time                    | looks amateur              | design tokens early; one original visual language; empty/loading/error states written                                            |
-| Accessibility debt                    | senior reviewers notice    | keyboard-first from M1, not retrofitted                                                                                          |
-| LLM rabbit hole                       | delays core                | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)                                                        |
-| Licences (models/assets)              | takedown/embarrassment     | one Apache-2.0 model, redistributable; demo data is drawn by the app, not sourced                                                |
+| Risk                                | Impact                  | Mitigation                                                                            |
+| ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| Scope creep (genuine desktop)       | never ships             | milestone DoD gates; M4 a pool, not a list; polish over breadth                       |
+| Time-to-first-result (downloads)    | visitors bounce         | **closed:** nothing is downloaded at all — the one model is in the build (ADR 15)     |
+| Memory/VRAM exhaustion              | crashes                 | largely moot with one 23 MB quantized model resident                                  |
+| WebGPU driver bugs / device lost    | broken demo             | WASM fallback; device-lost recovery; tested matrix                                    |
+| Cross-browser gaps (FSA, OPFS perf) | confusing UX            | capability detection + explicit "limited mode" banner; Chromium-first messaging       |
+| OPFS quota/eviction                 | data-loss fear          | `persist()`; usage UI; "Export all (zip)"                                             |
+| Hugging Face outage / rate limit    | download fails          | **closed:** not contacted at runtime; only `npm run sync:weights` touches it          |
+| COI service-worker quirks           | broken first load       | tested paths; single-thread fallback; WebGPU path does not require COI                |
+| Pages bandwidth spike               | throttling              | lean bundle; SW caching; 23 MB of weights per first visit, well inside the budget     |
+| Design/polish time                  | looks amateur           | design tokens early; one original visual language; empty/loading/error states written |
+| Accessibility debt                  | senior reviewers notice | keyboard-first from M1, not retrofitted                                               |
+| LLM rabbit hole                     | delays core             | **closed:** gated on M1–M3, never started, then removed outright (ADR 14)             |
+| Licences (models/assets)            | takedown/embarrassment  | one Apache-2.0 model, redistributable; demo data is drawn by the app, not sourced     |
 
 ---
 
@@ -606,7 +604,7 @@ browser, which stays refused.
 - **D12** The desktop is arrangeable, and the arrangement is a file the user can read and carry — no account, no sync (ADR 17). Icons select on one click and open on two (ADR 16).
 - **D13** No browser inside the browser, ever: it would break the one-host claim, need a CSP that costs cross-origin isolation, and be refused by most sites anyway. Links open in the real browser (ADR 19).
 - **D14** A permission answer is remembered by default, and the prompt does not come back. Being asked the same question repeatedly trains people to stop reading it, and a re-askable denial is one a hostile app can raise in a loop until it gets its way. The two things that make that fair: Escape denies without remembering, and a call refused by a remembered "no" announces itself once with a route to Settings → Apps.
-- **D15** _Planned (M7), pending the spike:_ a YouTube **player**, not a browser — one `credentialless` embed frame, user-initiated, visible on the window and in the monitor, history in a file the user owns. D13 stands: the general case stays refused.
+- **D15** _Shipped in M7, removed after it (ADR 23):_ a YouTube **player**, not a browser — one `credentialless` embed frame, user-initiated, visible on the window and in the monitor, history in a file the user owns. D13 stands: the general case stays refused.
 - **D16** Right-click is answered everywhere, by one component, with the browser's own menu left alone over editable and selected text. Partial coverage is worse than none: each surface that stays silent unteaches the gesture. A file's menu is built once from its node, so it is identical in every app that shows it.
 
 ---
@@ -719,9 +717,7 @@ As shipped, generated by `tools/vite-plugin-csp.ts`. The draft allowed `huggingf
 `connect-src`; with the weights in the build there is no host left to allow, so **the browser now
 enforces the one-host claim** rather than the app merely honouring it.
 
-M7 added one origin to `frame-src` and nothing to `connect-src`, which is the shape of the
-exception: the desktop cannot open a connection to YouTube, it can only display a frame that does
-(ADR 20).
+M7 added YouTube's embed origin to `frame-src`; removing Watch took it out again (ADR 23).
 
 ```
 default-src 'self';
@@ -732,7 +728,7 @@ img-src 'self' blob: data:;
 media-src 'self' blob:;
 font-src 'self';
 style-src 'self' '<sha256 of the sandbox stylesheet>';  /* React sets styles via CSSOM. The hash is for the sandbox document, which is srcdoc and so inherits this policy — without it the runner's stylesheet was silently dropped and every sandboxed app ran unstyled */
-frame-src 'self' blob: https://www.youtube-nocookie.com;  /* sandboxed app iframes, and Watch — the only third-party origin, and only as a frame */
+frame-src 'self' blob:;                         /* sandboxed app iframes */
 object-src 'none'; base-uri 'none'; form-action 'none';
 ```
 

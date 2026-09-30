@@ -1,3 +1,4 @@
+import { withKnownApps } from './apps';
 import { notify } from './notifications';
 import { saveSession, settingsStore, updateSettings, type Settings } from './settings';
 import {
@@ -132,10 +133,11 @@ export async function applySetup(setup: DesktopSetup): Promise<SetupImportResult
   updateSettings(patch as Partial<Settings>);
 
   let windowsRestored = 0;
-  if (setup.session && setup.session.windows.length > 0) {
-    restoreSession(setup.session, windowStore.get().viewport);
-    saveSession(setup.session);
-    windowsRestored = setup.session.windows.length;
+  const session = setup.session && withKnownApps(setup.session);
+  if (session && session.windows.length > 0) {
+    restoreSession(session, windowStore.get().viewport);
+    saveSession(session);
+    windowsRestored = session.windows.length;
   }
 
   return { settingsApplied: Object.keys(patch).length, wallpaperImported, windowsRestored };

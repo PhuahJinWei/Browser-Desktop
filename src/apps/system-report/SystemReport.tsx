@@ -670,10 +670,7 @@ export function SystemReport({ initialPage = 'general' }: { initialPage?: Comput
                   <Reading label="Product" value="Tabula Browser Desktop" />
                   <Reading label="Version" value={<code>{packageInfo.version}</code>} />
                   <Reading label="Runtime" value="Static browser application" />
-                  <Reading
-                    label="Network"
-                    value="Serving origin only; Watch can load one consented YouTube frame"
-                  />
+                  <Reading label="Network" value="Serving origin only" />
                   <Reading label="Build status" value={bootResult.detail} />
                   <Reading label="Browser" value={<code>{navigator.userAgent}</code>} />
                 </dl>

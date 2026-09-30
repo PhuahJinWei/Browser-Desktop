@@ -1,7 +1,8 @@
 # 19. No browser inside the browser; a Portfolio app instead
 
 Status: accepted (M6). Records the reasoning behind an existing non-goal, because it is the
-question this project gets asked most.
+question this project gets asked most. The Portfolio app has since been removed
+([ADR 23](./0023-a-default-desktop.md)); the refusal stands.
 
 ## Context
 

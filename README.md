@@ -15,8 +15,8 @@ your own files, at an offset you can open and check.
 
 > **Status: post-M7.** A window manager, a file system, semantic document search, a picture
 > browser, an audio player and recorder, a video player that exports frames and sections,
-> sandboxed third-party apps, two skins, and a YouTube player that is the one named exception to
-> the one-host rule — everything else from one host, with nothing to download or approve. What
+> sandboxed third-party apps and two skins — all from one host, with nothing to download or
+> approve. What
 > removing the on-demand models cost is in
 > [ADR 15](./docs/adr/0015-no-on-demand-models.md). See
 > [`plan v2.md`](./plan%20v2.md) for the roadmap, [`docs/sdk.md`](./docs/sdk.md) to write an app,
@@ -67,20 +67,11 @@ and no product name anywhere in the interface. The Start menu's banner reads _Ta
 is not sacrificed to authenticity either — where the era's own choice failed a contrast check, the
 modern value wins and the departure is written down rather than quietly made.
 
-## One host, and one frame you asked for
+## One host
 
-This page contacts exactly **one** host on its own: the origin serving it. Not a CDN, not an
-analytics endpoint, not a model registry.
-
-There is one exception, and it is the whole of it: the **Watch** app plays a YouTube video in a
-window, so while a video you pasted is loaded, that window frames `youtube-nocookie.com`. Nothing
-loads until you paste a link, an amber chip in the title bar names the host for exactly as long as
-the frame exists, and Settings can withdraw the permission. The desktop still cannot _talk_ to
-YouTube — `connect-src` allows no external host at all — it can only show a frame that does
-([ADR 20](./docs/adr/0020-one-frame-you-asked-for.md)).
-
-So the claim is not "no network" with an asterisk. It is: **nothing, except the one thing you just
-asked for, and here it is in the network panel while you watch.**
+This page contacts exactly **one** host: the origin serving it. Not a CDN, not an analytics
+endpoint, not a model registry, not a video site. The Content Security Policy allows no external
+host to be fetched or framed, so the browser enforces this rather than the app merely intending it.
 
 The 23 MB embedding model that document search runs on is in the build — fetched once at release
 time by `npm run sync:weights`, checked against the SHA-256 digests pinned in `models.json`, and
@@ -104,7 +95,6 @@ Task Manager shows the whole request log so you can check all of this rather tha
 | **Audio**        | Play and record, with a waveform drawn from the decoded samples.                                                                                                                       |
 | **Video**        | Play, save the frame you are looking at as a picture, or cut the section you are watching into its own file. Canvas and MediaRecorder — no model.                                      |
 | **Apps**         | Third-party apps in a sandbox with an opaque origin, no network, and permissions you grant per call and revoke any time.                                                               |
-| **Portfolio**    | The author's other work, handed to a real browser tab. Nothing is fetched — not even a favicon — so the network log stays empty while you use it.                                      |
 | **Task Manager** | Every job with progress and a cancel button, model and index statistics, storage use, and the full network log.                                                                        |
 | **Settings**     | Skin, accent, wallpaper (including any picture of your own), text size, motion, backend override, indexing, setup export and import, and every destructive operation clearly labelled. |
 | **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise, keyboard window management, session restore, command palette, notifications.                           |

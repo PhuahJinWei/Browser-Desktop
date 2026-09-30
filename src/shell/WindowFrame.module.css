@@ -302,35 +302,6 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-/*
- * A live badge next to the title, set by the app inside the window.
- *
- * Amber rather than the accent: this is not decoration and not a status the user chose, it is a
- * standing fact about a connection, and it has to read as a caution in either skin. It is only
- * ever present while the thing it names is true — see kernel/windowChips.ts.
- */
-.chip {
-  flex: 0 0 auto;
-  padding: 1px var(--space-2);
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-sm);
-  background: var(--warn-subtle);
-  color: var(--warn);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 40%;
-}
-
-/* Squared off, and readable on the navy bar rather than borrowing the body's palette. */
-:global([data-skin='classic']) .chip {
-  border-radius: 0;
-  border-color: #000000;
-  background: #ffff00;
-  color: #000000;
-}
-
 /* Now a real button, so it needs the chrome stripped back to what a title-bar icon looked like. */
 .titleIcon {
   display: inline-flex;

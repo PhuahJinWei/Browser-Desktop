@@ -17,7 +17,6 @@ export type IconName =
   | 'image'
   | 'music'
   | 'video'
-  | 'tv'
   | 'pdf'
   | 'search'
   | 'settings'
@@ -54,8 +53,6 @@ export type IconName =
   | 'paste'
   | 'edit'
   | 'download'
-  | 'link'
-  | 'external'
   | 'wallpaper';
 
 const PATHS: Record<IconName, string> = {
@@ -70,8 +67,6 @@ const PATHS: Record<IconName, string> = {
   music:
     'M9 18V6.5l10-2V16M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z',
   video: 'M3.5 6.5h12v11h-12zM15.5 10.5l5-3v9l-5-3z',
-  // A television, for Watch: a set with an antenna, which is what the app is a picture of.
-  tv: 'M3.5 9.5A1.5 1.5 0 0 1 5 8h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5ZM8 8l4-4.5L16 8M8 21.5h8',
   pdf: 'M6 3.5h7l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1ZM13 3.5v5h5M8 17c2-1 3.2-3 4-5s2.4-2 2.8-.6c.4 1.6-3.4 3-6.8 5.6Z',
   search: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14ZM16 16l4.5 4.5',
   settings:
@@ -117,9 +112,6 @@ const PATHS: Record<IconName, string> = {
     'M8.5 5.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-2.5M9 4h6v3H9zM8.5 12h7M8.5 15.5h5',
   edit: 'M4.5 19.5h4L19 9a2.1 2.1 0 0 0-3-3L5.5 16.5zM14.5 7.5l2 2',
   download: 'M12 4.5V16M7.5 11.5 12 16l4.5-4.5M4.5 15v3.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V15',
-  link: 'M9.5 14.5 14.5 9.5M11 7.6l1.9-1.9a3.6 3.6 0 1 1 5.1 5.1L16.1 12.7M7.9 11.3 6 13.2a3.6 3.6 0 1 0 5.1 5.1l1.9-1.9',
-  external:
-    'M14 4.5h5.5V10M19.5 4.5 11 13M16.5 14v4.5a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1H10',
   wallpaper:
     'M4 6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18ZM4 15.5l4.5-4a1.5 1.5 0 0 1 2 0l5.5 5M14.5 9.5h.01',
 };

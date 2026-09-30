@@ -14,7 +14,7 @@ import {
   type SnapZone,
 } from '../kernel/windows';
 import { accelerator, isTypingTarget, listCommands } from '../kernel/commands';
-import { launchApp } from '../kernel/apps';
+import { launchApp, withKnownApps } from '../kernel/apps';
 import { rowsForHeight } from '../kernel/desktop';
 import { loadSession, saveSession, useSettings } from '../kernel/settings';
 import { notifyError } from '../kernel/notifications';
@@ -103,7 +103,8 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
     if (!settings.restoreSession) return;
 
     const session = loadSession();
-    if (session && session.windows.length > 0) restoreSession(session, viewport);
+    const known = session && withKnownApps(session);
+    if (known && known.windows.length > 0) restoreSession(known, viewport);
   }, [viewport, viewportMeasured, settings.restoreSession]);
 
   /* Session save, debounced: window drags would otherwise write on every commit. */

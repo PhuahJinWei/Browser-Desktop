@@ -85,22 +85,5 @@ export default defineConfig({
     // `@vitest-environment happy-dom` docblock, so one slow environment does not tax the rest.
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    environmentOptions: {
-      happyDOM: {
-        settings: {
-          // Left to itself, happy-dom navigates iframes for real — so the Watch tests fetched
-          // youtube-nocookie.com on every run. A suite that quietly contacts a third party is a
-          // defect anywhere; in this project it contradicts the thing being tested. The tests
-          // assert that a frame exists and where it points, which needs no network at all.
-          //
-          // It does leave noise: happy-dom prints a stack trace for each load it refused, through
-          // its own page console rather than the global one, so neither `onConsoleLog` here nor a
-          // `console.error` spy in the test file can filter it. Left as-is rather than silenced by
-          // something broader — the traces say "Iframe page loading is disabled", which is this
-          // setting working, and the alternative was hiding real warnings along with them.
-          disableIframePageLoading: true,
-        },
-      },
-    },
   },
 });

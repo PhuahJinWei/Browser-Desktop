@@ -592,8 +592,7 @@ function NetworkTable({
       <div className={styles.notice}>
         <Icon name="check" size={17} />
         <p>
-          This is the browser&rsquo;s resource-timing record. Imported files are never uploaded. A
-          consented Watch frame keeps its own request log, which this page cannot inspect.
+          This is the browser&rsquo;s resource-timing record. Imported files are never uploaded.
         </p>
       </div>
       {entries.length === 0 ? (

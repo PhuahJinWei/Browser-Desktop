@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased] — a default desktop
+
+Removed
+
+- **Watch** and **Portfolio**. The desktop now ships what a fresh desktop ships, and neither was
+  that: Watch was the only exception to the one-host rule, and Portfolio was a page about the
+  author ([ADR 23](./docs/adr/0023-a-default-desktop.md)). With them go the YouTube origin in
+  `frame-src`, the consent setting, the title-bar chip that announced the frame, the committed
+  stills and `npm run sync:stills`. The browser now enforces the one-host claim in full.
+- A saved session or setup file that names either app restores without those windows, rather than
+  opening empty frames.
+
 ## [Unreleased] — a desktop that looks its age
 
 Added
