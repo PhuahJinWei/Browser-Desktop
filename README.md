@@ -13,8 +13,8 @@ fetched from anyone else, never waiting on your permission. The desktop does **n
 ([ADR 15](./docs/adr/0015-no-on-demand-models.md)): every answer it gives is a pointer into one of
 your own files, at an offset you can open and check.
 
-> **Status: post-M7.** A window manager, a file system, semantic document search, a picture
-> browser, an audio player and recorder, a video player that exports frames and sections,
+> **Status: post-M7.** A window manager, a file system, semantic document search, a paint
+> program, a picture browser, an audio player and recorder, a video player that exports frames and sections,
 > sandboxed third-party apps and two skins — all from one host, with nothing to download or
 > approve. What
 > removing the on-demand models cost is in
@@ -89,6 +89,7 @@ Task Manager shows the whole request log so you can check all of this rather tha
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash, restore, permanently delete. Virtualised, so a folder of thousands scrolls like a folder of ten.     |
 | **Search**       | Hybrid semantic + keyword search over your documents, with snippets, highlights, and a label on every result saying how it was found.                                                  |
+| **Paint**        | Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse; two colours, undo, zoom, flips. Pictures save as PNGs in Pictures, and one can be the wallpaper.              |
 | **Notepad**      | Markdown notes stored as ordinary files. Explicit save, with a flush on close so nothing is lost, and indexed once written.                                                            |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search hit at the exact passage and marks it.                                                                                                 |
 | **Photos**       | A picture browser: virtualised grid, filter by name, detail pane, and thumbnails made on this device so a folder of huge photographs still scrolls.                                    |
@@ -158,7 +159,7 @@ src/kernel     window manager · VFS · job scheduler · commands · settings ·
                capability probe · worker RPC · network monitor
 src/services   ai/ (runtime config) · index/ (embeddings, vectors, BM25, thumbnails) ·
                audio/ (waveform) · video/ (frame and clip export) · extract/ · bench/
-src/apps       files · viewer · notes · search · photos · audio · video · settings · tasks ·
+src/apps       files · viewer · notes · paint · search · photos · audio · video · settings · tasks ·
                system-report
 src/sw         the service worker: cross-origin isolation + offline shell
 tools          build plugins and generators (registry, runtime sync, Pages simulator)

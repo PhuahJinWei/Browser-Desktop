@@ -23,6 +23,7 @@ export type IconName =
   | 'gauge'
   | 'info'
   | 'note'
+  | 'paint'
   | 'trash'
   | 'restore'
   | 'refresh'
@@ -68,6 +69,9 @@ const PATHS: Record<IconName, string> = {
     'M9 18V6.5l10-2V16M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z',
   video: 'M3.5 6.5h12v11h-12zM15.5 10.5l5-3v9l-5-3z',
   pdf: 'M6 3.5h7l5 5v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1ZM13 3.5v5h5M8 17c2-1 3.2-3 4-5s2.4-2 2.8-.6c.4 1.6-3.4 3-6.8 5.6Z',
+  // A brush: a handle down to a loaded tip, which is the tool rather than the palette it came from.
+  paint:
+    'M19.5 4.5 12 12M10.6 11.2c1.9 0 3.3 1.4 3.3 3.3 0 3-2.9 5.4-8.4 5.4 1-1.1 1.3-2.4 1.3-4 0-2.6 1.6-4.7 3.8-4.7Z',
   search: 'M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14ZM16 16l4.5 4.5',
   settings:
     'M12 15.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4ZM12 3.5l1.4 2.2 2.6-.4.6 2.5 2.4 1-1 2.4 1 2.4-2.4 1-.6 2.5-2.6-.4L12 20.5l-1.4-2.2-2.6.4-.6-2.5-2.4-1 1-2.4-1-2.4 2.4-1 .6-2.5 2.6.4Z',

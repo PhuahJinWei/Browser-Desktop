@@ -66,6 +66,18 @@ export const APPS: AppDefinition[] = [
     defaultSize: { width: 860, height: 600 },
   },
   {
+    id: 'paint',
+    name: 'Paint',
+    icon: 'paint',
+    description: 'Draw a picture, or edit one you have',
+    component: lazy(() => import('../apps/paint/PaintApp')),
+    defaultSize: { width: 900, height: 640 },
+    // Listed for "Open with" on every picture, but after Photos: double-clicking a photograph
+    // should show it, not open it for editing.
+    opens: (node) => node.mime.startsWith('image/'),
+    openPriority: 8,
+  },
+  {
     id: 'photos',
     name: 'Photos',
     icon: 'image',

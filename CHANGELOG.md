@@ -2,6 +2,15 @@
 
 ## [Unreleased] — a default desktop
 
+Added
+
+- **Paint.** Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse, with a first
+  and second colour on the left and right buttons, four sizes, undo and redo, zoom to 8×, flips and
+  inversion. Edges are drawn as whole pixels rather than antialiased, so fill stops at an outline
+  instead of leaving a halo inside it. A picture is a PNG in Pictures — searchable by name, shown in
+  Photos, and one menu item from being the wallpaper. Saving is explicit with a flush on close, as
+  in Notepad; a JPEG or GIF opened for editing is saved as a PNG beside the original, never over it.
+
 Removed
 
 - **Watch** and **Portfolio**. The desktop now ships what a fresh desktop ships, and neither was

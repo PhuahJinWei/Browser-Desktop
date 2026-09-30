@@ -1,0 +1,230 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--surface-1);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.toolbox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  padding: var(--space-2);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: repeat(2, 30px);
+  gap: 2px;
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.tool svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tool:hover:not(.toolActive),
+.size:hover:not(.toolActive) {
+  background: var(--surface-3);
+  border-color: var(--border-subtle);
+}
+
+.toolActive {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
+.sizes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.size {
+  display: grid;
+  place-items: center;
+  height: 18px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.size span {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  background: var(--text-primary);
+}
+
+/*
+ * The area around the picture. It scrolls rather than squeezing the canvas, because a picture
+ * scaled to fit its window is not the size it will be saved at, and pixel work needs to see pixels.
+ */
+.stage {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-3);
+  background: var(--surface-sunken);
+}
+
+.canvas {
+  display: block;
+  background: #ffffff;
+  box-shadow: var(--shadow-raised);
+  cursor: crosshair;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.canvas[hidden] {
+  display: none;
+}
+
+.loading {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.colourBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* First colour in front, second behind and offset: the pair reads as two layers, left over right. */
+.current {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+}
+
+.primarySwatch,
+.secondarySwatch {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--text-primary);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.primarySwatch {
+  top: 2px;
+  left: 2px;
+  z-index: 1;
+}
+
+.secondarySwatch {
+  right: 2px;
+  bottom: 2px;
+}
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(14, 16px);
+  grid-template-rows: repeat(2, 16px);
+  gap: 2px;
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.statusBar {
+  display: flex;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.statusBar > :first-child {
+  flex: 1;
+}
+
+.cell {
+  min-width: 11ch;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -- Classic ---------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .stage {
+  background: #808080;
+}
+
+:global([data-skin='classic']) .canvas {
+  box-shadow: none;
+}
+
+/* A chosen tool is a button held down, which is how the era said "selected". */
+:global([data-skin='classic']) .toolActive {
+  background: #dfdfdf;
+  border-color: transparent;
+  box-shadow: var(--bevel-sunken);
+}
+
+:global([data-skin='classic']) .tool:hover:not(.toolActive),
+:global([data-skin='classic']) .size:hover:not(.toolActive) {
+  background: transparent;
+  border-color: transparent;
+}
+
+:global([data-skin='classic']) .sizes {
+  border: none;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .swatch,
+:global([data-skin='classic']) .primarySwatch,
+:global([data-skin='classic']) .secondarySwatch {
+  border: none;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:global([data-skin='classic']) .statusBar > * {
+  padding: 0 var(--space-1);
+  box-shadow: var(--bevel-thin-sunken);
+}
