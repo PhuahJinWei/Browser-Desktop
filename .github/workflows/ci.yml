@@ -42,9 +42,13 @@ jobs:
       # The ML library depends on sharp and onnxruntime-node for its Node backend. Neither may
       # ever reach the browser bundle: they would not work there, and their presence would mean
       # the wrong entry point was resolved.
+      #
+      # Only the shipped JavaScript is searched. The source maps carry the library's own source,
+      # which names onnxruntime-node in a comment and in the empty stub the bundler puts in its
+      # place — evidence the exclusion worked, which this step used to report as a failure.
       - name: Assert no Node-only dependencies in the browser bundle
         run: |
-          if grep -rlE "onnxruntime-node|require\('sharp'\)" dist/assets/ >/dev/null 2>&1; then
+          if grep -rlE --include='*.js' "onnxruntime-node|require\('sharp'\)" dist/assets/; then
             echo "Node-only dependency found in the browser bundle"; exit 1
           fi
           echo "Browser bundle is free of Node-only dependencies"
