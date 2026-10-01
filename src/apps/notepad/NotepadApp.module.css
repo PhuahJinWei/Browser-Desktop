@@ -149,9 +149,7 @@
   font: inherit;
 }
 
-.findButton,
-.dialogButton,
-.dialogPrimary {
+.findButton {
   min-width: 76px;
   height: 28px;
   padding: 0 var(--space-3);
@@ -163,14 +161,7 @@
   font-size: var(--text-chrome);
 }
 
-.dialogPrimary {
-  border-color: transparent;
-  background: var(--accent);
-  color: var(--accent-contrast);
-}
-
-.findButton:disabled,
-.dialogPrimary:disabled {
+.findButton:disabled {
   opacity: 0.5;
 }
 
@@ -211,108 +202,9 @@
   color: var(--accent);
 }
 
-/* -- Dialogs ------------------------------------------------------------------------------------ */
-
-.scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  padding: var(--space-4);
-  background: color-mix(in oklab, var(--text-primary) 12%, transparent);
-}
-
-.dialog {
-  display: flex;
-  flex-direction: column;
-  width: min(440px, 100%);
-  max-height: 100%;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  box-shadow: var(--shadow-window);
-  overflow: hidden;
-}
-
-.dialogTitle {
-  padding: var(--space-3) var(--space-4) 0;
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-
-.dialogBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
-  padding: var(--space-3) var(--space-4) var(--space-4);
-}
-
-.renameForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.fileList {
-  min-height: 160px;
-  max-height: 280px;
-  margin: 0;
-  padding: 2px;
-  overflow-y: auto;
-  list-style: none;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-}
-
-.fileRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-chrome);
-  cursor: default;
-}
-
-.fileRow:hover:not(.fileRowSelected) {
-  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
-}
-
-.fileRowSelected {
-  background: var(--accent-subtle);
-}
-
-.fileName {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fileFolder {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-.fileEmpty {
-  padding: var(--space-3);
-  color: var(--text-muted);
-  font-size: var(--text-chrome);
-}
-
-.dialogButtons {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
 /* -- Classic ------------------------------------------------------------------------------------ *
  * The 1990s Notepad: a menu bar over a white sunken page, and nothing else. Its dialogs are the
- * era's: a grey panel under a navy caption, with 75-pixel bevelled buttons.
+ * shell's (Dialog.tsx), which draw in the era's style themselves.
  * ---------------------------------------------------------------------------------------------- */
 
 /*
@@ -348,9 +240,7 @@
   box-shadow: var(--bevel-sunken);
 }
 
-:global([data-skin='classic']) .findButton,
-:global([data-skin='classic']) .dialogButton,
-:global([data-skin='classic']) .dialogPrimary {
+:global([data-skin='classic']) .findButton {
   min-width: 75px;
   height: 23px;
   border: 1px solid #000000;
@@ -358,59 +248,4 @@
   background: #c0c0c0;
   color: #000000;
   box-shadow: var(--bevel-raised);
-}
-
-/* The default button carries an extra black frame, which is how the era marked what Enter does. */
-:global([data-skin='classic']) .dialogPrimary {
-  outline: 1px solid #000000;
-  outline-offset: 0;
-}
-
-:global([data-skin='classic']) .scrim {
-  background: transparent;
-}
-
-:global([data-skin='classic']) .dialog {
-  padding: 2px;
-  border: 1px solid #000000;
-  border-radius: 0;
-  background: #c0c0c0;
-  box-shadow: var(--bevel-raised);
-}
-
-:global([data-skin='classic']) .dialogTitle {
-  padding: 2px 4px;
-  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
-  color: #ffffff;
-  font-size: var(--text-chrome);
-  font-weight: 700;
-}
-
-:global([data-skin='classic']) .dialogBody {
-  padding: var(--space-3);
-}
-
-:global([data-skin='classic']) .fileList {
-  border: 0;
-  border-radius: 0;
-  background: #ffffff;
-  box-shadow: var(--bevel-sunken);
-}
-
-:global([data-skin='classic']) .fileRow {
-  border-radius: 0;
-  padding: 1px 4px;
-}
-
-:global([data-skin='classic']) .fileRow:hover:not(.fileRowSelected) {
-  background: transparent;
-}
-
-:global([data-skin='classic']) .fileRowSelected {
-  background: #000080;
-  color: #ffffff;
-}
-
-:global([data-skin='classic']) .fileRowSelected .fileFolder {
-  color: #ffffff;
 }

@@ -28,6 +28,11 @@ export interface AppDefinition {
   description: string;
   component: LazyExoticComponent<ComponentType<AppProps>>;
   defaultSize?: { width: number; height: number };
+  /**
+   * The window under the classic skin, for a program whose 1990s version was a different shape —
+   * a small fixed Sound Recorder rather than a resizable player. `fixed` keeps it that size.
+   */
+  classicWindow?: { width: number; height: number; fixed?: boolean };
   /** Only ever one window of this app. */
   singleton?: boolean;
   /** Hidden from the launcher; still openable by id. */
@@ -88,6 +93,8 @@ export const APPS: AppDefinition[] = [
     description: 'Play and record audio, with a waveform',
     component: lazy(() => import('../apps/audio/AudioApp')),
     defaultSize: { width: 880, height: 620 },
+    // The 1990s Sound Recorder was a small fixed panel, not a resizable player.
+    classicWindow: { width: 330, height: 178, fixed: true },
     opens: (node) => node.mime.startsWith('audio/'),
     openPriority: 5,
   },
@@ -98,6 +105,8 @@ export const APPS: AppDefinition[] = [
     description: 'Play video, and cut out a frame or a section',
     component: lazy(() => import('../apps/video/VideoApp')),
     defaultSize: { width: 1000, height: 700 },
+    // The era's Media Player opened small, with the picture above its controls.
+    classicWindow: { width: 480, height: 440 },
     singleton: true,
     opens: (node) => node.mime.startsWith('video/'),
     openPriority: 5,
@@ -213,11 +222,13 @@ export function launchApp(appId: string, options: LaunchOptions = {}): string | 
   const app = getApp(appId);
   if (!app) return null;
 
+  const classic = settingsStore.get().skin === 'classic' ? app.classicWindow : undefined;
   return openWindow({
     appId: app.id,
     title: options.title ?? app.name,
     ...(options.args !== undefined ? { args: options.args } : {}),
-    ...(app.defaultSize ?? {}),
+    ...(classic ? { width: classic.width, height: classic.height } : (app.defaultSize ?? {})),
+    ...(classic?.fixed ? { fixedSize: true } : {}),
     ...(app.singleton ? { singleton: true } : {}),
   });
 }

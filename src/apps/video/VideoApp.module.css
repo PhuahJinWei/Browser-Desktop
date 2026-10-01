@@ -1,78 +1,61 @@
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-width: 0;
-  background: var(--surface-2);
+/* -- Shared: the picture, and the sample-film banner -------------------------------------------- */
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 0;
+  background: #000000;
+  overflow: hidden;
 }
 
-.toolbar {
+.player,
+.canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+}
+
+.canvasHidden {
+  display: none;
+}
+
+.stageEmpty {
+  padding: var(--space-4);
+  color: #b5b5b5;
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.banner {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
-  flex: 0 0 auto;
-  flex-wrap: wrap;
+  background: var(--accent-subtle);
 }
 
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 200px;
-  height: 32px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  color: var(--text-muted);
-}
-
-.searchBox:focus-within {
-  border-color: var(--accent);
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
+.bannerTitle {
   font-size: var(--text-sm);
-  outline: none;
+  font-weight: 600;
 }
 
-.input:disabled {
-  cursor: not-allowed;
-}
-
-.scope {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+.bannerText {
   color: var(--text-secondary);
   font-size: var(--text-xs);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.count {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .spinner {
-  width: 12px;
-  height: 12px;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
   border: 2px solid color-mix(in oklab, var(--accent) 30%, transparent);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 700ms linear infinite;
-  flex: 0 0 auto;
 }
 
 @keyframes spin {
@@ -87,160 +70,110 @@
   }
 }
 
-.banner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-1);
-  color: var(--accent);
-  flex: 0 0 auto;
+:global(html[data-motion='reduced']) .spinner {
+  animation: none;
 }
 
-.bannerBody {
+.seek {
   flex: 1;
   min-width: 0;
+  margin: 0;
+  accent-color: var(--accent);
 }
 
-.bannerTitle {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-}
+/* -- Modern: the current Media Player -----------------------------------------------------------
+ * A library down the side; the picture filling the rest; a light transport bar along the bottom
+ * with the seek bar across it, play in the middle of three, and the frame and section exports at
+ * its end.
+ * ---------------------------------------------------------------------------------------------- */
 
-.bannerText {
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  line-height: 1.45;
-}
-
-.enable {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-md);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: var(--text-sm);
-  font-weight: 550;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.enable:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.body {
+.app {
   display: flex;
-  flex: 1;
-  min-height: 0;
+  height: 100%;
+  min-width: 0;
+  background: var(--surface-2);
 }
-
-/* Sidebar ------------------------------------------------------------------------------------ */
 
 .sidebar {
-  width: 232px;
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  width: 240px;
+  padding: var(--space-4) var(--space-2);
   border-right: 1px solid var(--border-subtle);
   background: var(--surface-1);
-  min-height: 0;
+  overflow-y: auto;
 }
 
 .sidebarHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  font-size: var(--text-xs);
+  padding: 0 var(--space-2);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-subtle);
 }
 
-.small {
+.sampleButton {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
+  gap: var(--space-2);
+  align-self: flex-start;
+  height: 30px;
+  margin: 0 var(--space-2);
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  text-transform: none;
-  letter-spacing: 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
   cursor: pointer;
-  white-space: nowrap;
 }
 
-.small:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.small:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.sampleButton:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .sidebarEmpty {
-  padding: var(--space-4) var(--space-3);
+  padding: 0 var(--space-2);
   color: var(--text-muted);
   font-size: var(--text-xs);
-  line-height: 1.5;
 }
 
 .videoList {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  margin: 0;
+  padding: 0;
   list-style: none;
-  padding: var(--space-2);
-  display: grid;
-  gap: 2px;
-  align-content: start;
 }
 
 .videoItem {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    'icon name'
-    'icon meta';
-  gap: 0 var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   width: 100%;
   padding: var(--space-2);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
-  text-align: left;
-  cursor: pointer;
   color: var(--text-primary);
-}
-
-.videoItem > svg {
-  grid-area: icon;
-  align-self: center;
-  color: var(--text-muted);
+  text-align: left;
+  cursor: default;
 }
 
 .videoItem:hover:not(.videoItemSelected) {
-  background: var(--surface-2);
+  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
 }
 
 .videoItemSelected {
-  background: var(--accent-subtle);
-  border-color: var(--accent);
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
+}
+
+.videoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .videoName {
-  grid-area: name;
   font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -248,163 +181,176 @@
 }
 
 .videoMeta {
-  grid-area: meta;
-  font-size: var(--text-xs);
   color: var(--text-muted);
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
 }
-
-.progressTrack {
-  grid-column: 1 / -1;
-  height: 3px;
-  margin-top: var(--space-1);
-  border-radius: var(--radius-pill);
-  background: var(--border-subtle);
-  overflow: hidden;
-}
-
-.progressFill {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transition: width 120ms linear;
-}
-
-.sidebarActions {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.action:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Stage -------------------------------------------------------------------------------------- */
 
 .main {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-}
-
-.stage {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-3);
-  background: #05070c;
-  min-height: 200px;
-  max-height: 46%;
-}
-
-.player,
-.canvas {
-  max-width: 100%;
-  max-height: 100%;
-  border-radius: var(--radius-md);
-  background: #000;
-}
-
-.stageEmpty {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-
-.activeBar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--surface-1);
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-}
-
-.activeRange {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-xs);
-  color: var(--accent);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--accent-subtle);
-}
-
-.activeName {
   flex: 1;
   min-width: 0;
+}
+
+.transportBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.seekRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.buttonRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.nowPlaying {
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.select {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+.centerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.endControls {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.roundButton,
+.playButton {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.roundButton {
+  width: 36px;
+  height: 36px;
+  background: transparent;
   color: var(--text-primary);
-  font-size: var(--text-xs);
-  padding: 1px var(--space-1);
 }
 
-.canvasHidden {
-  display: none;
+.roundButton:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--text-primary) 7%, transparent);
 }
 
-/* -- Classic ----------------------------------------------------------------------------------- */
+.playButton {
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
 
-/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
-:global([data-skin='classic']) .videoList {
-  background: #ffffff;
+.playButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.roundButton:disabled,
+.playButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* -- Classic: the late-1990s Media Player ------------------------------------------------------
+ * A grey window: the picture in a sunken well, then a seek bar and a row of small bevelled
+ * transport buttons, then a status line split into sunken panels.
+ * ---------------------------------------------------------------------------------------------- */
+
+.classic {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #c0c0c0;
+  color: #000000;
+  font-size: var(--text-chrome);
+}
+
+.classic .stage {
+  margin: 2px 4px 0;
+  box-shadow: var(--bevel-sunken);
+  border: 2px solid transparent;
+}
+
+.classic .banner {
+  border-bottom: 0;
+  background: #ffffe1;
   box-shadow: var(--bevel-thin-sunken);
 }
 
-:global([data-skin='classic']) .videoItem:hover:not(.videoItemSelected) {
-  background: #ebebeb;
+.classicControls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 6px;
 }
 
-:global([data-skin='classic']) .videoItemSelected {
-  border-color: #000080;
-  background: #000080;
-  color: #ffffff;
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
-:global([data-skin='classic']) .videoItemSelected .videoName,
-:global([data-skin='classic']) .videoItemSelected .videoMeta,
-:global([data-skin='classic']) .videoItemSelected > svg {
-  color: #ffffff;
+.transport button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  color: #000000;
 }
 
-/* The hourglass is the era's whole vocabulary for "wait", and the blanket classic arrow would
-   otherwise take it. Everywhere else a disabled control keeps the plain arrow, which is what this
-   desktop's era showed over one — `not-allowed` is a later convention. */
-:global([data-cursors='classic']) .enable:disabled {
-  cursor: var(--cursor-wait), wait;
+.transport button:disabled {
+  color: #808080;
+}
+
+.transportGap {
+  width: 6px;
+}
+
+.status {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+}
+
+.statusCell {
+  flex: 1;
+  padding: 1px 4px;
+  box-shadow: var(--bevel-thin-sunken);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusCell:last-child {
+  flex: 0 0 auto;
+  min-width: 90px;
+  text-align: right;
 }

@@ -8,7 +8,7 @@ import { closeWindow, setWindowTitle } from '../../kernel/windows';
 import { separator } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
 import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
-import { AppIcon } from '../../shell/PixelIcon';
+import { NameDialog, OpenDialog } from '../../shell/Dialog';
 import styles from './NotepadApp.module.css';
 
 /**
@@ -571,206 +571,24 @@ export default function NotepadApp({ windowId, args }: AppProps) {
       )}
 
       {dialog === 'open' ? (
-        <OpenDialog onOpen={(id) => void openFile(id)} onCancel={() => setDialog(null)} />
-      ) : null}
-      {dialog === 'rename' && active.node ? (
-        <RenameDialog
-          name={active.node.name}
-          onRename={(name) => void rename(name)}
+        <OpenDialog
+          accepts={(node) => node.mime.startsWith('text/') || /\.(md|txt)$/i.test(node.name)}
+          icon="file-text"
+          label="Notes and text files"
+          empty="No text files yet."
+          onOpen={(id) => void openFile(id)}
           onCancel={() => setDialog(null)}
         />
       ) : null}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------------------------- */
-/* Dialogs                                                                                        */
-/* -------------------------------------------------------------------------------------------- */
-
-/**
- * Open: every text file on the desktop, newest first.
- *
- * Both desktops' Notepads open through a file dialog, and this is that dialog reduced to what this
- * file system needs — it is small and flat enough that a list of every note beats a folder tree.
- */
-function OpenDialog({ onOpen, onCancel }: { onOpen: (id: string) => void; onCancel: () => void }) {
-  const [files, setFiles] = useState<VfsNode[] | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [folders, setFolders] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    void vfs.allNodes().then((nodes) => {
-      const text = nodes
-        .filter(
-          (node) =>
-            node.kind === 'file' &&
-            !node.trashed &&
-            (node.mime.startsWith('text/') || /\.(md|txt)$/i.test(node.name)),
-        )
-        .sort((a, b) => b.modifiedAt - a.modifiedAt);
-      setFolders(
-        new Map(
-          nodes
-            .filter((node) => node.kind === 'directory')
-            .map((node) => [node.id, node.id === ROOT_ID ? 'Home' : node.name]),
-        ),
-      );
-      setFiles(text);
-      setSelected(text[0]?.id ?? null);
-    });
-  }, []);
-
-  const listRef = useRef<HTMLUListElement>(null);
-  useEffect(() => {
-    if (files?.length)
-      listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
-  }, [files]);
-
-  // Focus follows the selection once it has rendered, while the keyboard is in the list.
-  useEffect(() => {
-    const list = listRef.current;
-    if (list?.contains(document.activeElement)) {
-      list.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
-    }
-  }, [selected]);
-
-  return (
-    <Dialog title="Open" onCancel={onCancel}>
-      <ul
-        ref={listRef}
-        className={styles.fileList}
-        role="listbox"
-        aria-label="Notes and text files"
-      >
-        {files === null ? <li className={styles.fileEmpty}>Reading…</li> : null}
-        {files?.length === 0 ? <li className={styles.fileEmpty}>No text files yet.</li> : null}
-        {files?.map((file) => (
-          <li
-            key={file.id}
-            role="option"
-            aria-selected={selected === file.id}
-            tabIndex={selected === file.id ? 0 : -1}
-            className={`${styles.fileRow} ${selected === file.id ? styles.fileRowSelected : ''}`}
-            onClick={() => setSelected(file.id)}
-            onDoubleClick={() => onOpen(file.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && selected) onOpen(selected);
-              if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-              event.preventDefault();
-              const list = files ?? [];
-              const index = list.findIndex((candidate) => candidate.id === selected);
-              const next = list[index + (event.key === 'ArrowDown' ? 1 : -1)];
-              if (next) setSelected(next.id);
-            }}
-          >
-            <AppIcon name="file-text" size={16} />
-            <span className={styles.fileName}>{file.name}</span>
-            <span className={styles.fileFolder}>{folders.get(file.parentId ?? '') ?? ''}</span>
-          </li>
-        ))}
-      </ul>
-      <div className={styles.dialogButtons}>
-        <button
-          type="button"
-          className={styles.dialogPrimary}
-          disabled={!selected}
-          onClick={() => selected && onOpen(selected)}
-        >
-          Open
-        </button>
-        <button type="button" className={styles.dialogButton} onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </Dialog>
-  );
-}
-
-function RenameDialog({
-  name,
-  onRename,
-  onCancel,
-}: {
-  name: string;
-  onRename: (name: string) => void;
-  onCancel: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-
-  // The whole name is shown, extension included, but only the stem is selected: renaming almost
-  // never means changing the type.
-  useEffect(() => {
-    const input = ref.current;
-    if (!input) return;
-    input.focus();
-    const dot = name.lastIndexOf('.');
-    input.setSelectionRange(0, dot > 0 ? dot : name.length);
-  }, [name]);
-
-  return (
-    <Dialog title="Rename" onCancel={onCancel}>
-      <form
-        className={styles.renameForm}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onRename(ref.current?.value ?? name);
-        }}
-      >
-        <label className={styles.findLabel}>
-          New name:
-          <input ref={ref} className={styles.findInput} defaultValue={name} />
-        </label>
-        <div className={styles.dialogButtons}>
-          <button type="submit" className={styles.dialogPrimary}>
-            Rename
-          </button>
-          <button type="button" className={styles.dialogButton} onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-      </form>
-    </Dialog>
-  );
-}
-
-/** A dialog inside the window: modal to it, dismissed by Escape or Cancel. */
-function Dialog({
-  title,
-  onCancel,
-  children,
-}: {
-  title: string;
-  onCancel: () => void;
-  children: React.ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Once, on open, so the keyboard starts inside the dialog. A list that arrives later focuses its
-  // own selected row; doing that here on every render would pull focus out of the field being typed in.
-  useEffect(() => {
-    ref.current?.querySelector<HTMLElement>('input, button:not(:disabled)')?.focus();
-  }, []);
-
-  return (
-    <div className={styles.scrim} role="presentation" onPointerDown={onCancel}>
-      <div
-        ref={ref}
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onPointerDown={(event) => event.stopPropagation()}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            event.stopPropagation();
-            onCancel();
-          }
-        }}
-      >
-        <div className={styles.dialogTitle}>{title}</div>
-        <div className={styles.dialogBody}>{children}</div>
-      </div>
+      {dialog === 'rename' && active.node ? (
+        <NameDialog
+          title="Rename"
+          action="Rename"
+          name={active.node.name}
+          onSubmit={(name) => void rename(name)}
+          onCancel={() => setDialog(null)}
+        />
+      ) : null}
     </div>
   );
 }

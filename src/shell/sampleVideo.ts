@@ -154,6 +154,13 @@ export async function recordSampleVideo(
   }
 
   const blob = await finished;
+  // A tab out of view is not drawn, so the recorder gets no frames and hands back nothing. Saving
+  // that as "Sample video created, 0 B" was the result; saying why is the useful answer.
+  if (blob.size === 0) {
+    throw new Error(
+      'The recording came out empty. The browser stops drawing a tab that is out of view, so keep this one in front while the sample is made.',
+    );
+  }
   return {
     name: 'Sample scenes.webm',
     mime: blob.type || 'video/webm',

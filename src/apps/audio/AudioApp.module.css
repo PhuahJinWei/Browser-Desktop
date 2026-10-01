@@ -1,3 +1,8 @@
+/* -- Modern: the current Sound Recorder ------------------------------------------------------------
+ * Recordings down the side with a round red button at their foot; the selected one large on the
+ * right, its waveform in bars, play in the middle of a row of three.
+ * ---------------------------------------------------------------------------------------------- */
+
 .app {
   display: flex;
   height: 100%;
@@ -8,127 +13,122 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: 220px;
   flex: 0 0 auto;
+  width: 240px;
   border-right: 1px solid var(--border-subtle);
   background: var(--surface-1);
 }
 
 .sidebarHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--text-xs);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: var(--text-muted);
-}
-
-.recordButton {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  font-size: 10px;
-  text-transform: none;
-  letter-spacing: 0;
-  cursor: pointer;
-}
-
-.recordButton:hover {
-  color: var(--bad);
-  border-color: var(--bad);
-}
-
-.recordingActive {
-  color: var(--bad);
-  border-color: var(--bad);
-  background: var(--bad-subtle);
-}
-
-.recordDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.recordingActive .recordDot {
-  animation: blink 1s ease-in-out infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.25;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recordingActive .recordDot {
-    animation: none;
-  }
 }
 
 .list {
-  margin: 0;
-  padding: var(--space-1);
-  list-style: none;
-  overflow-y: auto;
   flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--space-2);
+  overflow-y: auto;
+  list-style: none;
 }
 
 .listItem {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .listItem:hover:not(.listItemActive) {
-  background: var(--surface-3);
+  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
 }
 
 .listItemActive {
-  background: var(--accent-subtle);
-  color: var(--accent);
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
 }
 
 .listName {
-  flex: 1;
-  min-width: 0;
   font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.listMeta {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .listEmpty {
   padding: var(--space-3);
   color: var(--text-muted);
   font-size: var(--text-xs);
-  line-height: 1.5;
+}
+
+.recordDock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.recordTimer {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A white ring round a red disc, which becomes a red square while recording. */
+.recordButton {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+}
+
+.recordButton:hover:not(:disabled) {
+  border-color: #c42b1c;
+}
+
+.recordButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.recordGlyph {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #c42b1c;
+}
+
+.recordButtonActive .recordGlyph {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
 }
 
 .main {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   min-width: 0;
-  overflow-y: auto;
-  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
 }
 
 .placeholder {
@@ -136,239 +136,183 @@
   place-content: center;
   justify-items: center;
   gap: var(--space-2);
-  height: 100%;
-  padding: var(--space-6);
+  flex: 1;
   color: var(--text-muted);
-  text-align: center;
   font-size: var(--text-sm);
+  text-align: center;
 }
 
-.placeholderHint {
-  max-width: 46ch;
-  font-size: var(--text-xs);
-  line-height: 1.5;
+.bigTimer {
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .player {
   display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.waveform {
+  --wave-played: var(--accent);
+  --wave-remaining: color-mix(in oklab, var(--text-primary) 22%, transparent);
+  flex: 1;
+  min-height: 80px;
+  max-height: 220px;
+  width: 100%;
+  margin-top: var(--space-6);
+  cursor: pointer;
+}
+
+.waveform:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: var(--space-3);
-  flex: 0 0 auto;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .play {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
-  border: 1px solid var(--accent);
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: var(--accent-subtle);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
   cursor: pointer;
 }
 
 .play:hover {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--accent-hover);
 }
 
-.waveform {
+.skip {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.skip:hover {
+  background: color-mix(in oklab, var(--text-primary) 7%, transparent);
+}
+
+/* -- Classic: the 1990s Sound Recorder -------------------------------------------------------------
+ * A grey panel: Position and Length either side of a green trace in a sunken black well, a slider,
+ * and five bevelled buttons. The window is fixed at the size this was drawn for.
+ * ---------------------------------------------------------------------------------------------- */
+
+.classic {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #c0c0c0;
+  color: #000000;
+  font-size: var(--text-chrome);
+}
+
+.recorder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px 8px;
+}
+
+.scopeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
-  height: 56px;
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  cursor: pointer;
-  --wave-played: var(--accent);
-  --wave-remaining: var(--border-strong);
-}
-
-.time {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-  flex-wrap: wrap;
+.readoutRight {
+  align-items: flex-end;
+}
+
+.scope {
   flex: 0 0 auto;
+  width: 128px;
+  height: 44px;
+  box-shadow: var(--bevel-sunken);
+  border: 2px solid transparent;
+  image-rendering: pixelated;
 }
 
-.primary,
-.secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-
-.primary {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-weight: 550;
-}
-
-.primary:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.secondary {
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-1);
-  color: var(--text-secondary);
-}
-
-.secondary:hover {
-  color: var(--text-primary);
-  background: var(--surface-3);
-}
-
-.meta {
-  margin-left: auto;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-xs);
-}
-
-.sectionTitle {
-  margin-bottom: var(--space-2);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.chapters {
-  margin-top: var(--space-4);
-  flex: 0 0 auto;
-}
-
-.chapterList,
-.segments {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 2px;
-}
-
-.chapter,
-.segment {
-  display: flex;
-  gap: var(--space-3);
+.slider {
   width: 100%;
-  padding: var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
+  margin: 0;
 }
 
-.chapter:hover,
-.segment:hover:not(.segmentActive) {
-  background: var(--surface-1);
+.transport {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
 }
 
-.segmentActive {
-  background: var(--accent-subtle);
+.transport button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 26px;
+  padding: 0;
+  color: #000000;
 }
 
-.chapterTime,
-.segmentTime {
-  flex: 0 0 auto;
-  width: 52px;
-  color: var(--accent);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
+.transport button:disabled {
+  color: #808080;
 }
 
-.chapterTitle {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-}
-
-.segmentText {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.segmentActive .segmentText {
-  color: var(--text-primary);
-}
-
-.transcript {
-  margin-top: var(--space-4);
-  flex: 1;
-  min-height: 0;
-}
-
-.transcriptHint {
-  padding: var(--space-4);
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  max-width: 60ch;
-}
-
-/* -- Classic ----------------------------------------------------------------------------------- */
-
-/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
-:global([data-skin='classic']) .list {
-  background: #ffffff;
-  box-shadow: var(--bevel-thin-sunken);
-}
-
-:global([data-skin='classic']) .listItem:hover:not(.listItemActive) {
-  background: #ebebeb;
-}
-
-:global([data-skin='classic']) .listItemActive {
-  background: #000080;
-  color: #ffffff;
-}
-
-:global([data-skin='classic']) .listItemActive .listName,
-:global([data-skin='classic']) .listItemActive .meta {
-  color: #ffffff;
-}
-
-/* Chapters and the transcript are read, not browsed, so they keep the panel grey and mark the
-   current line by inverting it alone — a white well behind running text would be a page, not a
-   list, and the distinction is the whole point of the well elsewhere. */
-:global([data-skin='classic']) .chapter:hover,
-:global([data-skin='classic']) .segment:hover:not(.segmentActive) {
-  background: #dfdfdf;
-}
-
-/* The line being spoken inverts. Hover is a plain grey above it, so the two never read as the
-   same state, which they did while both were #dfdfdf. */
-:global([data-skin='classic']) .segmentActive {
-  background: #000080;
-}
-
-:global([data-skin='classic']) .segmentActive .segmentText,
-:global([data-skin='classic']) .segmentActive .segmentTime {
-  color: #ffffff;
-}
-
-/* The hourglass is the era's whole vocabulary for "wait", and the blanket classic arrow would
-   otherwise take it. Everywhere else a disabled control keeps the plain arrow, which is what this
-   desktop's era showed over one — `not-allowed` is a later convention. */
-:global([data-cursors='classic']) .primary:disabled {
-  cursor: var(--cursor-wait), wait;
+.transport button:disabled svg circle {
+  fill: #808080;
 }

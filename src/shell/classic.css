@@ -105,6 +105,58 @@
   background-position: right 1px center;
 }
 
+/* -- Sliders ----------------------------------------------------------------------------------- */
+
+/*
+ * The era's trackbar: a thin sunken groove, and a raised grey thumb standing on it. A native range
+ * input draws in the platform's current style — a blue fill and a round knob — which is the one
+ * control in a 1995 window that would say what year it really is.
+ */
+:where([data-skin='classic']) input[type='range'] {
+  appearance: none;
+  height: 22px;
+  background: transparent;
+}
+
+:where([data-skin='classic']) input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:where([data-skin='classic']) input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px;
+  height: 20px;
+  margin-top: -8px;
+  border: 1px solid #000000;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px 0 0 #ffffff,
+    inset -1px -1px 0 0 #808080;
+}
+
+:where([data-skin='classic']) input[type='range']::-moz-range-track {
+  height: 4px;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-sunken);
+}
+
+:where([data-skin='classic']) input[type='range']::-moz-range-thumb {
+  width: 9px;
+  height: 18px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow:
+    inset 1px 1px 0 0 #ffffff,
+    inset -1px -1px 0 0 #808080;
+}
+
+:where([data-skin='classic']) input[type='range']:disabled::-webkit-slider-thumb {
+  border-color: #808080;
+}
+
 /* -- Focus ------------------------------------------------------------------------------------- */
 
 [data-skin='classic'] :focus-visible {

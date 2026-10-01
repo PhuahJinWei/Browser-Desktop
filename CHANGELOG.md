@@ -4,6 +4,22 @@
 
 Added
 
+- **Audio is each desktop's Sound Recorder, and Video its Media Player.** Classic Sound Recorder is
+  the small fixed panel: Position and Length either side of a green trace on black — the sound
+  under the playhead, or the microphone while recording — a slider, and the five buttons. Modern
+  lists recordings beside the selected one's waveform, with a round red button to record. Classic
+  Media Player is the picture over a seek bar, small transport buttons and a status line, with the
+  frame and section exports in its File menu; modern has a video library down the side and a
+  transport bar along the bottom with play in the middle. Both open files through the shared Open
+  dialog, which Notepad now uses too. Sliders under classic are the era's trackbar.
+
+Fixed
+
+- A video made by the desktop itself — the sample, or an exported section — showed its length as
+  0:00, because the recorder does not write one. The player now works it out.
+- A sample video recorded while the tab was out of view was saved as an empty file and announced as
+  created. It now says the recording came out empty, and why.
+
 - **Files is each desktop's Explorer.** A folder tree replaces the flat list of places, in both
   skins: folders open in place, the current one is revealed wherever it is, and the arrow keys
   walk it. Under classic it has the era's dotted lines and +/− boxes under an "All Folders"
