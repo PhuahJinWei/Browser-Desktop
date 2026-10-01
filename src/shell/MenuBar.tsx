@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ContextMenu, useContextMenu, type MenuSpec } from './ContextMenu';
+import { Icon } from './Icon';
 import styles from './MenuBar.module.css';
 
 /**
@@ -112,6 +113,44 @@ export function MenuBar({ menus, label }: { menus: MenuBarMenu[]; label: string 
         reusing the instance would leave focus on a button that no longer exists.
       */}
       {menu ? <ContextMenu key={openId ?? 'bar'} request={menu} onClose={closeAll} /> : null}
+    </>
+  );
+}
+
+/**
+ * The same menus behind one "See more" button, each as a submenu.
+ *
+ * A current file manager has no menu bar: its commands sit on a command bar, and the ones that do
+ * not fit are behind a trailing ⋯. Folding the bar's menus in here keeps every command reachable
+ * from the keyboard and the pointer without drawing a bar the desktop being imitated does not have.
+ */
+export function MenuOverflow({
+  menus,
+  className,
+}: {
+  menus: MenuBarMenu[];
+  className?: string | undefined;
+}) {
+  const { menu, openUnder, close } = useContextMenu();
+  return (
+    <>
+      <button
+        type="button"
+        className={className}
+        aria-label="See more"
+        title="See more"
+        aria-haspopup="menu"
+        aria-expanded={menu !== null}
+        onClick={(event) =>
+          openUnder(
+            event.currentTarget,
+            menus.map((entry) => ({ id: entry.id, label: entry.label, items: entry.items() })),
+          )
+        }
+      >
+        <Icon name="more" size={16} />
+      </button>
+      {menu ? <ContextMenu request={menu} onClose={close} /> : null}
     </>
   );
 }

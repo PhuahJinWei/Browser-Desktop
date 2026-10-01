@@ -87,7 +87,7 @@
   padding: 0 var(--space-4);
   border: 1px solid var(--border-subtle);
   border-bottom-color: var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-muted);
 }

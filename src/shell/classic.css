@@ -64,6 +64,10 @@
   translate: 1px 1px;
 }
 
+:where([data-skin='classic']) button:disabled svg[shape-rendering='crispEdges'] {
+  filter: grayscale(1) opacity(0.45);
+}
+
 :where([data-skin='classic']) button:disabled {
   color: #6d6d6d;
 }

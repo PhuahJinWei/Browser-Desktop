@@ -5,6 +5,7 @@ import { search, useIndexStats, useIndexerState, warmUpModel } from '../../servi
 import type { SearchHit } from '../../services/index/client';
 import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
 import { Icon, iconForFile } from '../../shell/Icon';
+import { AppIcon } from '../../shell/PixelIcon';
 import { copyText, nodeMenuItems } from '../../shell/nodeMenu';
 import styles from './ContentSearch.module.css';
 
@@ -178,7 +179,7 @@ export function ContentSearch({
                   }}
                 >
                   <div className={styles.hitHeader}>
-                    <Icon
+                    <AppIcon
                       name={iconForFile({ kind: 'file', mime: hit.mime, name: hit.fileName })}
                       size={15}
                     />

@@ -15,9 +15,11 @@ import { useDirectory, usePath, useTrash, vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, formatBytes, type VfsNode } from '../../kernel/vfs/types';
 import { isWallpaperCandidate, setWallpaperFromFile } from '../../kernel/wallpaper';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from '../../shell/ContextMenu';
-import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
+import { MenuBar, MenuOverflow, type MenuBarMenu } from '../../shell/MenuBar';
+import { useSetting } from '../../kernel/settings';
 import { closeWindow } from '../../kernel/windows';
 import { Icon, iconForFile } from '../../shell/Icon';
+import { AppIcon } from '../../shell/PixelIcon';
 import { useVirtualList } from '../../shell/useVirtualList';
 import { thumbnailUrl } from '../../services/index/thumbnails';
 import { ContentSearch } from './ContentSearch';
@@ -199,6 +201,7 @@ export function Explorer({ windowId, args }: AppProps) {
   const [view, setView] = useState<ViewMode>('list');
   const [sort, setSort] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<1 | -1>(1);
+  const classic = useSetting('skin') === 'classic';
   const [filter, setFilter] = useState(initial.search ?? '');
   /**
    * Whether the search box is filtering this folder by name or searching inside every file.
@@ -1074,7 +1077,8 @@ export function Explorer({ windowId, args }: AppProps) {
         is a live subscription: it is already correct, and a button that redraws what is on screen
         would be a control that does nothing.
       */}
-      <MenuBar menus={menus} label={recycle ? 'Recycle Bin' : 'Files'} />
+      {/* A menu bar under classic, as the era's Explorer had; modern folds it into the ⋯ below. */}
+      {classic ? <MenuBar menus={menus} label={recycle ? 'Recycle Bin' : 'Files'} /> : null}
 
       <div className={styles.navRow}>
         <button
@@ -1323,6 +1327,7 @@ export function Explorer({ windowId, args }: AppProps) {
           <option value="kind">Type</option>
           <option value="size">Size</option>
         </select>
+        {classic ? null : <MenuOverflow menus={menus} className={styles.iconButton} />}
       </div>
 
       <div className={styles.body}>
@@ -1340,7 +1345,7 @@ export function Explorer({ windowId, args }: AppProps) {
             onClick={() => navigate(ROOT_ID)}
             aria-current={!recycle && directoryId === ROOT_ID ? 'true' : undefined}
           >
-            <Icon name="drive" size={15} />
+            <AppIcon name="drive" size={16} />
             <span className={styles.placeName}>Home</span>
           </button>
 
@@ -1354,7 +1359,7 @@ export function Explorer({ windowId, args }: AppProps) {
               onClick={() => navigate(node.id)}
               aria-current={!recycle && directoryId === node.id ? 'true' : undefined}
             >
-              <Icon name="folder" size={15} />
+              <AppIcon name="folder" size={16} />
               <span className={styles.placeName}>{node.name}</span>
             </button>
           ))}
@@ -1636,7 +1641,7 @@ function Tile({
         {url ? (
           <img src={url} alt="" className={styles.tileImage} draggable={false} />
         ) : (
-          <Icon name={iconForFile(node)} size={26} />
+          <AppIcon name={iconForFile(node)} size={32} />
         )}
       </span>
       <span className={styles.tileName}>{node.name}</span>
@@ -1747,7 +1752,7 @@ function FileRow({
       role="option"
       aria-selected={selected}
     >
-      <Icon name={iconForFile(node)} size={16} className={styles.rowIcon} />
+      <AppIcon name={iconForFile(node)} size={16} className={styles.rowIcon} />
       {columns.map((column) =>
         column.key === 'name' ? (
           renaming ? (

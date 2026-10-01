@@ -115,3 +115,12 @@ Two departures, named as the others are. **Only the frame is 11px**: menus, capt
 and icon labels. App content keeps the modern sizes, because shrinking every document for
 authenticity is a cost the reader pays rather than the skin; the text-size setting scales both.
 **A finger still gets 48px**: under `pointer: coarse` the taskbar and menu rows keep touch sizes.
+
+## Amendment: Inside the apps too
+
+The skins had stopped at the window frame: inside a bevelled 1995 window sat 2026's outline icons,
+switches, rounded pills and capitalised headings, and inside a current one sat a menu bar the
+desktop being imitated no longer has. `Icon` now draws pixel art under classic wherever a drawing
+exists, so every app follows without being touched; classic Settings uses check boxes and radio
+buttons; modern Files folds its menus into a ⋯ on the command bar. Headings are sentence case in
+both, and monospace is kept for what it is for — code and plain text.

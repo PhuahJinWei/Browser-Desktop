@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { useSetting } from '../kernel/settings';
 import { ColorIcon, hasColorIcon } from './ColorIcon';
-import { Icon, type IconName } from './Icon';
+import { LineIcon, type IconName } from './Icon';
 import { PIXEL_ART_16, PIXEL_ART_32, PIXEL_PALETTE, type PixelKey } from './pixelIcons';
 
 /**
@@ -84,9 +84,11 @@ interface PixelIconProps {
   /** Paints the era's navy dither over the icon's own pixels. */
   selected?: boolean | undefined;
   className?: string | undefined;
+  /** Decorative by default; give a label when the icon is the only content of a control. */
+  label?: string | undefined;
 }
 
-export function PixelIcon({ name, size = 32, selected = false, className }: PixelIconProps) {
+export function PixelIcon({ name, size = 32, selected = false, className, label }: PixelIconProps) {
   // Pattern ids must be unique per instance; React's ids carry punctuation that is not safe in a
   // url() fragment, so keep only the characters that are.
   const id = `px-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -106,7 +108,9 @@ export function PixelIcon({ name, size = 32, selected = false, className }: Pixe
       viewBox={`0 0 ${grid} ${grid}`}
       shapeRendering="crispEdges"
       className={className}
-      aria-hidden="true"
+      aria-hidden={label ? undefined : true}
+      role={label ? 'img' : undefined}
+      aria-label={label}
       focusable="false"
     >
       {selected ? (
@@ -149,5 +153,5 @@ export function AppIcon({ name, size, selected, className }: PixelIconProps & { 
   if (skin !== 'classic' && hasColorIcon(name)) {
     return <ColorIcon name={name} size={size} className={className} />;
   }
-  return <Icon name={name} size={size} className={className} />;
+  return <LineIcon name={name} size={size} className={className} />;
 }

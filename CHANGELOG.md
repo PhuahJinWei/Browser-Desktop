@@ -4,6 +4,16 @@
 
 Added
 
+- **Inside the apps, each skin now follows its desktop too.** Under classic, every icon with a pixel
+  drawing is drawn as pixel art in toolbars, lists and sidebars, not only on the frame — seventeen
+  new 16-pixel drawings (back, up, refresh, cut, copy, paste, rename, new, import, restore, PDF,
+  drive, open folder, the two views, warning) — and a disabled button greys its picture. Settings'
+  switches become check boxes and its segmented choices radio buttons. Small headings are in
+  sentence case in both skins, as neither desktop set them in capitals; counters, dates, badges and
+  menu shortcuts use the interface face, keeping monospace for code and plain text; and rounded
+  pills are square under classic. Modern Files drops the menu bar for a ⋯ button on its command
+  bar, with the same menus as submenus, and draws files and folders in colour.
+
 - **The classic skin is at the era's own sizes, with the era's Start menu.** A 28px taskbar with
   22px buttons, 18px title bars, 11px text in menus, captions and the taskbar, and a 75px desktop
   icon grid; app content keeps its size, and the text-size setting scales both. The Start menu is

@@ -1,3 +1,6 @@
+import { useSetting } from '../kernel/settings';
+import { hasPixelIcon, PixelIcon } from './PixelIcon';
+
 /**
  * The icon set.
  *
@@ -55,7 +58,8 @@ export type IconName =
   | 'edit'
   | 'download'
   | 'wallpaper'
-  | 'power';
+  | 'power'
+  | 'more';
 
 const PATHS: Record<IconName, string> = {
   folder:
@@ -118,6 +122,8 @@ const PATHS: Record<IconName, string> = {
   edit: 'M4.5 19.5h4L19 9a2.1 2.1 0 0 0-3-3L5.5 16.5zM14.5 7.5l2 2',
   download: 'M12 4.5V16M7.5 11.5 12 16l4.5-4.5M4.5 15v3.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V15',
   power: 'M12 3.5v8M7.3 6.4a7.5 7.5 0 1 0 9.4 0',
+  // Three dots, as zero-length segments: the round caps draw them, so they scale with the stroke.
+  more: 'M5.5 12h.01M12 12h.01M18.5 12h.01',
   wallpaper:
     'M4 6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18ZM4 15.5l4.5-4a1.5 1.5 0 0 1 2 0l5.5 5M14.5 9.5h.01',
 };
@@ -131,7 +137,28 @@ export interface IconProps {
   strokeWidth?: number | undefined;
 }
 
-export function Icon({ name, size = 18, label, className, strokeWidth = 1.75 }: IconProps) {
+/**
+ * An icon as the current skin draws it.
+ *
+ * Under classic, any glyph with a pixel drawing is drawn as pixel art — inside apps as well as on
+ * the chrome. The line set inside a bevelled 1995 window was the single clearest sign that the skin
+ * stopped at the frame, and doing it here rather than at each call site means every toolbar, list
+ * and sidebar follows without being touched. Glyphs with no drawing (a check mark, a chevron, a
+ * close cross) stay line art, which is what they were in the era too: a few strokes, not a picture.
+ */
+export function Icon(props: IconProps) {
+  const classic = useSetting('skin') === 'classic';
+  const size = props.size ?? 18;
+  if (classic && hasPixelIcon(props.name, size)) {
+    return (
+      <PixelIcon name={props.name} size={size} className={props.className} label={props.label} />
+    );
+  }
+  return <LineIcon {...props} />;
+}
+
+/** The line drawing alone, whatever the skin. */
+export function LineIcon({ name, size = 18, label, className, strokeWidth = 1.75 }: IconProps) {
   return (
     <svg
       width={size}

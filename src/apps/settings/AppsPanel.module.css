@@ -72,7 +72,7 @@
 
 .version {
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   font-weight: 400;
 }
@@ -80,7 +80,7 @@
 .origin,
 .originWarn {
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 500;
   background: var(--surface-3);
@@ -170,17 +170,17 @@
 
 .granted {
   color: var(--ok);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .denied {
   color: var(--bad);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .unasked {
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .linkButton {

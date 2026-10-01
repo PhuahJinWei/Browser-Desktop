@@ -217,7 +217,7 @@
 .listTime {
   display: block;
   margin-top: 4px;
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   color: var(--text-muted);
 }

@@ -124,7 +124,7 @@
   gap: var(--space-3);
   height: 100%;
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .hero,
@@ -192,8 +192,8 @@
   width: fit-content;
   padding: 2px var(--space-2);
   border: 1px solid transparent;
-  border-radius: 999px;
-  font-family: var(--font-mono);
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   white-space: nowrap;
 }
@@ -432,7 +432,7 @@
 .progress {
   min-height: 1.4em;
   color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
 }
 
@@ -460,8 +460,6 @@
 .table thead th {
   color: var(--text-muted);
   font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .table tbody tr:last-child th,
@@ -470,7 +468,6 @@
 }
 
 .number {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

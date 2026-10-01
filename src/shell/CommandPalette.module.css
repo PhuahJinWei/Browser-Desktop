@@ -77,8 +77,6 @@
   min-width: 62px;
   color: var(--text-muted);
   font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .label {
@@ -102,7 +100,7 @@
   padding: 1px 6px;
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: nowrap;
