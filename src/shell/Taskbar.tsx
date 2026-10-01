@@ -20,6 +20,8 @@ import { useUnreadCount } from '../kernel/notifications';
 import { useOnlineStatus } from '../kernel/network';
 import { ContextMenu, separator, useContextMenu, type MenuSpec } from './ContextMenu';
 import { useSetting } from '../kernel/settings';
+import { TabulaMark } from './ColorIcon';
+import { Icon } from './Icon';
 import { AppIcon } from './PixelIcon';
 import { NotificationCenter } from './Notifications';
 import styles from './Taskbar.module.css';
@@ -35,6 +37,7 @@ import styles from './Taskbar.module.css';
 
 function Clock() {
   const [now, setNow] = useState(() => new Date());
+  const classic = useSetting('skin') === 'classic';
 
   useEffect(() => {
     // Tick on the minute rather than the second: a repainting clock is a distraction, and this
@@ -57,7 +60,9 @@ function Clock() {
         details that is wrong without being noticeably wrong. Locale still decides 12- or 24-hour,
         so this does not force an American clock onto anyone.
       */}
-      {now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+      <span>{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+      {/* A current tray shows the date under the time; 1995's showed it only on hover. */}
+      {classic ? null : <span>{now.toLocaleDateString()}</span>}
     </time>
   );
 }
@@ -74,7 +79,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
   const jobs = useJobSummary();
   const unread = useUnreadCount();
   const online = useOnlineStatus();
-  const launcherLabel = useSetting('skin') === 'classic' ? 'Start' : 'Apps';
+  const classic = useSetting('skin') === 'classic';
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
 
@@ -200,78 +205,83 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         openMenu(event, barMenu());
       }}
     >
-      <button
-        type="button"
-        className={`${styles.launcher} ${launcherOpen ? styles.launcherOpen : ''}`}
-        onClick={onToggleLauncher}
-        aria-expanded={launcherOpen}
-        aria-label={`${launcherLabel}: open the app launcher`}
-        title="Click here to begin"
-      >
-        <AppIcon name="apps" size={17} />
-        {/*
-          "Start" under the classic skin, and the accessible name follows the visible one rather
-          than being set once and left to drift — a button labelled one thing and announced another
-          is the failure mode this is avoiding, not a detail.
-        */}
-        <span className={styles.launcherLabel}>{launcherLabel}</span>
-      </button>
-
       {/*
+        Start, search and the open windows are one group. Under modern it sits in the middle of the
+        bar, which is the single most recognisable thing about a current taskbar; under classic the
+        group dissolves (`display: contents`) and its members line up from the left as they did.
+      */}
+      <div className={styles.dock}>
+        <button
+          type="button"
+          className={`${styles.launcher} ${launcherOpen ? styles.launcherOpen : ''}`}
+          onClick={onToggleLauncher}
+          aria-expanded={launcherOpen}
+          aria-label="Start: open the app launcher"
+          title={classic ? 'Click here to begin' : 'Start'}
+        >
+          {classic ? <AppIcon name="apps" size={17} /> : <TabulaMark size={24} />}
+          {/* Visible under classic only; the accessible name above says "Start" in both. */}
+          <span className={styles.launcherLabel}>Start</span>
+        </button>
+
+        {/*
         The accelerator moved from a visible chip to the tooltip. `title` describes rather than
         names, so the button still announces as "Search..." and the shortcut is not lost with it.
       */}
-      <button
-        type="button"
-        className={styles.search}
-        onClick={onOpenPalette}
-        title="Search commands (Ctrl+K)"
-      >
-        <AppIcon name="search" size={15} />
-        <span>Search...</span>
-      </button>
+        <button
+          type="button"
+          className={styles.search}
+          onClick={onOpenPalette}
+          title="Search commands (Ctrl+K)"
+        >
+          {classic ? <AppIcon name="search" size={15} /> : <Icon name="search" size={16} />}
+          <span>{classic ? 'Search...' : 'Search'}</span>
+        </button>
 
-      <div
-        className={styles.windows}
-        role="group"
-        aria-label="Open windows"
-        onContextMenu={(event) => {
-          if (event.target !== event.currentTarget) return;
-          openMenu(event, barMenu());
-        }}
-      >
-        {windows.map((window) => {
-          const app = getApp(window.appId);
-          const active = window.id === focusedId && !window.minimized;
-          return (
-            <button
-              key={window.id}
-              type="button"
-              className={`${styles.task} ${active ? styles.taskActive : ''} ${
-                window.minimized ? styles.taskMinimized : ''
-              }`}
-              data-task-id={window.id}
-              onPointerDown={(event) => onTaskPointerDown(event, window.id)}
-              onClick={() => {
-                // A drag ends in a click; that one is not the user asking to minimise.
-                if (suppressClick.current) {
-                  suppressClick.current = false;
-                  return;
+        <div
+          className={styles.windows}
+          role="group"
+          aria-label="Open windows"
+          onContextMenu={(event) => {
+            if (event.target !== event.currentTarget) return;
+            openMenu(event, barMenu());
+          }}
+        >
+          {windows.map((window) => {
+            const app = getApp(window.appId);
+            const active = window.id === focusedId && !window.minimized;
+            return (
+              <button
+                key={window.id}
+                type="button"
+                className={`${styles.task} ${active ? styles.taskActive : ''} ${
+                  window.minimized ? styles.taskMinimized : ''
+                }`}
+                data-task-id={window.id}
+                onPointerDown={(event) => onTaskPointerDown(event, window.id)}
+                onClick={() => {
+                  // A drag ends in a click; that one is not the user asking to minimise.
+                  if (suppressClick.current) {
+                    suppressClick.current = false;
+                    return;
+                  }
+                  if (active) minimizeWindow(window.id);
+                  else focusWindow(window.id);
+                }}
+                onContextMenu={(event) =>
+                  openMenu(event, taskMenu(window.id, window.minimized, window.snap !== null))
                 }
-                if (active) minimizeWindow(window.id);
-                else focusWindow(window.id);
-              }}
-              onContextMenu={(event) =>
-                openMenu(event, taskMenu(window.id, window.minimized, window.snap !== null))
-              }
-              aria-pressed={active}
-              title={window.title}
-            >
-              <AppIcon name={app?.icon ?? 'file'} size={15} />
-              <span className={styles.taskLabel}>{window.title}</span>
-            </button>
-          );
-        })}
+                aria-pressed={active}
+                // Hidden under modern, where a task is its icon; the name must not go with the label.
+                aria-label={window.title}
+                title={window.title}
+              >
+                <AppIcon name={app?.icon ?? 'file'} size={classic ? 15 : 24} />
+                <span className={styles.taskLabel}>{window.title}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className={styles.status}>

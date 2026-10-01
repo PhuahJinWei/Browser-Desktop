@@ -455,7 +455,7 @@ export function DesktopIcons() {
               onFocus={() => setFocusKey(shortcut.key)}
             >
               <span className={styles.icon}>
-                <AppIcon name={shortcut.icon} size={24} selected={selected} />
+                <AppIcon name={shortcut.icon} size={40} selected={selected} />
               </span>
               <span className={styles.label}>{shortcut.name}</span>
             </li>

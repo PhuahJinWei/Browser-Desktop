@@ -1,6 +1,14 @@
+/*
+ * Three columns, with the dock in the middle one and the tray in the last.
+ *
+ * Equal outer columns centre the dock on the bar rather than in whatever the tray leaves over, so it
+ * does not shift sideways when the tray grows a chip. The empty first column is the bar's own
+ * `::before`, which saves an element whose only job would be to take up room.
+ */
 .bar {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
   /* The inset is zero everywhere but an iPhone, where the home indicator sits over the bar. */
@@ -19,34 +27,49 @@
   z-index: 1000000;
 }
 
-.launcher {
+.bar::before {
+  content: '';
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/*
+ * Every button on the dock is the same 40px square with the same hover, so the bar reads as one row
+ * of places rather than a launcher, a search field and some tabs.
+ */
+.launcher,
+.task {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  height: 34px;
-  padding: 0 var(--space-3);
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
-  font-weight: 550;
   font-size: var(--text-sm);
   cursor: pointer;
 }
 
-.launcher:hover {
-  background: var(--surface-3);
-  color: var(--text-primary);
+.launcher:hover,
+.launcherOpen,
+.task:hover:not(.taskActive) {
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  border-color: color-mix(in oklab, var(--text-primary) 6%, transparent);
 }
 
-.launcherOpen {
-  background: var(--accent-subtle);
-  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
-  color: var(--accent);
-}
-
+/* The word belongs to the classic button; a current Start button is its mark alone. */
 .launcherLabel {
-  font-size: var(--text-sm);
+  display: none;
 }
 
 .search {
@@ -54,11 +77,12 @@
   align-items: center;
   gap: var(--space-2);
   height: 34px;
-  min-width: 150px;
-  padding: 0 var(--space-2) 0 var(--space-3);
+  min-width: 190px;
+  margin: 0 var(--space-1);
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
+  border-radius: 999px;
+  background: var(--surface-2);
   color: var(--text-muted);
   font-size: var(--text-sm);
   cursor: pointer;
@@ -77,7 +101,6 @@
 .windows {
   display: flex;
   gap: var(--space-1);
-  flex: 1;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -87,40 +110,38 @@
   display: none;
 }
 
-.task {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: 34px;
-  max-width: 190px;
-  padding: 0 var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.task:hover:not(.taskActive) {
-  background: var(--surface-3);
-  color: var(--text-primary);
+/*
+ * The running mark: a short grey dash under every open window, drawn out wide in the accent under
+ * the focused one. It is how a current taskbar says "open" and "in front" without a label.
+ */
+.task::after {
+  content: '';
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  width: 6px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-muted);
+  transform: translateX(-50%);
+  transition: width var(--duration-fast) var(--easing);
 }
 
 .taskActive {
-  background: var(--accent-subtle);
-  color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+  background: color-mix(in oklab, var(--surface-2) 85%, transparent);
+  border-color: color-mix(in oklab, var(--text-primary) 8%, transparent);
 }
 
-.taskMinimized {
-  opacity: 0.55;
+.taskActive::after {
+  width: 16px;
+  background: var(--accent);
 }
 
 .taskLabel {
+  display: none;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /*
@@ -135,12 +156,10 @@
 .status {
   display: flex;
   align-items: center;
+  justify-self: end;
   gap: var(--space-1);
-  height: 28px;
+  height: 40px;
   padding: 0 var(--space-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
 }
 
 /*
@@ -235,11 +254,19 @@
   text-align: center;
 }
 
-/* Modern letters the clock in tabular figures, so the tray does not change width as it ticks.
-   Classic letters it differently further down; the shape it sits in is the same either way. */
+/* Time over date, right-aligned, in the interface face with tabular figures so the tray does not
+   change width as it ticks. Classic letters it on one line further down. */
 .clock {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  height: 40px;
+  padding: 0 var(--space-2);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 1.3;
   font-variant-numeric: tabular-nums;
 }
 
@@ -259,10 +286,6 @@
   .search {
     min-width: 0;
     padding: 0 var(--space-2);
-  }
-
-  .task {
-    max-width: 130px;
   }
 
   .clock {
@@ -303,6 +326,21 @@
  * when their window is focused, and a sunken clock well at the right.
  * ---------------------------------------------------------------------------------------------- */
 
+/* The dock dissolves and the bar is a row again, as it was before the dock was centred. */
+:global([data-skin='classic']) .bar {
+  display: flex;
+  align-items: center;
+}
+
+:global([data-skin='classic']) .bar::before,
+:global([data-skin='classic']) .task::after {
+  display: none;
+}
+
+:global([data-skin='classic']) .dock {
+  display: contents;
+}
+
 :global([data-skin='classic']) .bar {
   /* The bar is a flex item in a column, so `height` alone loses to the base rule's flex-basis and
      the classic bar silently rendered at the modern 48px with 22px buttons adrift in the middle.
@@ -327,6 +365,7 @@
 /* The Start button is the tallest thing on the bar and the only bold one, which is most of how it
    reads as the way in rather than as the first of a row of tasks. */
 :global([data-skin='classic']) .launcher {
+  width: auto;
   height: 26px;
   padding: 0 5px 0 3px;
   gap: 4px;
@@ -346,6 +385,8 @@
  * shrinking together, capped so three windows do not each take a third of a wide screen.
  */
 :global([data-skin='classic']) .task {
+  width: auto;
+  gap: var(--space-2);
   height: 26px;
   flex: 1 1 0;
   min-width: 0;
@@ -368,6 +409,7 @@
 
 /* The strip no longer scrolls, because the buttons in it no longer overflow. */
 :global([data-skin='classic']) .windows {
+  flex: 1;
   overflow-x: hidden;
 }
 
@@ -378,6 +420,10 @@
 
 :global([data-skin='classic']) .search {
   height: 26px;
+  min-width: 150px;
+  margin: 0;
+  border-radius: 0;
+  padding: 0 var(--space-2) 0 var(--space-3);
 }
 
 /* The task strip's own gap has to match the bar's, or the space before the first task button
@@ -389,6 +435,7 @@
 /* The tray: one sunken well holding the chips and the clock, rather than each floating alone. */
 /* The same tray with a different edge: a sunken well where the modern skin draws a soft panel. */
 :global([data-skin='classic']) .status {
+  margin-left: auto;
   height: 26px;
   gap: 3px;
   padding: 0 4px;
@@ -409,7 +456,12 @@
 }
 
 :global([data-skin='classic']) .launcherLabel {
+  display: inline;
   font-weight: 700;
+}
+
+:global([data-skin='classic']) .taskLabel {
+  display: inline;
 }
 
 /* A latched button is the sunken bevel plus the era's 50% dither, which is how an active task
@@ -452,6 +504,8 @@
  * figures.
  */
 :global([data-skin='classic']) .clock {
+  flex-direction: row;
+  align-items: center;
   padding: 0 5px 0 2px;
   font-family: var(--font-sans);
   font-size: var(--text-xs);

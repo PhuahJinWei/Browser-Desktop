@@ -332,7 +332,9 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
   return (
     <div
       ref={frameRef}
-      className={`${styles.frame} ${focused ? styles.focused : ''} ${dragging ? styles.dragging : ''}`}
+      className={`${styles.frame} ${focused ? styles.focused : ''} ${dragging ? styles.dragging : ''} ${
+        win.snap === 'maximized' ? styles.maximized : ''
+      }`}
       style={{
         left: win.x,
         top: win.y,
@@ -375,7 +377,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
             closeWindow(win.id);
           }}
         >
-          <AppIcon name={app?.icon ?? 'file'} size={15} />
+          <AppIcon name={app?.icon ?? 'file'} size={16} />
         </button>
         <span className={styles.title}>{win.title}</span>
         <div className={styles.controls}>
@@ -386,7 +388,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
             aria-label={`Minimise ${win.title}`}
             title="Minimise"
           >
-            <Icon name="minimize" size={14} />
+            <Icon name="minimize" size={13} />
           </button>
           <button
             type="button"
@@ -395,7 +397,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
             aria-label={win.snap === 'maximized' ? `Restore ${win.title}` : `Maximise ${win.title}`}
             title={win.snap === 'maximized' ? 'Restore' : 'Maximise'}
           >
-            <Icon name={win.snap === 'maximized' ? 'restore-window' : 'maximize'} size={13} />
+            <Icon name={win.snap === 'maximized' ? 'restore-window' : 'maximize'} size={12} />
           </button>
           <button
             type="button"
@@ -404,7 +406,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
             aria-label={`Close ${win.title}`}
             title="Close"
           >
-            <Icon name="close" size={14} />
+            <Icon name="close" size={13} />
           </button>
         </div>
       </div>

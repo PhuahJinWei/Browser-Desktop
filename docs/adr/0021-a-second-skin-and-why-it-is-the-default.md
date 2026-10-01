@@ -87,3 +87,17 @@ only because "the default has to work" is a much higher bar than "the alternativ
   is stored as text — one character per pixel — so it is reviewable in a diff, needs no image files
   and adds no host. 16 and 32 are drawn separately, because halving a bitmap throws away the pixel
   it was placed on.
+
+## Amendment: Modern follows the current desktop's grammar
+
+Modern had been a tidy generic web app — left-aligned bar, text buttons, monochrome line icons,
+cards with descriptions — and said "web page" before it said "desktop". It now follows the
+current generation's layout the way Classic follows the 1990s': the taskbar's Start, search and
+window buttons are one centred group, open windows are icons with a running mark under them, the
+clock shows the date beneath the time, the Start menu is a centred panel with an icon grid and a
+strip along its foot, title bars are 32px with wide square caption buttons and a red Close, and
+apps are drawn as small coloured objects (`ColorIcon.tsx`) rather than outlines.
+
+The same line applies. The layout and proportions are reproduced; nothing identifying a vendor is.
+The Start button's picture is this desktop's own mark — a tile with a T — not four panes, and the
+colour icons are original drawings of generic objects, like the pixel set.

@@ -50,26 +50,16 @@
 }
 
 /*
- * The glyph keeps its frosted tile.
- *
- * The name below it does not have one, and that asymmetry is deliberate rather than an oversight:
- * a small piece of line art needs a ground to read against, and a word does not — a shadow is
- * enough for the word and would be a smudge behind the drawing.
+ * The icon stands straight on the wallpaper. It used to sit on a frosted tile, because a thin line
+ * drawing needs a ground to read against; the colour drawings are filled shapes with their own
+ * edges, and a tile behind each one made the desktop a grid of buttons rather than of things.
  */
 .icon {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--surface-2) 80%, transparent);
-  border: 1px solid var(--border-subtle);
-  color: var(--accent);
-  backdrop-filter: blur(6px);
-}
-
-.selected .icon {
-  border-color: color-mix(in oklab, var(--accent) 60%, transparent);
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
 }
 
 /*
@@ -145,6 +135,7 @@
 }
 
 :global([data-skin='classic']) .icon {
+  filter: none;
   background: transparent;
   border: 0;
   border-radius: 0;

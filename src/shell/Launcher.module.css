@@ -1,88 +1,94 @@
+/*
+ * The Start menu, current style: a panel centred over the taskbar, a search field across the top,
+ * apps as a grid of icons with their names under them, and a darker strip along the foot.
+ *
+ * Centred because the button that opens it is now in the middle of the bar. A menu that opened at
+ * the left edge from a button in the centre would look attached to nothing.
+ */
 .panel {
   position: absolute;
-  left: var(--space-2);
+  left: 50%;
   bottom: 56px;
-  width: min(560px, calc(100vw - 2 * var(--space-2)));
-  padding: var(--space-4);
-  background: color-mix(in oklab, var(--surface-2) 96%, transparent);
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100vw - 2 * var(--space-2)));
+  max-height: calc(100% - 64px);
+  background: color-mix(in oklab, var(--surface-2) 94%, transparent);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-window);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(24px);
+  transform: translateX(-50%);
+  overflow: hidden;
   z-index: 1000001;
 }
 
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5) var(--space-6) var(--space-4);
+  overflow-y: auto;
+}
+
 .heading {
-  margin-bottom: var(--space-3);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
+  margin: var(--space-4) var(--space-2) var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-1);
 }
 
 .app {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas: 'icon name' 'icon description';
-  gap: 0 var(--space-3);
-  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-1) var(--space-2);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: transparent;
-  text-align: left;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
 .app:hover,
 .app:focus-visible {
-  background: var(--surface-3);
+  background: color-mix(in oklab, var(--surface-1) 80%, var(--text-primary) 4%);
   border-color: var(--border-subtle);
 }
 
 .appIcon {
-  grid-area: icon;
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  background: var(--accent-subtle);
-  color: var(--accent);
+  width: 32px;
+  height: 32px;
 }
 
 .appName {
-  grid-area: name;
-  align-self: end;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.appDescription {
-  grid-area: description;
-  align-self: start;
+  max-width: 100%;
   font-size: var(--text-xs);
-  color: var(--text-muted);
-  line-height: 1.35;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .search {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  padding: 0 var(--space-3);
-  height: 34px;
+  height: 36px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--surface-1);
+  border-bottom-color: var(--accent);
+  border-radius: 999px;
+  background: var(--surface-2);
   color: var(--text-muted);
 }
 
@@ -107,7 +113,7 @@
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
   font-size: var(--text-sm);
@@ -124,13 +130,58 @@
 
 .searchRow:hover,
 .searchRow:focus-visible {
-  background: var(--surface-3);
+  background: color-mix(in oklab, var(--surface-1) 80%, var(--text-primary) 4%);
+  border-color: var(--border-subtle);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+  height: 60px;
+  padding: 0 var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-1) 85%, var(--text-primary) 3%);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-right: auto;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.footerButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.footerButton:hover {
+  background: color-mix(in oklab, var(--surface-2) 70%, var(--text-primary) 5%);
   border-color: var(--border-subtle);
 }
 
 @media (max-width: 640px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .body,
+  .footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
   }
 }
 
@@ -147,6 +198,10 @@
  * ---------------------------------------------------------------------------------------------- */
 
 :global([data-skin='classic']) .panel {
+  display: block;
+  max-height: none;
+  transform: none;
+  overflow: visible;
   left: 0;
   /* Flush to the top of the taskbar, which is 30px including its raised edge. */
   bottom: 30px;
@@ -208,6 +263,7 @@
 
 :global([data-skin='classic']) .app {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 6px;
   padding: 3px 6px;
@@ -228,11 +284,6 @@
 :global([data-skin='classic']) .app:hover .appName,
 :global([data-skin='classic']) .app:focus-visible .appName {
   color: #ffffff;
-}
-
-/* The description is what makes it a card rather than a menu; a menu row is an icon and a name. */
-:global([data-skin='classic']) .appDescription {
-  display: none;
 }
 
 :global([data-skin='classic']) .appName {
@@ -273,4 +324,24 @@
   background: #000080;
   color: #ffffff;
   outline: none;
+}
+
+/* The new wrappers lie flat, and the foot waits for the classic pass to become menu rows. */
+:global([data-skin='classic']) .body {
+  padding: 0;
+  overflow: visible;
+}
+
+:global([data-skin='classic']) .footer {
+  display: none;
+}
+
+:global([data-skin='classic']) .appName {
+  max-width: none;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
+:global([data-skin='classic']) .heading {
+  font-weight: 400;
 }

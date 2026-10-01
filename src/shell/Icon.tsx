@@ -54,7 +54,8 @@ export type IconName =
   | 'paste'
   | 'edit'
   | 'download'
-  | 'wallpaper';
+  | 'wallpaper'
+  | 'power';
 
 const PATHS: Record<IconName, string> = {
   folder:
@@ -116,6 +117,7 @@ const PATHS: Record<IconName, string> = {
     'M8.5 5.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-2.5M9 4h6v3H9zM8.5 12h7M8.5 15.5h5',
   edit: 'M4.5 19.5h4L19 9a2.1 2.1 0 0 0-3-3L5.5 16.5zM14.5 7.5l2 2',
   download: 'M12 4.5V16M7.5 11.5 12 16l4.5-4.5M4.5 15v3.5a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V15',
+  power: 'M12 3.5v8M7.3 6.4a7.5 7.5 0 1 0 9.4 0',
   wallpaper:
     'M4 6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18ZM4 15.5l4.5-4a1.5 1.5 0 0 1 2 0l5.5 5M14.5 9.5h.01',
 };

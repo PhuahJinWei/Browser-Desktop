@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { useSetting } from '../kernel/settings';
+import { ColorIcon, hasColorIcon } from './ColorIcon';
 import { Icon, type IconName } from './Icon';
 import { PIXEL_ART_16, PIXEL_ART_32, PIXEL_PALETTE, type PixelKey } from './pixelIcons';
 
@@ -128,7 +129,8 @@ export function PixelIcon({ name, size = 32, selected = false, className }: Pixe
 }
 
 /**
- * An icon as the current skin draws it: pixel art under classic, the line icon otherwise.
+ * An icon as the current skin draws it: pixel art under classic, a colour drawing under modern for
+ * the things that are apps, and the line icon for everything else.
  *
  * One component rather than a skin branch at each call site, because the title bar, the taskbar,
  * the launcher and the desktop all draw the same app icon and four copies of the same condition
@@ -143,6 +145,9 @@ export function AppIcon({ name, size, selected, className }: PixelIconProps & { 
   const skin = useSetting('skin');
   if (skin === 'classic' && hasPixelIcon(name, size)) {
     return <PixelIcon name={name} size={size} selected={selected} className={className} />;
+  }
+  if (skin !== 'classic' && hasColorIcon(name)) {
+    return <ColorIcon name={name} size={size} className={className} />;
   }
   return <Icon name={name} size={size} className={className} />;
 }

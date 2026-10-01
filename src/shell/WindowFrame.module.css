@@ -6,7 +6,7 @@
   min-height: 200px;
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-window);
   overflow: hidden;
   /* Contain layout and paint so a window's contents can never force the desktop to reflow. */
@@ -17,11 +17,22 @@
   outline: none;
 }
 
+/*
+ * The window in front is told apart by depth, not by colour: a deeper shadow and a slightly firmer
+ * edge. An accent ring round the focused window is an option a current desktop offers and leaves
+ * off, because a coloured outline on every window you click reads as a selection, not as focus.
+ */
 .focused {
-  border-color: var(--border-strong);
+  border-color: color-mix(in oklab, var(--text-primary) 16%, transparent);
   box-shadow:
-    var(--shadow-window),
-    0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent);
+    0 16px 40px rgb(9 14 22 / 22%),
+    0 2px 8px rgb(9 14 22 / 10%);
+}
+
+/* A maximised window meets the screen edges and the taskbar, so it has no corners to round. */
+.maximized {
+  border-radius: 0;
+  border-color: transparent;
 }
 
 /* While dragging, drop the shadow work and stop hit-testing the contents. */
@@ -34,14 +45,18 @@
   pointer-events: none;
 }
 
+/*
+ * 32px, with the caption buttons running to the top and right edges. The bar has no rule under it:
+ * a current window is one surface with its title at the top, not a header stacked on a body.
+ */
 .titleBar {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  height: 38px;
-  padding: 0 var(--space-2) 0 var(--space-3);
-  background: var(--surface-3);
-  border-bottom: 1px solid var(--border-subtle);
+  height: 32px;
+  padding: 0 0 0 var(--space-3);
+  background: var(--surface-1);
+  border-bottom: 0;
   cursor: grab;
   user-select: none;
   touch-action: none;
@@ -64,9 +79,9 @@
 .title {
   flex: 1;
   min-width: 0;
-  font-size: var(--text-sm);
-  font-weight: 550;
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -78,30 +93,42 @@
 
 .controls {
   display: flex;
-  gap: 2px;
+  align-self: stretch;
+  gap: 0;
 }
 
+/* Wide, square and flush: 46 by the bar's 32, which is what makes them targets you can hit at
+   the corner of the screen without aiming. */
 .control {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 26px;
+  width: 46px;
+  height: 100%;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
+/* Hairline glyphs: the caption buttons are the lightest marks in the window, not the heaviest. */
+.control svg {
+  stroke-width: 1.25;
+}
+
 .control:hover {
-  background: var(--surface-1);
-  color: var(--text-primary);
+  background: color-mix(in oklab, var(--text-primary) 7%, transparent);
 }
 
 .close:hover {
-  background: var(--bad);
-  color: #fff;
+  background: #c42b1c;
+  color: #ffffff;
+}
+
+.close:active {
+  background: #c74e43;
+  color: #ffffff;
 }
 
 .body {
@@ -224,7 +251,8 @@
   box-shadow: var(--bevel-raised);
 }
 
-:global([data-skin='classic']) .focused {
+:global([data-skin='classic']) .focused,
+:global([data-skin='classic']) .maximized {
   border-color: #000000;
   box-shadow: var(--bevel-raised);
 }
@@ -264,6 +292,7 @@
 }
 
 :global([data-skin='classic']) .controls {
+  align-self: center;
   gap: 2px;
 }
 

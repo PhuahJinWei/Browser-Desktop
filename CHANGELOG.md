@@ -4,6 +4,15 @@
 
 Added
 
+- **The modern skin looks like a current desktop.** Start, search and open windows sit in one
+  centred group on the taskbar; windows are icons with a dash under each one that is open, drawn
+  wide under the one in front; the clock shows the date under the time. The Start menu is a centred
+  panel with a search field, a grid of app icons and a strip along the foot with Settings and power
+  (_Close all windows_, _Restart_). Title bars are 32px with wide, square caption buttons and a red
+  Close; corners are 8px and square when maximised. Apps are drawn as colour icons instead of blue
+  outlines, and desktop icons stand on the wallpaper without a tile
+  ([ADR 21](./docs/adr/0021-a-second-skin-and-why-it-is-the-default.md)). Classic is unchanged.
+
 - **Paint.** Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse, with a first
   and second colour on the left and right buttons, four sizes, undo and redo, zoom to 8×, flips and
   inversion. Edges are drawn as whole pixels rather than antialiased, so fill stops at an outline
@@ -24,6 +33,8 @@ Changed
 
 Fixed
 
+- A menu opened from inside the Start menu — an app's right-click menu, and now Power — closed the
+  Start menu under the pointer, and itself with it, before its item could run.
 - A window no longer takes focus back from the app inside it. When an app's code was already
   loaded, its own focus — a search box, an editor — ran first and was then overridden by the frame.
 - An empty folder's icon and caption sat at opposite ends of the pane instead of together.
