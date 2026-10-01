@@ -4,6 +4,12 @@
 
 Added
 
+- **Paint is each desktop's Paint.** Classic keeps the 1990s layout. Modern is the current program:
+  File and View with Save, Undo and Redo beside them, then one toolbar across the top in labelled
+  groups — Image, Tools, Brushes, Shapes, Size and Colours, with its own twenty-colour palette — the
+  picture centred on grey, and the cursor, canvas size and a zoom slider in the status bar. File ▸
+  Open is now the shared Open dialog in both skins, listing every picture, with Ctrl+O; the picture
+  being replaced is saved first, and one that will not open leaves the current one on screen.
 - **Audio is each desktop's Sound Recorder, and Video its Media Player.** Classic Sound Recorder is
   the small fixed panel: Position and Length either side of a green trace on black — the sound
   under the playhead, or the microphone while recording — a slider, and the five buttons. Modern

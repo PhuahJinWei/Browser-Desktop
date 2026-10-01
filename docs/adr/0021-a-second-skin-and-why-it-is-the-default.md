@@ -133,3 +133,8 @@ window with no status bar, and the current one has tabs and a status bar; the tw
 different keys in different places. For those the app reads the skin and builds the right one —
 the same engine and the same files underneath, so switching skins changes what you see and nothing
 you have.
+
+Paint is the last of these. The 1990s program keeps its tools in a box down the left and its
+colours along the bottom; the current one moved both into a toolbar across the top, in labelled
+groups, and put the zoom in the status bar. Each has its own palette too: the classic box's
+twenty-eight, and the current program's twenty.

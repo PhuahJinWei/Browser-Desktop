@@ -5,7 +5,9 @@ import { vfs } from '../../kernel/vfs/client';
 import { ROOT_ID, type VfsNode } from '../../kernel/vfs/types';
 import { setWallpaperFromFile } from '../../kernel/wallpaper';
 import { closeWindow, setWindowTitle } from '../../kernel/windows';
-import { separator } from '../../shell/ContextMenu';
+import { useSetting } from '../../kernel/settings';
+import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
+import { OpenDialog } from '../../shell/Dialog';
 import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
 import {
   brushSpans,
@@ -32,6 +34,12 @@ import styles from './PaintApp.module.css';
  *
  * Right-click on the canvas draws with the second colour, and on a swatch it picks the second
  * colour. That is this program's answer to the gesture (D16), not a gap in it.
+ *
+ * Its shape follows the skin. Classic is the 1990s Paint: a menu bar, a toolbox down the left with
+ * the line sizes under it, and the colour box along the bottom. Modern is the current one: File and
+ * View with save, undo and redo beside them, then one toolbar across the top in labelled groups —
+ * Image, Tools, Brushes, Shapes, Size, Colours — the picture centred on grey, and a zoom slider in
+ * the status bar. Same tools, same file, same history underneath.
  */
 
 type Tool = 'pencil' | 'brush' | 'eraser' | 'fill' | 'picker' | 'line' | 'rect' | 'ellipse';
@@ -63,6 +71,34 @@ const TOOLS: { id: Tool; label: string; glyph: string }[] = [
 
 const SIZED: ReadonlySet<Tool> = new Set(['brush', 'eraser', 'line', 'rect', 'ellipse']);
 const SIZES = [1, 3, 5, 8] as const;
+
+/**
+ * The current program's twenty: ten saturated over ten soft, read across in hue order. A different
+ * set from the classic box rather than the same one rearranged, because the two programs never
+ * shipped the same colours.
+ */
+const MODERN_PALETTE = [
+  '#000000',
+  '#7f7f7f',
+  '#880015',
+  '#ed1c24',
+  '#ff7f27',
+  '#fff200',
+  '#22b14c',
+  '#00a2e8',
+  '#3f48cc',
+  '#a349a4',
+  '#ffffff',
+  '#c3c3c3',
+  '#b97a57',
+  '#ffaec9',
+  '#ffc90e',
+  '#efe4b0',
+  '#b5e61d',
+  '#99d9ea',
+  '#7092be',
+  '#c8bfe7',
+];
 
 /** Two rows, darks over lights, the way the colour box of this era was laid out. */
 const PALETTE = [
@@ -119,7 +155,10 @@ let revisions = 0;
 const nextRevision = () => ++revisions;
 
 export default function PaintApp({ windowId, args }: AppProps) {
-  const { fileId } = (args as PaintArgs | undefined) ?? {};
+  const { fileId: initialFileId } = (args as PaintArgs | undefined) ?? {};
+  const classic = useSetting('skin') === 'classic';
+  const [openDialog, setOpenDialog] = useState(false);
+  const { menu, openUnder, close: closeMenu } = useContextMenu();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   /*
    * Attached but never detached. React clears an object ref before unmount cleanups run, and the
@@ -140,7 +179,7 @@ export default function PaintApp({ windowId, args }: AppProps) {
   const [dimensions, setDimensions] = useState(DEFAULT_SIZE);
   const [cursor, setCursor] = useState<Point | null>(null);
   const [file, setFile] = useState<VfsNode | null>(null);
-  const [loading, setLoading] = useState(Boolean(fileId));
+  const [loading, setLoading] = useState(Boolean(initialFileId));
   const [saving, setSaving] = useState(false);
 
   /*
@@ -194,43 +233,49 @@ export default function PaintApp({ windowId, args }: AppProps) {
 
   /* Open ------------------------------------------------------------------------------------- */
 
+  /** Replaces the picture with a file's. Throws if it cannot be read or decoded, leaving the old one. */
+  const loadPicture = useCallback(
+    async (id: string, cancelled: () => boolean = () => false) => {
+      const { node, data } = await vfs.read(id);
+      // An <img> rather than createImageBitmap, because only the element decodes SVG.
+      const url = URL.createObjectURL(new Blob([data], { type: node.mime }));
+      try {
+        const image = new Image();
+        image.src = url;
+        await image.decode();
+        if (cancelled()) return;
+        reset(
+          image.naturalWidth || DEFAULT_SIZE.width,
+          image.naturalHeight || DEFAULT_SIZE.height,
+          (ctx) => ctx.drawImage(image, 0, 0),
+        );
+        setFile(node);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    },
+    [reset],
+  );
+
   useEffect(() => {
-    if (!fileId) {
+    if (!initialFileId) {
       reset(DEFAULT_SIZE.width, DEFAULT_SIZE.height);
       return;
     }
     let cancelled = false;
-    void (async () => {
-      try {
-        const { node, data } = await vfs.read(fileId);
-        // An <img> rather than createImageBitmap, because only the element decodes SVG.
-        const url = URL.createObjectURL(new Blob([data], { type: node.mime }));
-        try {
-          const image = new Image();
-          image.src = url;
-          await image.decode();
-          if (cancelled) return;
-          reset(
-            image.naturalWidth || DEFAULT_SIZE.width,
-            image.naturalHeight || DEFAULT_SIZE.height,
-            (ctx) => ctx.drawImage(image, 0, 0),
-          );
-          setFile(node);
-        } finally {
-          URL.revokeObjectURL(url);
-        }
-      } catch (error) {
+    void loadPicture(initialFileId, () => cancelled)
+      .catch((error: unknown) => {
         if (cancelled) return;
         notifyError('Paint could not open that picture', error);
         reset(DEFAULT_SIZE.width, DEFAULT_SIZE.height);
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
-  }, [fileId, reset]);
+  }, [initialFileId, loadPicture, reset]);
 
   useEffect(() => {
     setWindowTitle(windowId, `${dirty ? '*' : ''}${file?.name ?? 'Untitled'} — Paint`);
@@ -520,15 +565,7 @@ export default function PaintApp({ windowId, args }: AppProps) {
       label: 'File',
       items: () => [
         { id: 'file.new', label: 'New', run: () => void newPicture() },
-        {
-          // This desktop's file dialog is Files. Pictures open in Paint from its Open with menu.
-          id: 'file.open',
-          label: 'Open…',
-          run: () =>
-            void picturesFolder().then((directoryId) =>
-              launchApp('files', { args: { directoryId }, title: PICTURES_FOLDER }),
-            ),
-        },
+        { id: 'file.open', label: 'Open…', shortcut: 'Ctrl+O', run: () => setOpenDialog(true) },
         {
           id: 'file.save',
           label: 'Save',
@@ -612,6 +649,26 @@ export default function PaintApp({ windowId, args }: AppProps) {
     },
   ];
 
+  const modernMenus = menuBar.filter((entry) => entry.id === 'file' || entry.id === 'view');
+
+  /**
+   * Opens a picture in this window, saving the one being replaced first, as New does. A picture that
+   * will not open leaves the current one on screen rather than a blank page under its name.
+   */
+  const openPicture = async (id: string) => {
+    setOpenDialog(false);
+    if (id === file?.id) return;
+    if (dirty) {
+      const saved = await save();
+      if (saved) notify({ title: `Saved ${saved.name}`, level: 'info' });
+    }
+    try {
+      await loadPicture(id);
+    } catch (error) {
+      notifyError('Paint could not open that picture', error);
+    }
+  };
+
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (!(event.ctrlKey || event.metaKey)) return;
     const key = event.key.toLowerCase();
@@ -619,6 +676,9 @@ export default function PaintApp({ windowId, args }: AppProps) {
       // Otherwise the browser offers to save the page.
       event.preventDefault();
       void save();
+    } else if (key === 'o') {
+      event.preventDefault();
+      setOpenDialog(true);
     } else if (key === 'z' && !event.shiftKey) {
       event.preventDefault();
       undoStep();
@@ -629,6 +689,223 @@ export default function PaintApp({ windowId, args }: AppProps) {
   };
 
   /* Render ----------------------------------------------------------------------------------- */
+
+  const canvas = (
+    <canvas
+      ref={attachCanvas}
+      className={styles.canvas}
+      // Focusable so Ctrl+Z and Ctrl+S reach the app after a stroke; drawing itself is pointer-only.
+      tabIndex={0}
+      style={{ width: dimensions.width * zoom, height: dimensions.height * zoom }}
+      aria-label={`Drawing area, ${dimensions.width} by ${dimensions.height} pixels`}
+      role="img"
+      hidden={loading}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endGesture}
+      onPointerCancel={endGesture}
+      onPointerLeave={() => setCursor(null)}
+      onContextMenu={(event) => event.preventDefault()}
+    />
+  );
+
+  const colourInputElement = (
+    <input
+      ref={colourInput}
+      type="color"
+      className="visually-hidden"
+      tabIndex={-1}
+      aria-hidden="true"
+      onChange={(event) =>
+        colourTarget.current === 'primary'
+          ? setPrimary(event.target.value)
+          : setSecondary(event.target.value)
+      }
+    />
+  );
+
+  const swatch = (colour: string, className: string) => (
+    <button
+      key={colour}
+      type="button"
+      className={className}
+      style={{ background: colour }}
+      aria-label={colour}
+      title="Left click for the first colour, right click for the second"
+      onClick={() => setPrimary(colour)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        setSecondary(colour);
+      }}
+    />
+  );
+
+  const status = saving ? 'Saving…' : dirty ? 'Unsaved changes' : file ? 'Saved' : 'New picture';
+
+  const openDialogElement = openDialog ? (
+    <OpenDialog
+      accepts={(node) => node.mime.startsWith('image/')}
+      icon="image"
+      label="Pictures"
+      empty="No pictures yet."
+      onOpen={(id) => void openPicture(id)}
+      onCancel={() => setOpenDialog(false)}
+    />
+  ) : null;
+
+  if (!classic) {
+    const toolButton = (id: Tool) => {
+      const entry = TOOLS.find((candidate) => candidate.id === id)!;
+      return (
+        <button
+          key={id}
+          type="button"
+          className={`${styles.ribbonButton} ${tool === id ? styles.ribbonButtonActive : ''}`}
+          aria-pressed={tool === id}
+          aria-label={entry.label}
+          title={entry.label}
+          onClick={() => chooseTool(id)}
+        >
+          <Glyph d={entry.glyph} />
+        </button>
+      );
+    };
+    const action = (label: string, d: string, run: () => void, disabled = false) => (
+      <button
+        type="button"
+        className={styles.ribbonButton}
+        aria-label={label}
+        title={label}
+        disabled={disabled}
+        onClick={run}
+      >
+        <Glyph d={d} />
+      </button>
+    );
+    const zoomIndex = Math.max(0, ZOOMS.indexOf(zoom as (typeof ZOOMS)[number]));
+
+    return (
+      <div className={styles.modern} onKeyDown={onKeyDown}>
+        <div className={styles.topRow}>
+          <MenuBar menus={modernMenus} label="Paint" />
+          <span className={styles.quickDivider} aria-hidden />
+          {action(
+            'Save (Ctrl+S)',
+            GLYPHS.save,
+            () => void save(),
+            saving || (!dirty && file !== null),
+          )}
+          {action('Undo (Ctrl+Z)', GLYPHS.undo, undoStep, !canUndo)}
+          {action('Redo (Ctrl+Y)', GLYPHS.redo, redoStep, !canRedo)}
+        </div>
+
+        <div className={styles.ribbon} role="toolbar" aria-label="Paint tools">
+          <RibbonGroup label="Image">
+            <div className={styles.toolGrid}>
+              {action('Flip horizontal', GLYPHS.flipH, () => transform('flip-h'))}
+              {action('Flip vertical', GLYPHS.flipV, () => transform('flip-v'))}
+              {action('Invert colours', GLYPHS.invert, () => transform('invert'))}
+              {action('Clear image', GLYPHS.clear, () => transform('clear'))}
+            </div>
+          </RibbonGroup>
+          <RibbonGroup label="Tools">
+            <div className={styles.toolGrid}>
+              {(['pencil', 'fill', 'picker', 'eraser'] as const).map(toolButton)}
+            </div>
+          </RibbonGroup>
+          <RibbonGroup label="Brushes">{toolButton('brush')}</RibbonGroup>
+          <RibbonGroup label="Shapes">
+            {(['line', 'rect', 'ellipse'] as const).map(toolButton)}
+          </RibbonGroup>
+          <RibbonGroup label="Size">
+            <button
+              type="button"
+              className={`${styles.ribbonButton} ${styles.sizeButton}`}
+              aria-label={`Size: ${size} pixels`}
+              title="Size"
+              aria-haspopup="menu"
+              disabled={!SIZED.has(tool)}
+              onClick={(event) =>
+                openUnder(
+                  event.currentTarget,
+                  SIZES.map((value) => ({
+                    id: `size.${value}`,
+                    label: `${value} px`,
+                    checked: size === value,
+                    run: () => setSize(value),
+                  })),
+                )
+              }
+            >
+              <span className={styles.sizeLines} aria-hidden>
+                {SIZES.map((value) => (
+                  <span key={value} style={{ height: value }} />
+                ))}
+              </span>
+            </button>
+          </RibbonGroup>
+          <RibbonGroup label="Colours">
+            <div className={styles.currentColours}>
+              <button
+                type="button"
+                className={styles.currentPrimary}
+                style={{ background: primary }}
+                aria-label={`First colour ${primary}. Edit`}
+                title="First colour (left button)"
+                onClick={() => editColour('primary')}
+              />
+              <button
+                type="button"
+                className={styles.currentSecondary}
+                style={{ background: secondary }}
+                aria-label={`Second colour ${secondary}. Edit`}
+                title="Second colour (right button)"
+                onClick={() => editColour('secondary')}
+              />
+            </div>
+            <div className={styles.circlePalette} role="group" aria-label="Colours">
+              {MODERN_PALETTE.map((colour) => swatch(colour, styles.circleSwatch ?? ''))}
+            </div>
+            {action('Edit colours', GLYPHS.palette, () => editColour('primary'))}
+          </RibbonGroup>
+        </div>
+
+        <div className={styles.modernStage}>
+          {canvas}
+          {loading ? <p className={styles.loading}>Opening…</p> : null}
+        </div>
+
+        <div className={styles.modernStatus}>
+          <span className={styles.statusItem}>
+            <Glyph d={GLYPHS.pointer} size={14} />
+            {cursor ? `${cursor[0]}, ${cursor[1]} px` : ''}
+          </span>
+          <span className={styles.statusItem}>
+            <Glyph d={GLYPHS.canvas} size={14} />
+            {dimensions.width} × {dimensions.height} px
+          </span>
+          <span className={styles.statusItem}>{status}</span>
+          <span className={styles.zoom}>
+            <span className={styles.zoomValue}>{zoom * 100}%</span>
+            <input
+              type="range"
+              min={0}
+              max={ZOOMS.length - 1}
+              step={1}
+              value={zoomIndex}
+              onChange={(event) => setZoom(ZOOMS[Number(event.target.value)] ?? 1)}
+              aria-label="Zoom"
+              aria-valuetext={`${zoom * 100}%`}
+            />
+          </span>
+        </div>
+
+        {colourInputElement}
+        {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
+        {openDialogElement}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.app} onKeyDown={onKeyDown}>
@@ -647,9 +924,7 @@ export default function PaintApp({ windowId, args }: AppProps) {
                 title={entry.label}
                 onClick={() => chooseTool(entry.id)}
               >
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                  <path d={entry.glyph} />
-                </svg>
+                <Glyph d={entry.glyph} />
               </button>
             ))}
           </div>
@@ -674,22 +949,7 @@ export default function PaintApp({ windowId, args }: AppProps) {
         </div>
 
         <div className={styles.stage}>
-          <canvas
-            ref={attachCanvas}
-            className={styles.canvas}
-            // Focusable so Ctrl+Z and Ctrl+S reach the app after a stroke; drawing itself is pointer-only.
-            tabIndex={0}
-            style={{ width: dimensions.width * zoom, height: dimensions.height * zoom }}
-            aria-label={`Drawing area, ${dimensions.width} by ${dimensions.height} pixels`}
-            role="img"
-            hidden={loading}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={endGesture}
-            onPointerCancel={endGesture}
-            onPointerLeave={() => setCursor(null)}
-            onContextMenu={(event) => event.preventDefault()}
-          />
+          {canvas}
           {loading ? <p className={styles.loading}>Opening…</p> : null}
         </div>
       </div>
@@ -714,45 +974,53 @@ export default function PaintApp({ windowId, args }: AppProps) {
           />
         </div>
         <div className={styles.palette} role="group" aria-label="Colours">
-          {PALETTE.map((colour) => (
-            <button
-              key={colour}
-              type="button"
-              className={styles.swatch}
-              style={{ background: colour }}
-              aria-label={colour}
-              title="Left click for the first colour, right click for the second"
-              onClick={() => setPrimary(colour)}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setSecondary(colour);
-              }}
-            />
-          ))}
+          {PALETTE.map((colour) => swatch(colour, styles.swatch ?? ''))}
         </div>
-        <input
-          ref={colourInput}
-          type="color"
-          className="visually-hidden"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(event) =>
-            colourTarget.current === 'primary'
-              ? setPrimary(event.target.value)
-              : setSecondary(event.target.value)
-          }
-        />
+        {colourInputElement}
       </div>
 
       <div className={styles.statusBar}>
-        <span>
-          {saving ? 'Saving…' : dirty ? 'Unsaved changes' : file ? 'Saved' : 'New picture'}
-        </span>
+        <span>{status}</span>
         <span className={styles.cell}>{cursor ? `${cursor[0]}, ${cursor[1]} px` : ''}</span>
         <span className={styles.cell}>
           {dimensions.width} × {dimensions.height} px
         </span>
       </div>
+      {openDialogElement}
     </div>
   );
 }
+
+/** A labelled group on the modern toolbar: its controls, and its name underneath. */
+function RibbonGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className={styles.ribbonGroup} role="group" aria-label={label}>
+      <div className={styles.ribbonControls}>{children}</div>
+      <span className={styles.ribbonLabel}>{label}</span>
+    </div>
+  );
+}
+
+/** A tool's line drawing on the 24-unit grid the icon set uses. */
+function Glyph({ d, size = 18 }: { d: string; size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" className={styles.glyph}>
+      <path d={d} />
+    </svg>
+  );
+}
+
+/** Drawings for the modern toolbar's actions, in the same idiom as the tool glyphs above. */
+const GLYPHS = {
+  save: 'M5 4.5h11.5l3 3V19.5H5ZM8 4.5v4.5h7V4.5M8 19.5v-6h8v6',
+  undo: 'M9 6.5 4.5 11 9 15.5M4.5 11H14a5 5 0 0 1 0 10h-2',
+  redo: 'M15 6.5l4.5 4.5L15 15.5M19.5 11H10a5 5 0 0 0 0 10h2',
+  flipH: 'M12 4v16M9.5 7.5 5 12l4.5 4.5ZM14.5 7.5 19 12l-4.5 4.5Z',
+  flipV: 'M4 12h16M7.5 9.5 12 5l4.5 4.5ZM7.5 14.5 12 19l4.5-4.5Z',
+  invert: 'M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 1 1 0-15ZM12 4.5v15M12 8h3M12 12h4.5M12 16h3',
+  clear: 'M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7',
+  palette:
+    'M12 4.5c-4.4 0-7.5 3.1-7.5 7 0 4 3 7 7 7 1.3 0 1.8-.8 1.4-1.8-.4-1 .2-1.9 1.3-1.9h2.1c2.1 0 3.2-1.4 3.2-3.3 0-4-3.3-7-7.5-7ZM8.5 11.5h.01M10.5 8h.01M14 8h.01M16 11h.01',
+  pointer: 'M6 4.5v13l3.5-3.5 2.5 5.5 2.2-1-2.5-5.3H17Z',
+  canvas: 'M4.5 6.5h15v11h-15Z',
+};
