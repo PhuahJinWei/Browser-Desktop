@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { launcherApps, launchApp, launchInstalledApp, searchFiles } from '../kernel/apps';
+import { launcherApps, launchApp, openInstalledApp, searchFiles } from '../kernel/apps';
 import { useInstalledApps } from '../kernel/installedApps';
 import { hideIcon, isIconHidden, showIcon } from '../kernel/desktop';
 import { useSetting } from '../kernel/settings';
@@ -132,11 +132,7 @@ function ClassicStartMenu({ onClose, onRun }: LauncherProps) {
           id: `programs.installed.${app.id}`,
           label: app.manifest.name,
           icon: 'apps' as const,
-          run: then(() =>
-            launchInstalledApp(app.id, app.manifest.name, {
-              ...(app.manifest.defaultSize ? { size: app.manifest.defaultSize } : {}),
-            }),
-          ),
+          run: then(() => openInstalledApp(app)),
         })),
       ],
     },
@@ -387,9 +383,7 @@ function ModernStartMenu({ onClose }: LauncherProps) {
                   className={styles.app}
                   title={app.manifest.description}
                   onClick={() => {
-                    launchInstalledApp(app.id, app.manifest.name, {
-                      ...(app.manifest.defaultSize ? { size: app.manifest.defaultSize } : {}),
-                    });
+                    openInstalledApp(app);
                     onClose();
                   }}
                 >

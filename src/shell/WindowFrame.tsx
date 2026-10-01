@@ -73,6 +73,10 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
   const classic = useSetting('skin') === 'classic';
 
   /* The window menu: the title bar's buttons, plus the snap targets that only the keyboard had. */
+  // A fixed window keeps its size, so the entries that would change it are shown but greyed —
+  // which is how a dialog's system menu read: the options exist, this window does not take them.
+  const fixed = win.fixedSize === true && win.snap === null;
+
   const windowMenu = (): MenuSpec => [
     { id: 'window.minimize', label: 'Minimise', run: () => minimizeWindow(win.id) },
     {
@@ -80,6 +84,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
       label: win.snap === 'maximized' ? 'Restore' : 'Maximise',
       run: () => toggleMaximize(win.id),
       shortcut: 'Ctrl+Alt+↑',
+      disabled: fixed,
     },
     separator('window.s1'),
     {
@@ -87,12 +92,14 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
       label: 'Snap to the left half',
       run: () => snapWindow(win.id, win.snap === 'left' ? null : 'left'),
       shortcut: 'Ctrl+Alt+←',
+      disabled: fixed,
     },
     {
       id: 'window.right',
       label: 'Snap to the right half',
       run: () => snapWindow(win.id, win.snap === 'right' ? null : 'right'),
       shortcut: 'Ctrl+Alt+→',
+      disabled: fixed,
     },
     win.snap !== null && {
       id: 'window.unsnap',
@@ -337,7 +344,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
       ref={frameRef}
       className={`${styles.frame} ${focused ? styles.focused : ''} ${dragging ? styles.dragging : ''} ${
         win.snap === 'maximized' ? styles.maximized : ''
-      }`}
+      } ${fixed ? styles.fixed : ''}`}
       style={{
         left: win.x,
         top: win.y,
@@ -397,6 +404,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
             type="button"
             className={styles.control}
             onClick={() => toggleMaximize(win.id)}
+            disabled={fixed}
             aria-label={win.snap === 'maximized' ? `Restore ${win.title}` : `Maximise ${win.title}`}
             title={win.snap === 'maximized' ? 'Restore' : 'Maximise'}
           >
@@ -437,7 +445,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
 
       {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
 
-      {win.snap === 'maximized'
+      {win.snap === 'maximized' || fixed
         ? null
         : EDGES.map((edge) => (
             <div

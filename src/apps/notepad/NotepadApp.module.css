@@ -1,116 +1,193 @@
 .app {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  background: var(--surface-2);
-}
-
-.workspace {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 210px;
-  flex: 0 0 auto;
-  border-right: 1px solid var(--border-subtle);
   background: var(--surface-1);
 }
 
-.sidebarHeader {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-}
+/* -- Tabs (modern) ------------------------------------------------------------------------------ *
+ * The current Notepad's documents are tabs along the top, above its menu bar. The strip is a shade
+ * darker, and the selected tab is the menu bar's own colour, so it reads as the front of the
+ * document below it rather than as a button above it.
+ * ---------------------------------------------------------------------------------------------- */
 
-.list {
-  margin: 0;
-  padding: var(--space-1);
-  list-style: none;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.listItem {
+.tabs {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) 0;
+  background: color-mix(in oklab, var(--surface-1) 92%, var(--text-primary) 8%);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.listItem:hover:not(.listItemActive) {
-  background: var(--surface-3);
+.tab {
+  display: flex;
+  align-items: center;
+  flex: 0 1 200px;
+  min-width: 80px;
+  height: 32px;
+  padding-left: var(--space-3);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  color: var(--text-secondary);
 }
 
-.listItemActive {
-  background: var(--accent-subtle);
+.tab:hover:not(.tabActive) {
+  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
 }
 
-.listName {
+.tabActive {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow:
+    1px 0 0 var(--border-subtle),
+    -1px 0 0 var(--border-subtle),
+    0 -1px 0 var(--border-subtle);
+}
+
+.tabLabel {
   flex: 1;
   min-width: 0;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-xs);
+  text-align: left;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  cursor: default;
 }
 
-.listDate {
-  color: var(--text-muted);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.renameInput {
-  width: 100%;
-  min-width: 0;
-  padding: 1px 2px;
-  border: 1px solid var(--border-strong);
+.tabClose {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--text-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: default;
 }
 
-.listEmpty {
-  padding: var(--space-3);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
+.tabClose:hover {
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
 }
 
-.editorPane {
+/* Unsaved shows as a dot where the close cross goes, and the cross comes back under the pointer. */
+.unsavedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tabClose:has(.unsavedDot) svg,
+.tabClose:hover .unsavedDot {
+  display: none;
+}
+
+.tabClose:hover svg {
+  display: block;
+}
+
+.newTab {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 28px;
+  margin: 0 0 2px 2px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.newTab:hover {
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
+}
+
+/* -- Find --------------------------------------------------------------------------------------- */
+
+.findBar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.findLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
+  font-size: var(--text-chrome);
 }
 
+.findInput {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-bottom-color: var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.findButton,
+.dialogButton,
+.dialogPrimary {
+  min-width: 76px;
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-chrome);
+}
+
+.dialogPrimary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.findButton:disabled,
+.dialogPrimary:disabled {
+  opacity: 0.5;
+}
+
+/* -- The page ----------------------------------------------------------------------------------- */
+
+/* Fixed-width, as both Notepads are: this is a plain-text editor, and columns should line up. */
 .editor {
   flex: 1;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--space-3) var(--space-4);
   border: 0;
-  background: transparent;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-2);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: var(--text-base);
-  line-height: 1.7;
+  font-size: var(--text-sm);
+  line-height: 1.5;
   resize: none;
   outline: none;
 }
@@ -118,78 +195,222 @@
 .statusBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-3);
+  gap: var(--space-4);
+  height: 26px;
+  padding: 0 var(--space-3);
   border-top: 1px solid var(--border-subtle);
   background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.statusRight {
+  margin-left: auto;
+  color: var(--accent);
+}
+
+/* -- Dialogs ------------------------------------------------------------------------------------ */
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in oklab, var(--text-primary) 12%, transparent);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 100%);
+  max-height: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-window);
+  overflow: hidden;
+}
+
+.dialogTitle {
+  padding: var(--space-3) var(--space-4) 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.renameForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fileList {
+  min-height: 160px;
+  max-height: 280px;
+  margin: 0;
+  padding: 2px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-chrome);
+  cursor: default;
+}
+
+.fileRow:hover:not(.fileRowSelected) {
+  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
+}
+
+.fileRowSelected {
+  background: var(--accent-subtle);
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileFolder {
   color: var(--text-muted);
   font-size: var(--text-xs);
 }
 
-.saveState {
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.placeholder {
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: var(--space-2);
-  height: 100%;
+.fileEmpty {
+  padding: var(--space-3);
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-chrome);
 }
 
-/* The white well and navy selection Explorer used; see FilesApp.module.css for the reasoning. */
-:global([data-skin='classic']) .list {
-  background: #ffffff;
-  box-shadow: var(--bevel-thin-sunken);
+.dialogButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
-:global([data-skin='classic']) .listItem:hover:not(.listItemActive) {
-  background: #ebebeb;
-}
-
-:global([data-skin='classic']) .listItemActive {
-  background: #000080;
-}
-
-:global([data-skin='classic']) .listItemActive .listName,
-:global([data-skin='classic']) .listItemActive .listDate {
-  color: #ffffff;
-}
+/* -- Classic ------------------------------------------------------------------------------------ *
+ * The 1990s Notepad: a menu bar over a white sunken page, and nothing else. Its dialogs are the
+ * era's: a grey panel under a navy caption, with 75-pixel bevelled buttons.
+ * ---------------------------------------------------------------------------------------------- */
 
 /*
  * The edit area is white, and that is not a preference — it is what a text field is in this era.
- * `classic.css` already paints every textarea white at zero specificity; this rule exists because
- * the modern `.editor` sets `background: transparent` to sit on the app's own surface, and a class
- * outranks that deliberately weightless default. So the skin lost, and the one part of the window
- * you actually type into came out the same grey as the chrome around it.
+ * `classic.css` already paints every textarea white at zero specificity, but a class outranks that
+ * deliberately weightless default, so this has to say it.
  */
-:global([data-skin='classic']) .editor {
-  padding: var(--space-2);
-  background: #ffffff;
-  color: #000000;
-  box-shadow: var(--bevel-thin-sunken);
-}
-
-:global([data-skin='classic']) .renameInput {
-  border-radius: 0;
-  border: 1px solid #000000;
-  background: #ffffff;
-  color: #000000;
-  box-shadow: none;
-}
-
-:global([data-skin='classic']) .statusBar {
-  border-top: 0;
+:global([data-skin='classic']) .app {
   background: #c0c0c0;
+}
+
+:global([data-skin='classic']) .editor {
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: #ffffff;
   color: #000000;
+  font-size: var(--text-sm);
+  box-shadow: var(--bevel-sunken);
+}
+
+:global([data-skin='classic']) .findBar {
+  border-bottom: 0;
+  background: #c0c0c0;
   box-shadow: var(--bevel-thin-raised);
 }
 
-:global([data-skin='classic']) .saveState {
+:global([data-skin='classic']) .findInput {
+  height: 21px;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: var(--bevel-sunken);
+}
+
+:global([data-skin='classic']) .findButton,
+:global([data-skin='classic']) .dialogButton,
+:global([data-skin='classic']) .dialogPrimary {
+  min-width: 75px;
+  height: 23px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
   color: #000000;
+  box-shadow: var(--bevel-raised);
+}
+
+/* The default button carries an extra black frame, which is how the era marked what Enter does. */
+:global([data-skin='classic']) .dialogPrimary {
+  outline: 1px solid #000000;
+  outline-offset: 0;
+}
+
+:global([data-skin='classic']) .scrim {
+  background: transparent;
+}
+
+:global([data-skin='classic']) .dialog {
+  padding: 2px;
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-raised);
+}
+
+:global([data-skin='classic']) .dialogTitle {
+  padding: 2px 4px;
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  color: #ffffff;
+  font-size: var(--text-chrome);
+  font-weight: 700;
+}
+
+:global([data-skin='classic']) .dialogBody {
+  padding: var(--space-3);
+}
+
+:global([data-skin='classic']) .fileList {
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: var(--bevel-sunken);
+}
+
+:global([data-skin='classic']) .fileRow {
+  border-radius: 0;
+  padding: 1px 4px;
+}
+
+:global([data-skin='classic']) .fileRow:hover:not(.fileRowSelected) {
+  background: transparent;
+}
+
+:global([data-skin='classic']) .fileRowSelected {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .fileRowSelected .fileFolder {
+  color: #ffffff;
 }

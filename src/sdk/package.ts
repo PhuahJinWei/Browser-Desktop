@@ -62,6 +62,22 @@ export function parseApp(source: string): AppManifest {
     }
   }
 
+  // A window that keeps one size may be smaller than one the user can resize: it is drawn for that
+  // size. Either way the bounds keep it on a screen and big enough to hold a title bar.
+  const fixed = raw.resizable === false;
+  const size = (input: unknown): { width: number; height: number } | null => {
+    if (!input || typeof input !== 'object') return null;
+    const { width, height } = input as { width?: unknown; height?: unknown };
+    return {
+      width: Math.min(1600, Math.max(fixed ? 160 : 320, Number(width) || 640)),
+      height: Math.min(1200, Math.max(fixed ? 120 : 200, Number(height) || 480)),
+    };
+  };
+  const defaultSize = size(raw.defaultSize);
+  const skins = raw.skinSizes && typeof raw.skinSizes === 'object' ? raw.skinSizes : {};
+  const classicSize = size((skins as { classic?: unknown }).classic);
+  const modernSize = size((skins as { modern?: unknown }).modern);
+
   return {
     id,
     name: raw.name,
@@ -71,14 +87,16 @@ export function parseApp(source: string): AppManifest {
     ...(typeof raw.author === 'string' ? { author: raw.author.slice(0, 60) } : {}),
     permissions: permissions as Capability[],
     ...(Array.isArray(raw.handles) ? { handles: raw.handles.slice(0, 20).map(String) } : {}),
-    ...(raw.defaultSize
+    ...(defaultSize ? { defaultSize } : {}),
+    ...(classicSize || modernSize
       ? {
-          defaultSize: {
-            width: Math.min(1600, Math.max(320, Number(raw.defaultSize.width) || 640)),
-            height: Math.min(1200, Math.max(200, Number(raw.defaultSize.height) || 480)),
+          skinSizes: {
+            ...(classicSize ? { classic: classicSize } : {}),
+            ...(modernSize ? { modern: modernSize } : {}),
           },
         }
       : {}),
+    ...(fixed ? { resizable: false } : {}),
   };
 }
 

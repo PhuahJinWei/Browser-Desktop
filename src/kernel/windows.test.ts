@@ -315,3 +315,55 @@ describe('session', () => {
     expect(window.x).toBe(500);
   });
 });
+
+describe('fixed-size windows', () => {
+  const find = (id: string) => windowStore.get().windows.find((window) => window.id === id)!;
+
+  it('open at their own size, below the minimum a resizable window keeps', () => {
+    const id = openWindow({
+      appId: 'sandbox',
+      title: 'Calc',
+      width: 262,
+      height: 230,
+      fixedSize: true,
+    });
+    expect(find(id)).toMatchObject({ width: 262, height: 230, fixedSize: true });
+  });
+
+  it('cannot be maximised or snapped', () => {
+    const id = openWindow({
+      appId: 'sandbox',
+      title: 'Calc',
+      width: 262,
+      height: 230,
+      fixedSize: true,
+    });
+    toggleMaximize(id);
+    snapWindow(id, 'left');
+    expect(find(id)).toMatchObject({ snap: null, width: 262, height: 230 });
+  });
+
+  it('keep their size when the desktop is resized', () => {
+    const id = openWindow({
+      appId: 'sandbox',
+      title: 'Calc',
+      width: 262,
+      height: 230,
+      fixedSize: true,
+    });
+    setViewport({ width: 900, height: 600 });
+    expect(find(id)).toMatchObject({ width: 262, height: 230 });
+  });
+
+  it('still open maximised on a compact screen, where every window does', () => {
+    setViewport({ width: COMPACT_VIEWPORT - 100, height: 700 });
+    const id = openWindow({
+      appId: 'sandbox',
+      title: 'Calc',
+      width: 262,
+      height: 230,
+      fixedSize: true,
+    });
+    expect(find(id).snap).toBe('maximized');
+  });
+});

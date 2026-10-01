@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { launchInstalledApp } from '../../kernel/apps';
+import { openInstalledApp } from '../../kernel/apps';
 import { notify, notifyError } from '../../kernel/notifications';
 import {
   installApp,
@@ -96,11 +96,7 @@ export function AppsPanel() {
                     <button
                       type="button"
                       className={styles.smallButton}
-                      onClick={() =>
-                        launchInstalledApp(app.id, app.manifest.name, {
-                          ...(app.manifest.defaultSize ? { size: app.manifest.defaultSize } : {}),
-                        })
-                      }
+                      onClick={() => openInstalledApp(app)}
                     >
                       Open
                     </button>

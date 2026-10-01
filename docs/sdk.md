@@ -37,6 +37,12 @@ if (os.args.fileId) {
 The manifest is JSON inside a leading `/* tabula-app … */` comment. Everything after it is your
 app, running in a document of its own with `os` in scope.
 
+Two optional fields shape the window. `"resizable": false` opens it at exactly its size and keeps
+it there — no resizing, snapping or maximising — and lets it be smaller than a resizable window
+may be (160×120 rather than 320×200). `"skinSizes": { "classic": {…}, "modern": {…} }` gives a size
+per skin, for an app whose two looks are different shapes; the document's `data-skin` attribute
+says which one it is in, and changes when the user switches. The bundled Calculator uses both.
+
 Install it in **Settings → Apps → Install from file**, or share it as a link — the whole app is
 encoded into the URL fragment, which browsers never send to a server.
 
@@ -148,5 +154,5 @@ Three apps ship with the desktop, written against exactly this API and nothing e
 - **Scratchpad** — `fs:read`, `fs:write`, `storage`. Includes a button that deliberately asks for
   a file outside its folder, so you can watch the refusal.
 
-Their source is in `src/shell/sampleApps.ts`, and you can read any installed app's source by
+Their source is in `src/shell/sampleAppSources.ts`, and you can read any installed app's source by
 sharing it to a link and decoding the fragment.

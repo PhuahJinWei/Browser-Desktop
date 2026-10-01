@@ -113,14 +113,15 @@ const css = `      :root {
         --fg: #12161c;
         --muted: #6b7684;
         --line: #dfe4ea;
-        --accent: #0d7a6f;
+        /* The desktop's own default accent, so an app's primary button matches the taskbar's. */
+        --accent: #005fb8;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
       body {
         background: var(--bg);
         color: var(--fg);
-        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font: 14px/1.5 'Segoe UI Variable Text', 'Segoe UI', ui-sans-serif, system-ui, -apple-system, Roboto, sans-serif;
         padding: 16px;
         overflow: auto;
       }
@@ -129,7 +130,7 @@ const css = `      :root {
         color: inherit;
         padding: 6px 12px;
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: 4px;
         background: transparent;
         cursor: pointer;
       }
@@ -139,7 +140,7 @@ const css = `      :root {
         color: inherit;
         background: transparent;
         border: 1px solid var(--line);
-        border-radius: 8px;
+        border-radius: 4px;
         padding: 6px 10px;
       }
       a { color: var(--accent); }

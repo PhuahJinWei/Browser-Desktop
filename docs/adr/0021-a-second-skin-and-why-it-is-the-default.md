@@ -124,3 +124,12 @@ desktop being imitated no longer has. `Icon` now draws pixel art under classic w
 exists, so every app follows without being touched; classic Settings uses check boxes and radio
 buttons; modern Files folds its menus into a ⋯ on the command bar. Headings are sentence case in
 both, and monospace is kept for what it is for — code and plain text.
+
+### When the two desktops' programs are different programs
+
+Some apps cannot be reskinned into the other desktop's version, because the two versions differ in
+structure, not paint. Notepad and Calculator are the first: the 1990s Notepad is one document per
+window with no status bar, and the current one has tabs and a status bar; the two calculators have
+different keys in different places. For those the app reads the skin and builds the right one —
+the same engine and the same files underneath, so switching skins changes what you see and nothing
+you have.

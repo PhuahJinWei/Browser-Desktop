@@ -31,6 +31,12 @@ export interface WindowState extends Rect {
   /** Geometry to return to when unsnapping or unmaximising. */
   restore: Rect | null;
   zIndex: number;
+  /**
+   * A window drawn for one size, like a calculator: it keeps the size it opened at, cannot be
+   * resized, snapped or maximised, and is exempt from the minimum size. A compact screen still
+   * opens it maximised, because there every window is.
+   */
+  fixedSize?: true;
 }
 
 export interface WindowManagerState {
@@ -107,9 +113,13 @@ export function snapRect(zone: SnapZone, viewport: { width: number; height: numb
  * edge is legitimate. What must never happen is losing the title bar, because that is the only
  * way to drag it back.
  */
-export function clampToViewport(rect: Rect, viewport: { width: number; height: number }): Rect {
-  const width = Math.max(MIN_WIDTH, Math.min(rect.width, viewport.width));
-  const height = Math.max(MIN_HEIGHT, Math.min(rect.height, viewport.height));
+export function clampToViewport(
+  rect: Rect,
+  viewport: { width: number; height: number },
+  fixed = false,
+): Rect {
+  const width = fixed ? rect.width : Math.max(MIN_WIDTH, Math.min(rect.width, viewport.width));
+  const height = fixed ? rect.height : Math.max(MIN_HEIGHT, Math.min(rect.height, viewport.height));
   const titleBarSafety = 120;
   return {
     width,
@@ -124,11 +134,14 @@ function cascade(
   count: number,
   size: { width: number; height: number },
   viewport: { width: number; height: number },
+  fixed = false,
 ): Rect {
   const step = 28;
   const offset = (count % 8) * step;
-  const width = Math.min(size.width, Math.max(MIN_WIDTH, viewport.width - 40));
-  const height = Math.min(size.height, Math.max(MIN_HEIGHT, viewport.height - 40));
+  const width = fixed ? size.width : Math.min(size.width, Math.max(MIN_WIDTH, viewport.width - 40));
+  const height = fixed
+    ? size.height
+    : Math.min(size.height, Math.max(MIN_HEIGHT, viewport.height - 40));
   return {
     width,
     height,
@@ -149,6 +162,8 @@ export interface OpenWindowOptions {
   height?: number;
   /** Reuse an existing window of this app instead of opening a second one. */
   singleton?: boolean;
+  /** Open at exactly this size and keep it; see `WindowState.fixedSize`. */
+  fixedSize?: boolean;
 }
 
 let windowCounter = 0;
@@ -175,16 +190,18 @@ export function openWindow(options: OpenWindowOptions): string {
   }
 
   const id = `win-${++windowCounter}`;
+  const fixed = options.fixedSize === true;
   const rect = cascade(
     state.windows.length,
     { width: options.width ?? 880, height: options.height ?? 560 },
     state.viewport,
+    fixed,
   );
 
   const compact = state.viewport.width <= COMPACT_VIEWPORT;
   const geometry = compact
     ? snapRect('maximized', state.viewport)
-    : clampToViewport(rect, state.viewport);
+    : clampToViewport(rect, state.viewport, fixed);
 
   const window: WindowState = {
     id,
@@ -200,6 +217,7 @@ export function openWindow(options: OpenWindowOptions): string {
       ? { x: rect.x, y: rect.y, width: options.width ?? 880, height: options.height ?? 560 }
       : null,
     zIndex: state.nextZ,
+    ...(fixed ? { fixedSize: true as const } : {}),
   };
 
   windowStore.set((current) => ({
@@ -248,7 +266,11 @@ export function setWindowRect(id: string, rect: Partial<Rect>): void {
     ...current,
     windows: current.windows.map((window) =>
       window.id === id
-        ? { ...window, ...clampToViewport({ ...window, ...rect }, current.viewport), snap: null }
+        ? {
+            ...window,
+            ...clampToViewport({ ...window, ...rect }, current.viewport, window.fixedSize),
+            snap: null,
+          }
         : window,
     ),
   }));
@@ -303,11 +325,15 @@ export function snapWindow(id: string, zone: SnapZone | null): void {
         };
         return {
           ...window,
-          ...clampToViewport(restore, current.viewport),
+          ...clampToViewport(restore, current.viewport, window.fixedSize),
           snap: null,
           restore: null,
         };
       }
+
+      // A fixed window is never snapped or maximised — except where every window is, on a compact
+      // screen, which is also the only way it could have arrived here snapped.
+      if (window.fixedSize && current.viewport.width > COMPACT_VIEWPORT) return window;
 
       const rect = snapRect(zone, current.viewport);
       return {
@@ -354,7 +380,7 @@ export function setViewport(viewport: { width: number; height: number }): void {
       windows: current.windows.map((window) =>
         window.snap
           ? { ...window, ...snapRect(window.snap, viewport) }
-          : { ...window, ...clampToViewport(window, viewport) },
+          : { ...window, ...clampToViewport(window, viewport, window.fixedSize) },
       ),
     };
   });
@@ -506,7 +532,9 @@ function restoredGeometry(
   }
 
   return {
-    ...(window.snap ? snapRect(window.snap, viewport) : clampToViewport(window, viewport)),
+    ...(window.snap
+      ? snapRect(window.snap, viewport)
+      : clampToViewport(window, viewport, window.fixedSize)),
     snap: window.snap,
     restore: window.restore,
   };

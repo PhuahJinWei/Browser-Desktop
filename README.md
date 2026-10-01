@@ -16,7 +16,7 @@ What a fresh desktop ships with, and nothing that one would not.
 | **Start menu**   | Every app. Classic has Programs, Documents, Settings, Find, Run… and Shut Down…; modern has a search box that opens an app by name or searches your files.   |
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash and restore. Virtualised, so a folder of thousands scrolls like one of ten. |
 | **Search**       | In Files' search box: typing filters the folder by name, **Enter** searches inside every file, by what it says as well as the words it uses.                 |
-| **Notepad**      | Notes as ordinary Markdown files. Explicit save, with a flush on close so nothing is lost.                                                                   |
+| **Notepad**      | Notes as ordinary Markdown files: one per window under classic, tabs under modern, with Open, Find and a save on close so nothing is lost.                   |
 | **Paint**        | Pencil, brush, eraser, fill, colour picker, line, rectangle and ellipse; two colours, undo, zoom. Pictures save as PNGs, and one can be the wallpaper.       |
 | **Viewer**       | Text, Markdown, images and PDFs. Opens a search result at the exact passage.                                                                                 |
 | **Photos**       | A picture browser with thumbnails made on this device, so a folder of large photographs still scrolls.                                                       |
@@ -63,7 +63,7 @@ usually asked to do.
   ([ADR 2](./docs/adr/0002-cross-origin-isolation-via-service-worker.md)).
 - **Apps from anyone, safely.** Third-party apps run in a sandboxed frame with an opaque origin and
   no network, and ask for each permission when they need it. Three sample apps are installed:
-  Calculator, Find and Fence ([`docs/sdk.md`](./docs/sdk.md)).
+  Calculator (the period's calculator in each skin, in a fixed-size window), Find and Fence ([`docs/sdk.md`](./docs/sdk.md)).
 
 ### Measured, not asserted
 

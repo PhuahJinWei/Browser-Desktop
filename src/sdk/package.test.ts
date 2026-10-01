@@ -71,6 +71,23 @@ describe('parseApp', () => {
     expect(parsed.defaultSize?.height).toBeGreaterThanOrEqual(200);
   });
 
+  it('reads a size per skin and a fixed window, which may be smaller than a resizable one', () => {
+    const source = manifest(
+      `,\n  "resizable": false,\n  "defaultSize": { "width": 320, "height": 480 },\n  "skinSizes": { "classic": { "width": 260, "height": 230 }, "beos": {} }`,
+    );
+    const parsed = parseApp(source);
+    expect(parsed.resizable).toBe(false);
+    expect(parsed.skinSizes).toEqual({ classic: { width: 260, height: 230 } });
+  });
+
+  it('keeps the usual minimum for a resizable window', () => {
+    const parsed = parseApp(
+      manifest(`,\n  "skinSizes": { "classic": { "width": 100, "height": 50 } }`),
+    );
+    expect(parsed.resizable).toBeUndefined();
+    expect(parsed.skinSizes?.classic).toEqual({ width: 320, height: 200 });
+  });
+
   it('takes the first manifest block, so trailing comments cannot redefine it', () => {
     const source = `${manifest()}\n/* tabula-app { "id": "evil.app", "name": "Evil" } */`;
     expect(parseApp(source).id).toBe('com.example.demo');

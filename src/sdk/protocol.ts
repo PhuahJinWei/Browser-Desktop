@@ -41,6 +41,19 @@ export interface AppManifest {
   /** Which file types this app offers to open. */
   handles?: string[];
   defaultSize?: { width: number; height: number };
+  /**
+   * A size per skin, for an app whose two looks are different shapes — a 1990s calculator is a
+   * small square, a current one a tall column. Overrides `defaultSize` under that skin.
+   */
+  skinSizes?: {
+    classic?: { width: number; height: number };
+    modern?: { width: number; height: number };
+  };
+  /**
+   * False opens the window at exactly its size and keeps it there: no resizing, snapping or
+   * maximising. For apps drawn for one size, which is what such apps were.
+   */
+  resizable?: boolean;
 }
 
 /* -------------------------------------------------------------------------------------------- */

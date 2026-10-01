@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { launchApp, launchInstalledApp, launcherApps } from '../kernel/apps';
+import { launchApp, openInstalledApp, launcherApps } from '../kernel/apps';
 import {
   iconCell,
   arrangeIcons,
@@ -93,10 +93,7 @@ export function DesktopIcons() {
         name: app.manifest.name,
         icon: 'apps' as IconName,
         description: app.manifest.description,
-        open: () =>
-          void launchInstalledApp(app.id, app.manifest.name, {
-            ...(app.manifest.defaultSize ? { size: app.manifest.defaultSize } : {}),
-          }),
+        open: () => void openInstalledApp(app),
         builtIn: false,
       }));
 

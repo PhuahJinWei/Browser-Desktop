@@ -1,5 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { IconName } from '../shell/Icon';
+import type { AppManifest } from '../sdk/protocol';
+import { settingsStore } from './settings';
 import type { VfsNode } from './vfs/types';
 import { openWindow, type WindowSession } from './windows';
 
@@ -229,13 +231,18 @@ export function launchApp(appId: string, options: LaunchOptions = {}): string | 
 export function launchInstalledApp(
   appId: string,
   name: string,
-  options: { args?: Record<string, unknown>; size?: { width: number; height: number } } = {},
+  options: {
+    args?: Record<string, unknown>;
+    size?: { width: number; height: number };
+    fixedSize?: boolean;
+  } = {},
 ): string | null {
   return openWindow({
     appId: 'sandbox',
     title: name,
     args: { appId, ...(options.args ?? {}) },
     ...(options.size ?? { width: 720, height: 520 }),
+    ...(options.fixedSize ? { fixedSize: true } : {}),
   });
 }
 
@@ -246,6 +253,20 @@ export function launchInstalledApp(
  */
 export function searchFiles(query = ''): string | null {
   return launchApp('files', { args: { search: query }, title: 'Search Results' });
+}
+
+/**
+ * Opens an installed app as its manifest describes: the size for the current skin, and a fixed
+ * window if it asked for one. One function, because four places open installed apps and each was
+ * reading the manifest's size for itself.
+ */
+export function openInstalledApp(app: { id: string; manifest: AppManifest }): string | null {
+  const { manifest } = app;
+  const size = manifest.skinSizes?.[settingsStore.get().skin] ?? manifest.defaultSize;
+  return launchInstalledApp(app.id, manifest.name, {
+    ...(size ? { size } : {}),
+    ...(manifest.resizable === false ? { fixedSize: true } : {}),
+  });
 }
 
 /** Opens a file with the best-matching app. Directories open in Files. */

@@ -29,6 +29,22 @@
     0 2px 8px rgb(9 14 22 / 10%);
 }
 
+/* Drawn for one size, which may be smaller than a resizable window is allowed to be. */
+.fixed {
+  min-width: 0;
+  min-height: 0;
+}
+
+.control:disabled {
+  color: var(--text-muted);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.control:disabled:hover {
+  background: transparent;
+}
+
 /* A maximised window meets the screen edges and the taskbar, so it has no corners to round. */
 .maximized {
   border-radius: 0;

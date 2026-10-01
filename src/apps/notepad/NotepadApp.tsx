@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { launchApp, type AppProps } from '../../kernel/apps';
-import { closeWindow, setWindowTitle } from '../../kernel/windows';
 import { notifyError } from '../../kernel/notifications';
-import { useDirectory, vfs } from '../../kernel/vfs/client';
-import { ROOT_ID } from '../../kernel/vfs/types';
-import { ContextMenu, separator, useContextMenu } from '../../shell/ContextMenu';
-import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
+import { useSetting } from '../../kernel/settings';
+import { vfs } from '../../kernel/vfs/client';
+import { ROOT_ID, type VfsNode } from '../../kernel/vfs/types';
+import { closeWindow, setWindowTitle } from '../../kernel/windows';
+import { separator } from '../../shell/ContextMenu';
 import { Icon } from '../../shell/Icon';
-import { nodeMenuItems } from '../../shell/nodeMenu';
+import { MenuBar, type MenuBarMenu } from '../../shell/MenuBar';
+import { AppIcon } from '../../shell/PixelIcon';
 import styles from './NotepadApp.module.css';
 
 /**
@@ -17,22 +18,16 @@ import styles from './NotepadApp.module.css';
  * the point: a note is an ordinary file, so it gets indexed, searched, opened in the Viewer and
  * trashed like anything else, with no special cases anywhere.
  *
- * **Saving is something the user does.** This app used to autosave on a 900 ms debounce and rename
- * the file from its first heading as you typed, which meant the document on disk was never quite
- * the one you had decided on, and the file in Files renamed itself under the pointer. A toolbar
- * with a Save button that can be greyed out says more about the state of your work than any amount
- * of "Saving…" ever did.
+ * Its shape follows the skin, because the two desktops' Notepads are different programs. Classic is
+ * the 1990s one: one document per window, opened and switched with File ▸ Open, Search ▸ Find, no
+ * status bar. Modern is the current one: documents as tabs along the top, Edit ▸ Find, and a status
+ * bar with the caret's line and column. The notes list down the side that this app used to have
+ * belonged to neither; Open is where the notes are listed now.
  *
- * The bar across the top is a real menu bar — the same `ContextMenu` the rest of the desktop drops
- * at the pointer, anchored under a title instead. Every entry on it does something: a File menu of
- * greyed-out entries would be a picture of Notepad rather than Notepad. That is also why there is
- * no Search menu and why Time/Date carries no accelerator — see the menus themselves.
- *
- * The debounce is gone; the flush on close is not. A browser tab cannot reliably interrupt its own
- * closing to ask "save changes?", so the choice is between an explicit save model with a silent
- * net underneath it and one that loses work when a window is closed. Switching notes flushes for
- * the same reason. The net is never the *only* way text reaches disk, which is what separates it
- * from autosave.
+ * **Saving is something the user does.** Explicit, with a flush on close underneath it, because a
+ * browser tab cannot reliably stop a window closing to ask "save changes?". Closing a tab is the
+ * same: the text is saved, never dropped. A new note is untitled and has no file until it has
+ * something in it — an empty note closed is simply gone, rather than an empty file left behind.
  */
 
 const NOTES_FOLDER = 'Notes';
@@ -42,199 +37,260 @@ interface NotepadArgs {
   create?: boolean;
 }
 
-export default function NotepadApp({ windowId, args }: AppProps) {
-  const { fileId: initialFileId, create } = (args as NotepadArgs | undefined) ?? {};
-  const [folderId, setFolderId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(initialFileId ?? null);
-  const [draft, setDraft] = useState('');
-  /** What the active note holds on disk. `draft !== baseline` is the whole definition of unsaved. */
-  const [baseline, setBaseline] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  // On by default, unlike the original. This edits Markdown prose in a resizable window, where
-  // wrapping off means every paragraph is one line you scroll sideways to read.
-  const [wordWrap, setWordWrap] = useState(true);
-  const listing = useDirectory(folderId);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const loadedId = useRef<string | null>(null);
-  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
+/** One open document: a tab under modern, the window's only document under classic. */
+interface Doc {
+  key: string;
+  /** Null until an untitled document is first saved. */
+  node: VfsNode | null;
+  draft: string;
+  /** What the file holds on disk. `draft !== baseline` is the whole definition of unsaved. */
+  baseline: string;
+}
 
-  const notes = listing.nodes.filter((node) => node.kind === 'file');
+let docCounter = 0;
+const untitled = (): Doc => ({ key: `doc-${++docCounter}`, node: null, draft: '', baseline: '' });
+const nameOf = (doc: Doc) => doc.node?.name ?? 'Untitled';
+const isDirty = (doc: Doc) => doc.draft !== doc.baseline;
+
+async function notesFolder(): Promise<string> {
+  const children = await vfs.list(ROOT_ID);
+  const existing = children.find((node) => node.kind === 'directory' && node.name === NOTES_FOLDER);
+  return (existing ?? (await vfs.createDirectory(ROOT_ID, NOTES_FOLDER))).id;
+}
+
+export default function NotepadApp({ windowId, args }: AppProps) {
+  const { fileId: initialFileId } = (args as NotepadArgs | undefined) ?? {};
+  const classic = useSetting('skin') === 'classic';
+  const [docs, setDocs] = useState<Doc[]>(() => [untitled()]);
+  const [activeKey, setActiveKey] = useState(() => docs[0]!.key);
+  const [saving, setSaving] = useState(false);
+  const [wordWrap, setWordWrap] = useState(true);
+  const [dialog, setDialog] = useState<'open' | 'rename' | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [caret, setCaret] = useState({ line: 1, column: 1 });
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const active = docs.find((doc) => doc.key === activeKey) ?? docs[0]!;
+  const dirty = isDirty(active);
 
   /*
-   * Live values for the callbacks that must not be rebuilt when they change.
-   *
-   * `save` used to depend on the notes array, which is rebuilt on every listing update — so `save`
-   * changed identity constantly, and any effect depending on it re-ran just as often. Reading the
-   * array from a ref keeps `save` stable across the app's whole life and is why the flush effect
-   * below can depend on nothing but the note it is guarding.
+   * The latest documents, for the work that must not be rebuilt when they change: the flush on
+   * close runs once, at unmount, and has to see the text as it is then rather than as it was when
+   * the effect was set up.
    */
-  const notesRef = useRef(notes);
-  const activeIdRef = useRef(activeId);
-  const latest = useRef({ draft, baseline });
+  const latest = useRef(docs);
   useEffect(() => {
-    notesRef.current = notes;
-    activeIdRef.current = activeId;
-    latest.current = { draft, baseline };
+    latest.current = docs;
   });
 
-  /* Find or create the Notes folder once. */
-  useEffect(() => {
-    void (async () => {
-      const children = await vfs.list(ROOT_ID);
-      const existing = children.find(
-        (node) => node.kind === 'directory' && node.name === NOTES_FOLDER,
-      );
-      const folder = existing ?? (await vfs.createDirectory(ROOT_ID, NOTES_FOLDER));
-      setFolderId(folder.id);
-    })();
+  const update = useCallback((key: string, patch: Partial<Doc>) => {
+    setDocs((current) => current.map((doc) => (doc.key === key ? { ...doc, ...patch } : doc)));
   }, []);
 
-  const newNote = useCallback(async () => {
-    if (!folderId) return;
+  /* Open ------------------------------------------------------------------------------------- */
+
+  /** Reads a file into a document. Resolves to null, having said why, when it cannot. */
+  const load = useCallback(async (id: string): Promise<Doc | null> => {
     try {
-      const stamp = new Date().toLocaleDateString(undefined, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-      // Empty, like a real one. The name collides with the last note made today, and the file
-      // system's own uniquing settles it rather than this app inventing a scheme.
-      const node = await vfs.writeText(folderId, `Note ${stamp}.md`, '', {
-        mime: 'text/markdown',
-      });
-      loadedId.current = node.id;
-      setActiveId(node.id);
-      setDraft('');
-      setBaseline('');
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      const node = await vfs.stat(id);
+      if (!node) return null;
+      const text = await vfs.readText(id);
+      return { key: `doc-${++docCounter}`, node, draft: text, baseline: text };
     } catch (error) {
-      notifyError('Could not create the note', error);
+      notifyError('Could not open the note', error);
+      return null;
     }
-  }, [folderId]);
-
-  /* Open the requested note, or the newest, or start one. */
-  useEffect(() => {
-    if (!folderId || listing.loading) return;
-    if (activeId) return;
-
-    if (create || notes.length === 0) {
-      void newNote();
-      return;
-    }
-    const newest = [...notes].sort((a, b) => b.modifiedAt - a.modifiedAt)[0];
-    if (newest) setActiveId(newest.id);
-  }, [folderId, listing.loading, activeId, create, notes, newNote]);
-
-  /* Load the active note's text, but never clobber unsaved edits to the same note. */
-  useEffect(() => {
-    if (!activeId || loadedId.current === activeId) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const text = await vfs.readText(activeId);
-        if (cancelled) return;
-        loadedId.current = activeId;
-        setDraft(text);
-        setBaseline(text);
-      } catch (error) {
-        if (!cancelled) notifyError('Could not open the note', error);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeId]);
-
-  const activeNode = notes.find((node) => node.id === activeId) ?? null;
-  const dirty = activeId !== null && draft !== baseline;
+  }, []);
 
   useEffect(() => {
-    const name = activeNode?.name ?? 'Untitled';
-    // The asterisk is the era's own unsaved marker, and it is in the taskbar button too — which is
-    // the only place you can see it once the window is behind another one.
-    setWindowTitle(windowId, `${dirty ? '*' : ''}${name} — Notepad`);
-  }, [windowId, activeNode, dirty]);
+    if (!initialFileId) return;
+    void load(initialFileId).then((doc) => {
+      if (!doc) return;
+      setDocs([doc]);
+      setActiveKey(doc.key);
+    });
+  }, [initialFileId, load]);
+
+  useEffect(() => {
+    setWindowTitle(windowId, `${dirty ? '*' : ''}${nameOf(active)} — Notepad`);
+  }, [windowId, active, dirty]);
 
   /* Save ------------------------------------------------------------------------------------- */
 
+  /**
+   * Writes a document. An untitled one gets a file of its own in Notes, named for the day, and the
+   * file system's own uniquing settles a second note on the same day.
+   */
   const save = useCallback(
-    async (id: string, text: string) => {
-      if (!folderId) return;
-      const node = notesRef.current.find((candidate) => candidate.id === id);
-      if (!node) return;
-
+    async (doc: Doc): Promise<void> => {
+      const text = doc.draft;
       setSaving(true);
       try {
-        await vfs.writeFile({
-          parentId: folderId,
-          name: node.name,
-          data: new TextEncoder().encode(text).buffer as ArrayBuffer,
-          mime: 'text/markdown',
-          overwrite: true,
-        });
-        // A flush-on-switch resolves after the editor already holds a different note. The baseline
-        // describes what is on screen, so it is only this write's business while that is still true.
-        if (activeIdRef.current === id) setBaseline(text);
+        const data = new TextEncoder().encode(text).buffer as ArrayBuffer;
+        let node: VfsNode;
+        if (doc.node?.parentId) {
+          node = await vfs.writeFile({
+            parentId: doc.node.parentId,
+            name: doc.node.name,
+            data,
+            mime: doc.node.mime || 'text/markdown',
+            overwrite: true,
+          });
+        } else {
+          const stamp = new Date().toLocaleDateString(undefined, {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
+          node = await vfs.writeFile({
+            parentId: await notesFolder(),
+            name: `Note ${stamp}.md`,
+            data,
+            mime: 'text/markdown',
+          });
+        }
+        // The baseline describes the text written, not whatever has been typed since.
+        update(doc.key, { node, baseline: text });
       } catch (error) {
         notifyError('Could not save the note', error);
       } finally {
         setSaving(false);
       }
     },
-    [folderId],
+    [update],
+  );
+
+  /** Saves what would otherwise be lost. An untitled document with nothing in it is not kept. */
+  const flush = useCallback(
+    async (doc: Doc) => {
+      if (!isDirty(doc)) return;
+      if (doc.node === null && doc.draft.trim() === '') return;
+      await save(doc);
+    },
+    [save],
   );
 
   const saveNow = useCallback(() => {
-    if (!activeId || !dirty) return;
-    void save(activeId, draft);
-  }, [activeId, dirty, draft, save]);
+    if (dirty || active.node === null) void save(active);
+  }, [active, dirty, save]);
+
+  // The net: every open document is flushed when the window closes.
+  useEffect(
+    () => () => {
+      for (const doc of latest.current) void flush(doc);
+    },
+    [flush],
+  );
+
+  /* Documents -------------------------------------------------------------------------------- */
+
+  /** Shows a document: alongside the others under modern, instead of the current one under classic. */
+  const show = useCallback(
+    (doc: Doc) => {
+      if (classic) {
+        void flush(active);
+        setDocs([doc]);
+      } else {
+        setDocs((current) => {
+          const already = doc.node && current.find((open) => open.node?.id === doc.node?.id);
+          if (already) {
+            setActiveKey(already.key);
+            return current;
+          }
+          // The tab you were on, if it is an untouched untitled one, gives way to what was opened.
+          const keep = current.filter(
+            (open) => !(open.key === activeKey && open.node === null && open.draft === ''),
+          );
+          return [...keep, doc];
+        });
+      }
+      setActiveKey(doc.key);
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    },
+    [active, activeKey, classic, flush],
+  );
+
+  const newDocument = useCallback(() => show(untitled()), [show]);
+
+  const openFile = useCallback(
+    async (id: string) => {
+      setDialog(null);
+      const doc = await load(id);
+      if (doc) show(doc);
+      // A file that could not be read has said so; the keyboard goes back to the page either way.
+      else textareaRef.current?.focus();
+    },
+    [load, show],
+  );
+
+  const closeDocument = useCallback(
+    (key: string) => {
+      const doc = docs.find((candidate) => candidate.key === key);
+      if (!doc) return;
+      void flush(doc);
+      if (docs.length === 1) {
+        closeWindow(windowId);
+        return;
+      }
+      const index = docs.indexOf(doc);
+      const remaining = docs.filter((candidate) => candidate.key !== key);
+      setDocs(remaining);
+      if (key === activeKey) setActiveKey(remaining[Math.max(0, index - 1)]!.key);
+    },
+    [docs, activeKey, flush, windowId],
+  );
+
+  const rename = useCallback(
+    async (name: string) => {
+      setDialog(null);
+      const node = active.node;
+      const trimmed = name.trim();
+      if (!node || !trimmed) return;
+      // A note that loses its extension stops being Markdown to every other app on the desktop, so
+      // a bare name gets one back rather than being taken literally.
+      const withSuffix = /\.[a-z0-9]+$/i.test(trimmed) ? trimmed : `${trimmed}.md`;
+      try {
+        update(active.key, { node: await vfs.rename(node.id, withSuffix) });
+      } catch (error) {
+        notifyError('Could not rename the note', error);
+      }
+    },
+    [active, update],
+  );
+
+  /* Editing ---------------------------------------------------------------------------------- */
+
+  const trackCaret = () => {
+    const element = textareaRef.current;
+    if (!element) return;
+    const before = element.value.slice(0, element.selectionStart);
+    const lines = before.split('\n');
+    setCaret({ line: lines.length, column: (lines.at(-1)?.length ?? 0) + 1 });
+  };
 
   /*
-   * The net: flush a pending edit when the note changes or the window closes.
-   *
-   * The draft is read from a ref rather than listed as a dependency, and that is the whole point of
-   * this effect's shape. With it in the dependency array the cleanup ran on every keystroke, each
-   * pass writing the text as of the *previous* one — and two of those arriving together produced
-   * identical bytes for one content-addressed file, which OPFS refuses outright: "Access Handles
-   * cannot be created if there is another open Access Handle". Reading from a ref that a later
-   * effect updates means the cleanup sees the values as they were while the note was still active,
-   * which is exactly what needs saving.
+   * The caret moves without an event on the field itself when a different document's text is put
+   * in it, or when Find selects a match. `selectionchange` is the one signal for every move,
+   * whatever caused it, so the status bar reads from that rather than guessing when to look.
    */
   useEffect(() => {
-    const id = activeId;
-    return () => {
-      if (!id) return;
-      const { draft: text, baseline: disk } = latest.current;
-      if (text === disk) return;
-      void save(id, text);
+    const onSelection = () => {
+      const element = textareaRef.current;
+      if (!element || document.activeElement !== element) return;
+      const lines = element.value.slice(0, element.selectionStart).split('\n');
+      setCaret({ line: lines.length, column: (lines.at(-1)?.length ?? 0) + 1 });
     };
-  }, [activeId, save]);
-
-  /* Rename ----------------------------------------------------------------------------------- */
-
-  const rename = useCallback(async (id: string, name: string) => {
-    setRenaming(null);
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    // A note that loses its extension stops being Markdown to every other app on the desktop, so a
-    // bare name gets one back rather than being taken literally.
-    const withSuffix = /\.[a-z0-9]+$/i.test(trimmed) ? trimmed : `${trimmed}.md`;
-    try {
-      await vfs.rename(id, withSuffix);
-    } catch (error) {
-      notifyError('Could not rename the note', error);
-    }
+    document.addEventListener('selectionchange', onSelection);
+    return () => document.removeEventListener('selectionchange', onSelection);
   }, []);
-
-  /* Editing commands the menus drive --------------------------------------------------------- */
 
   const selectAll = useCallback(() => {
     textareaRef.current?.focus();
     textareaRef.current?.select();
   }, []);
 
-  /** Notepad's Time/Date, stamped at the caret. Locale decides the format, as it does for the clock. */
+  /** Time/Date, stamped at the caret. Locale decides the format, as it does for the clock. */
   const insertTimeDate = useCallback(() => {
     const element = textareaRef.current;
     if (!element) return;
@@ -242,55 +298,84 @@ export default function NotepadApp({ windowId, args }: AppProps) {
     const stamp = `${now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} ${now.toLocaleDateString()}`;
     const from = element.selectionStart;
     const to = element.selectionEnd;
-    setDraft((current) => current.slice(0, from) + stamp + current.slice(to));
+    update(active.key, { draft: active.draft.slice(0, from) + stamp + active.draft.slice(to) });
     // React writes the new value on the next commit, so the caret has to be placed after it.
     requestAnimationFrame(() => {
       element.focus();
       element.setSelectionRange(from + stamp.length, from + stamp.length);
     });
-  }, []);
+  }, [active, update]);
+
+  /** Finds the next match after the caret, wrapping to the top, and selects it. */
+  const findNext = useCallback(() => {
+    const element = textareaRef.current;
+    if (!element || !findText) return;
+    const haystack = element.value.toLowerCase();
+    const needle = findText.toLowerCase();
+    let at = haystack.indexOf(needle, element.selectionEnd);
+    if (at === -1) at = haystack.indexOf(needle);
+    if (at === -1) return;
+    element.focus();
+    element.setSelectionRange(at, at + needle.length);
+    trackCaret();
+  }, [findText]);
 
   /* Menu bar --------------------------------------------------------------------------------- */
 
   /*
-   * The bar's contents.
-   *
    * Rebuilt per render on purpose — every entry's label, checked state and disabled state is read
-   * from the state above, and a menu that was memoised would be showing the note you had open when
-   * it was built. They are thunks so that only the one being opened is ever constructed.
+   * from the state above, and a menu that was memoised would describe the document open when it
+   * was built. They are thunks so that only the one being opened is ever constructed.
    *
-   * There is no Search menu. Notepad's was find-in-document, this desktop's Search is a semantic
-   * index over your files, and a menu that offered either under the other's name would be worse
-   * than the gap. Time/Date shows no accelerator for a related reason: the original bound it to F5,
-   * and taking F5 away from someone trying to reload a web page is not a period detail worth having.
+   * Find lives where each desktop put it: a Search menu of its own under classic, inside Edit under
+   * modern. Time/Date shows no accelerator: the original bound it to F5, and taking F5 away from
+   * someone trying to reload a web page is not a period detail worth having.
    */
+  const find = [
+    { id: 'find.find', label: 'Find…', shortcut: 'Ctrl+F', run: () => setFindOpen(true) },
+    { id: 'find.next', label: 'Find Next', shortcut: 'F3', disabled: !findText, run: findNext },
+  ];
+
   const menuBar: MenuBarMenu[] = [
     {
       id: 'file',
       label: 'File',
       items: () => [
-        { id: 'file.new', label: 'New', run: () => void newNote() },
-        { id: 'file.save', label: 'Save', shortcut: 'Ctrl+S', disabled: !dirty, run: saveNow },
+        { id: 'file.new', label: classic ? 'New' : 'New tab', run: newDocument },
+        { id: 'file.open', label: 'Open…', shortcut: 'Ctrl+O', run: () => setDialog('open') },
+        {
+          id: 'file.save',
+          label: 'Save',
+          shortcut: 'Ctrl+S',
+          disabled: !dirty && active.node !== null,
+          run: saveNow,
+        },
         {
           id: 'file.rename',
           label: 'Rename…',
           shortcut: 'F2',
-          disabled: !activeId,
-          run: () => activeId && setRenaming(activeId),
+          disabled: active.node === null,
+          run: () => setDialog('rename'),
         },
         separator('file.s1'),
         {
           id: 'file.reveal',
           label: 'Show in Files',
-          disabled: !folderId,
-          run: () =>
-            void launchApp('files', {
-              args: { directoryId: folderId, ...(activeId ? { selectId: activeId } : {}) },
+          disabled: !active.node?.parentId,
+          run: () => {
+            const node = active.node;
+            if (!node?.parentId) return;
+            launchApp('files', {
+              args: { directoryId: node.parentId, selectId: node.id },
               title: 'Files',
-            }),
+            });
+          },
         },
         separator('file.s2'),
-        { id: 'file.close', label: 'Close', run: () => closeWindow(windowId) },
+        classic
+          ? { id: 'file.exit', label: 'Exit', run: () => closeWindow(windowId) }
+          : { id: 'file.closeTab', label: 'Close tab', run: () => closeDocument(active.key) },
+        !classic && { id: 'file.close', label: 'Close window', run: () => closeWindow(windowId) },
       ],
     },
     {
@@ -298,16 +383,36 @@ export default function NotepadApp({ windowId, args }: AppProps) {
       label: 'Edit',
       items: () => [
         { id: 'edit.selectAll', label: 'Select All', shortcut: 'Ctrl+A', run: selectAll },
-        { id: 'edit.timeDate', label: 'Time/Date', disabled: !activeId, run: insertTimeDate },
-        separator('edit.s1'),
-        {
-          id: 'edit.wrap',
-          label: 'Word Wrap',
-          checked: wordWrap,
-          run: () => setWordWrap((on) => !on),
-        },
+        { id: 'edit.timeDate', label: 'Time/Date', run: insertTimeDate },
+        ...(classic
+          ? [
+              separator('edit.s1'),
+              {
+                id: 'edit.wrap',
+                label: 'Word Wrap',
+                checked: wordWrap,
+                run: () => setWordWrap((on) => !on),
+              },
+            ]
+          : [separator('edit.s1'), ...find]),
       ],
     },
+    ...(classic
+      ? [{ id: 'search', label: 'Search', items: () => find }]
+      : [
+          {
+            id: 'view',
+            label: 'View',
+            items: () => [
+              {
+                id: 'view.wrap',
+                label: 'Word wrap',
+                checked: wordWrap,
+                run: () => setWordWrap((on) => !on),
+              },
+            ],
+          },
+        ]),
     {
       id: 'help',
       label: 'Help',
@@ -324,160 +429,277 @@ export default function NotepadApp({ windowId, args }: AppProps) {
   /* Keyboard --------------------------------------------------------------------------------- */
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-      // Without this the browser offers to save the *page*, which is never what Ctrl+S means here.
+    const ctrl = event.ctrlKey || event.metaKey;
+    const key = event.key.toLowerCase();
+    // Each of these would otherwise reach the browser and act on the page rather than the note.
+    if (ctrl && key === 's') {
       event.preventDefault();
       saveNow();
-      return;
-    }
-    if (event.key === 'F2' && activeId) {
+    } else if (ctrl && key === 'o') {
       event.preventDefault();
-      setRenaming(activeId);
+      setDialog('open');
+    } else if (ctrl && key === 'f') {
+      event.preventDefault();
+      setFindOpen(true);
+    } else if (event.key === 'F3') {
+      event.preventDefault();
+      findNext();
+    } else if (event.key === 'F2' && active.node) {
+      event.preventDefault();
+      setDialog('rename');
     }
-  };
-
-  const moveSelection = (direction: 1 | -1) => {
-    if (notes.length === 0) return;
-    const index = notes.findIndex((note) => note.id === activeId);
-    const next = notes[Math.min(notes.length - 1, Math.max(0, index + direction))];
-    if (next) setActiveId(next.id);
-  };
-
-  const onListKeyDown = (event: React.KeyboardEvent, noteId: string) => {
-    switch (event.key) {
-      case 'ArrowDown':
-        moveSelection(1);
-        break;
-      case 'ArrowUp':
-        moveSelection(-1);
-        break;
-      case 'F2':
-        setRenaming(noteId);
-        break;
-      case 'Enter':
-        textareaRef.current?.focus();
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
   };
 
   /* Render ----------------------------------------------------------------------------------- */
 
   return (
     <div className={styles.app} onKeyDown={onKeyDown}>
+      {classic ? null : (
+        <div className={styles.tabs} role="tablist" aria-label="Open notes">
+          {docs.map((doc) => (
+            <div
+              key={doc.key}
+              className={`${styles.tab} ${doc.key === active.key ? styles.tabActive : ''}`}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={doc.key === active.key}
+                className={styles.tabLabel}
+                onClick={() => setActiveKey(doc.key)}
+                title={nameOf(doc)}
+              >
+                {nameOf(doc)}
+              </button>
+              {/* A dot for unsaved, as the current Notepad marks a tab; it is the close button's place. */}
+              <button
+                type="button"
+                className={styles.tabClose}
+                aria-label={`Close ${nameOf(doc)}`}
+                onClick={() => closeDocument(doc.key)}
+              >
+                {isDirty(doc) ? <span className={styles.unsavedDot} aria-hidden /> : null}
+                <Icon name="close" size={12} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className={styles.newTab}
+            aria-label="New tab"
+            title="New tab"
+            onClick={newDocument}
+          >
+            <Icon name="plus" size={14} />
+          </button>
+        </div>
+      )}
+
       <MenuBar menus={menuBar} label="Notepad" />
 
-      <div className={styles.workspace}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>Notes</div>
-          <ul className={styles.list} role="listbox" aria-label="Notes" tabIndex={-1}>
-            {notes.map((note) => {
-              const active = note.id === activeId;
-              return (
-                <li
-                  key={note.id}
-                  className={`${styles.listItem} ${active ? styles.listItemActive : ''}`}
-                  role="option"
-                  aria-selected={active}
-                  tabIndex={active ? 0 : -1}
-                  onClick={() => setActiveId(note.id)}
-                  onKeyDown={(event) => onListKeyDown(event, note.id)}
-                  onContextMenu={(event) =>
-                    openMenu(event, [
-                      { id: 'note.open', label: 'Open', run: () => setActiveId(note.id) },
-                      { id: 'note.rename', label: 'Rename…', run: () => setRenaming(note.id) },
-                      separator('note.s1'),
-                      { id: 'note.new', label: 'New note', run: () => void newNote() },
-                      separator('note.s2'),
-                      // The note is a file like any other, so it gets the file menu too — minus
-                      // "Open", which the entry above already is.
-                      ...nodeMenuItems(note, {
-                        omitOpen: true,
-                        onTrashed: () => note.id === activeId && setActiveId(null),
-                      }),
-                    ])
-                  }
-                >
-                  {renaming === note.id ? (
-                    <RenameField
-                      name={note.name}
-                      onCommit={(name) => void rename(note.id, name)}
-                      onCancel={() => setRenaming(null)}
-                    />
-                  ) : (
-                    <>
-                      <span className={styles.listName}>{note.name.replace(/\.md$/, '')}</span>
-                      <span className={styles.listDate}>
-                        {new Date(note.modifiedAt).toLocaleDateString(undefined, {
-                          day: '2-digit',
-                          month: 'short',
-                        })}
-                      </span>
-                    </>
-                  )}
-                </li>
-              );
-            })}
-            {notes.length === 0 && !listing.loading ? (
-              <li className={styles.listEmpty}>No notes yet.</li>
-            ) : null}
-          </ul>
-        </aside>
+      {findOpen ? (
+        <div className={styles.findBar} role="search">
+          <label className={styles.findLabel}>
+            Find what:
+            <input
+              autoFocus
+              className={styles.findInput}
+              value={findText}
+              onChange={(event) => setFindText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  findNext();
+                } else if (event.key === 'Escape') {
+                  event.stopPropagation();
+                  setFindOpen(false);
+                  textareaRef.current?.focus();
+                }
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className={styles.findButton}
+            onClick={findNext}
+            disabled={!findText}
+          >
+            Find Next
+          </button>
+          <button
+            type="button"
+            className={styles.findButton}
+            onClick={() => {
+              setFindOpen(false);
+              textareaRef.current?.focus();
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
-        <main className={styles.editorPane}>
-          {activeId ? (
-            <>
-              <textarea
-                ref={textareaRef}
-                className={styles.editor}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                wrap={wordWrap ? 'soft' : 'off'}
-                spellCheck
-                placeholder="Write here. Notes are ordinary Markdown files, so everything you type becomes searchable."
-                aria-label="Note text"
-              />
-              <div className={styles.statusBar}>
-                <span>{activeNode?.name}</span>
-                <span className={styles.saveState}>
-                  {saving ? 'Saving…' : dirty ? 'Unsaved changes' : 'Saved'}
-                </span>
-                <span>{draft.length.toLocaleString()} characters</span>
-              </div>
-            </>
-          ) : (
-            <div className={styles.placeholder}>
-              <Icon name="note" size={26} />
-              <p>Select a note, or create one.</p>
-            </div>
-          )}
-        </main>
-      </div>
+      <textarea
+        ref={textareaRef}
+        className={styles.editor}
+        value={active.draft}
+        onChange={(event) => {
+          update(active.key, { draft: event.target.value });
+          trackCaret();
+        }}
+        onKeyUp={trackCaret}
+        onClick={trackCaret}
+        onFocus={trackCaret}
+        onSelect={trackCaret}
+        wrap={wordWrap ? 'soft' : 'off'}
+        spellCheck={!classic}
+        autoFocus
+        aria-label={`${nameOf(active)} text`}
+      />
 
-      {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
+      {/* The 1990s Notepad had no status bar; the current one has one, and this is its content. */}
+      {classic ? null : (
+        <div className={styles.statusBar}>
+          <span>
+            Ln {caret.line}, Col {caret.column}
+          </span>
+          <span>{active.draft.length.toLocaleString()} characters</span>
+          <span className={styles.statusRight}>{saving ? 'Saving…' : dirty ? 'Unsaved' : ''}</span>
+          <span>Markdown</span>
+          <span>UTF-8</span>
+        </div>
+      )}
+
+      {dialog === 'open' ? (
+        <OpenDialog onOpen={(id) => void openFile(id)} onCancel={() => setDialog(null)} />
+      ) : null}
+      {dialog === 'rename' && active.node ? (
+        <RenameDialog
+          name={active.node.name}
+          onRename={(name) => void rename(name)}
+          onCancel={() => setDialog(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
+/* -------------------------------------------------------------------------------------------- */
+/* Dialogs                                                                                        */
+/* -------------------------------------------------------------------------------------------- */
+
 /**
- * The rename field, which is the row itself for as long as it is being renamed.
+ * Open: every text file on the desktop, newest first.
  *
- * Shows the whole file name including the extension, because that is what is about to be written —
- * but selects only the stem, since renaming almost never means changing the type.
+ * Both desktops' Notepads open through a file dialog, and this is that dialog reduced to what this
+ * file system needs — it is small and flat enough that a list of every note beats a folder tree.
  */
-function RenameField({
+function OpenDialog({ onOpen, onCancel }: { onOpen: (id: string) => void; onCancel: () => void }) {
+  const [files, setFiles] = useState<VfsNode[] | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [folders, setFolders] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    void vfs.allNodes().then((nodes) => {
+      const text = nodes
+        .filter(
+          (node) =>
+            node.kind === 'file' &&
+            !node.trashed &&
+            (node.mime.startsWith('text/') || /\.(md|txt)$/i.test(node.name)),
+        )
+        .sort((a, b) => b.modifiedAt - a.modifiedAt);
+      setFolders(
+        new Map(
+          nodes
+            .filter((node) => node.kind === 'directory')
+            .map((node) => [node.id, node.id === ROOT_ID ? 'Home' : node.name]),
+        ),
+      );
+      setFiles(text);
+      setSelected(text[0]?.id ?? null);
+    });
+  }, []);
+
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (files?.length)
+      listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
+  }, [files]);
+
+  // Focus follows the selection once it has rendered, while the keyboard is in the list.
+  useEffect(() => {
+    const list = listRef.current;
+    if (list?.contains(document.activeElement)) {
+      list.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
+    }
+  }, [selected]);
+
+  return (
+    <Dialog title="Open" onCancel={onCancel}>
+      <ul
+        ref={listRef}
+        className={styles.fileList}
+        role="listbox"
+        aria-label="Notes and text files"
+      >
+        {files === null ? <li className={styles.fileEmpty}>Reading…</li> : null}
+        {files?.length === 0 ? <li className={styles.fileEmpty}>No text files yet.</li> : null}
+        {files?.map((file) => (
+          <li
+            key={file.id}
+            role="option"
+            aria-selected={selected === file.id}
+            tabIndex={selected === file.id ? 0 : -1}
+            className={`${styles.fileRow} ${selected === file.id ? styles.fileRowSelected : ''}`}
+            onClick={() => setSelected(file.id)}
+            onDoubleClick={() => onOpen(file.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && selected) onOpen(selected);
+              if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+              event.preventDefault();
+              const list = files ?? [];
+              const index = list.findIndex((candidate) => candidate.id === selected);
+              const next = list[index + (event.key === 'ArrowDown' ? 1 : -1)];
+              if (next) setSelected(next.id);
+            }}
+          >
+            <AppIcon name="file-text" size={16} />
+            <span className={styles.fileName}>{file.name}</span>
+            <span className={styles.fileFolder}>{folders.get(file.parentId ?? '') ?? ''}</span>
+          </li>
+        ))}
+      </ul>
+      <div className={styles.dialogButtons}>
+        <button
+          type="button"
+          className={styles.dialogPrimary}
+          disabled={!selected}
+          onClick={() => selected && onOpen(selected)}
+        >
+          Open
+        </button>
+        <button type="button" className={styles.dialogButton} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </Dialog>
+  );
+}
+
+function RenameDialog({
   name,
-  onCommit,
+  onRename,
   onCancel,
 }: {
   name: string;
-  onCommit: (name: string) => void;
+  onRename: (name: string) => void;
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
 
+  // The whole name is shown, extension included, but only the stem is selected: renaming almost
+  // never means changing the type.
   useEffect(() => {
     const input = ref.current;
     if (!input) return;
@@ -487,17 +709,68 @@ function RenameField({
   }, [name]);
 
   return (
-    <input
-      ref={ref}
-      className={styles.renameInput}
-      defaultValue={name}
-      onClick={(event) => event.stopPropagation()}
-      onBlur={(event) => onCommit(event.target.value)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') onCommit((event.target as HTMLInputElement).value);
-        else if (event.key === 'Escape') onCancel();
-        event.stopPropagation();
-      }}
-    />
+    <Dialog title="Rename" onCancel={onCancel}>
+      <form
+        className={styles.renameForm}
+        onSubmit={(event) => {
+          event.preventDefault();
+          onRename(ref.current?.value ?? name);
+        }}
+      >
+        <label className={styles.findLabel}>
+          New name:
+          <input ref={ref} className={styles.findInput} defaultValue={name} />
+        </label>
+        <div className={styles.dialogButtons}>
+          <button type="submit" className={styles.dialogPrimary}>
+            Rename
+          </button>
+          <button type="button" className={styles.dialogButton} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+/** A dialog inside the window: modal to it, dismissed by Escape or Cancel. */
+function Dialog({
+  title,
+  onCancel,
+  children,
+}: {
+  title: string;
+  onCancel: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Once, on open, so the keyboard starts inside the dialog. A list that arrives later focuses its
+  // own selected row; doing that here on every render would pull focus out of the field being typed in.
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>('input, button:not(:disabled)')?.focus();
+  }, []);
+
+  return (
+    <div className={styles.scrim} role="presentation" onPointerDown={onCancel}>
+      <div
+        ref={ref}
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            onCancel();
+          }
+        }}
+      >
+        <div className={styles.dialogTitle}>{title}</div>
+        <div className={styles.dialogBody}>{children}</div>
+      </div>
+    </div>
   );
 }

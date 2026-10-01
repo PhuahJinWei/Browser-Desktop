@@ -4,6 +4,23 @@
 
 Added
 
+- **Notepad is each desktop's Notepad.** The notes list down the side is gone. Under classic it is
+  the 1990s program — one document per window, File ▸ Open, Search ▸ Find, no status bar — and under
+  modern the current one, with documents as tabs above the menu bar, an unsaved dot on the tab,
+  Edit ▸ Find and a status bar with the caret's line and column. An Open dialog lists every text
+  file; F2 renames; Ctrl+O, Ctrl+F and F3 work. A new note is Untitled and gets a file only when it
+  has text, so an empty note closed leaves nothing behind; closing a tab or the window still saves
+  what was typed.
+- **Calculator is each desktop's calculator, in a window that keeps its size.** Classic: memory keys
+  down the left, Backspace / CE / C, blue digits and red operators, and "0." in the display.
+  Modern: a large display over small rounded keys, with = in the accent and the memory row above.
+  Square, square root, reciprocal, percent and memory all work, and division by zero says so.
+- **Apps can ask for a fixed window and a size per skin.** Two optional manifest fields,
+  `"resizable": false` and `"skinSizes"`, documented in `docs/sdk.md`. A fixed window has no resize
+  handles, a greyed Maximise, and is never snapped — except on a compact screen, where every window
+  opens maximised. Sandboxed apps' starter stylesheet now uses the desktop's own blue accent and
+  4px corners under modern.
+
 - **Inside the apps, each skin now follows its desktop too.** Under classic, every icon with a pixel
   drawing is drawn as pixel art in toolbars, lists and sidebars, not only on the frame — seventeen
   new 16-pixel drawings (back, up, refresh, cut, copy, paste, rename, new, import, restore, PDF,
