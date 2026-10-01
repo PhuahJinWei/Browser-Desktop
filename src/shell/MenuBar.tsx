@@ -148,7 +148,7 @@ export function MenuOverflow({
           )
         }
       >
-        <Icon name="more" size={16} />
+        <Icon name="more" size={16} strokeWidth={2.6} />
       </button>
       {menu ? <ContextMenu request={menu} onClose={close} /> : null}
     </>

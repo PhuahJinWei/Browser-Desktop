@@ -18,11 +18,12 @@ import { ContextMenu, separator, useContextMenu, type MenuSpec } from '../../she
 import { MenuBar, MenuOverflow, type MenuBarMenu } from '../../shell/MenuBar';
 import { useSetting } from '../../kernel/settings';
 import { closeWindow } from '../../kernel/windows';
-import { Icon, iconForFile } from '../../shell/Icon';
+import { Icon, iconForFile, type IconName } from '../../shell/Icon';
 import { AppIcon } from '../../shell/PixelIcon';
 import { useVirtualList } from '../../shell/useVirtualList';
 import { thumbnailUrl } from '../../services/index/thumbnails';
 import { ContentSearch } from './ContentSearch';
+import { FolderTree } from './FolderTree';
 import { collectDroppedEntries, pickDirectory, pickFiles } from './import';
 import styles from './Explorer.module.css';
 
@@ -215,7 +216,7 @@ export function Explorer({ windowId, args }: AppProps) {
   );
   const searchBox = useRef<HTMLInputElement>(null);
   const [dropActive, setDropActive] = useState(false);
-  const { menu, open: openMenu, close: closeMenu } = useContextMenu();
+  const { menu, open: openMenu, openUnder, close: closeMenu } = useContextMenu();
   const rootRef = useRef<HTMLDivElement>(null);
   const [appWidth, setAppWidth] = useState(0);
 
@@ -251,10 +252,6 @@ export function Explorer({ windowId, args }: AppProps) {
 
   const listing = useDirectory(recycle ? null : directoryId);
   const trash = useTrash();
-  // The places pane lists the top of the file system, so it watches the root whatever folder is
-  // open. A second subscription rather than a snapshot: a folder created anywhere should appear
-  // here without this app being told.
-  const rootListing = useDirectory(ROOT_ID);
   const path = usePath(recycle ? null : directoryId);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -315,11 +312,6 @@ export function Explorer({ windowId, args }: AppProps) {
   }, [recycle, trash.nodes, listing.nodes, filter, sort, sortDir, origins]);
 
   const virtual = useVirtualList(nodes.length, ROW_HEIGHT);
-
-  const places = useMemo(
-    () => rootListing.nodes.filter((node) => node.kind === 'directory'),
-    [rootListing.nodes],
-  );
 
   /* Navigation ------------------------------------------------------------------------------ */
 
@@ -462,6 +454,8 @@ export function Explorer({ windowId, args }: AppProps) {
 
   /* `open` is built before the actions are, and only ever calls this after a click. */
   const restoreSelectedRef = useRef<() => Promise<void>>(async () => {});
+
+  const canUp = !recycle && path.length > 1;
 
   const goUp = useCallback(() => {
     const parent = path.at(-2);
@@ -777,6 +771,130 @@ export function Explorer({ windowId, args }: AppProps) {
    * Restore and Empty in the bin and New folder and Import outside it, and View names the columns
    * that context actually has.
    */
+  const refresh = () => {
+    if (recycle) trash.reload();
+    else listing.reload();
+  };
+
+  /* The bars' drop-downs. Built when opened, so each reads the state as it is then. */
+  const viewMenu = (): MenuSpec => [
+    {
+      id: 'views.details',
+      label: 'Details',
+      icon: 'list',
+      checked: view === 'list',
+      run: () => setView('list'),
+    },
+    {
+      id: 'views.icons',
+      label: 'Large icons',
+      icon: 'grid',
+      checked: view === 'grid',
+      run: () => setView('grid'),
+    },
+  ];
+
+  const sortMenu = (): MenuSpec => [
+    ...(['name', 'modified', 'kind', 'size'] as const).map((key) => ({
+      id: `sort.${key}`,
+      label: { name: 'Name', modified: 'Date modified', kind: 'Type', size: 'Size' }[key],
+      checked: sort === key,
+      run: () => setSort(key),
+    })),
+    separator('sort.s1'),
+    { id: 'sort.asc', label: 'Ascending', checked: sortDir === 1, run: () => setSortDir(1) },
+    { id: 'sort.desc', label: 'Descending', checked: sortDir === -1, run: () => setSortDir(-1) },
+  ];
+
+  const newMenu = (): MenuSpec => [
+    { id: 'new.folder', label: 'Folder', icon: 'folder', run: () => void newFolder() },
+    separator('new.s1'),
+    {
+      id: 'new.import',
+      label: 'Import files…',
+      icon: 'upload',
+      run: () =>
+        void pickFiles().then((entries) => runImport(entries, `Import ${entries.length} file(s)`)),
+    },
+    pickDirectory.supported && {
+      id: 'new.importFolder',
+      label: 'Import a folder…',
+      icon: 'folder-open',
+      run: () =>
+        void pickDirectory().then((entries) =>
+          runImport(entries, `Import folder (${entries.length} files)`),
+        ),
+    },
+  ];
+
+  /** A Standard Button: the picture over its name, as the era's Explorer toolbar drew them. */
+  const stdButton = (
+    label: string,
+    icon: IconName,
+    onClick: () => void,
+    disabled: boolean,
+    iconClass?: string,
+  ) => (
+    <button
+      type="button"
+      className={styles.stdButton}
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+    >
+      <span className={styles.stdIcon}>
+        <Icon name={icon} size={16} className={iconClass} />
+      </span>
+      <span className={styles.stdLabel}>{label}</span>
+    </button>
+  );
+
+  /** An icon-only command, as the current command bar has its clipboard actions. */
+  const iconCommand = (
+    title: string,
+    label: string,
+    icon: IconName,
+    onClick: () => void,
+    disabled: boolean,
+  ) => (
+    <button
+      type="button"
+      className={styles.iconButton}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={label}
+    >
+      <Icon name={icon} size={16} />
+    </button>
+  );
+
+  const searchField = (
+    <input
+      ref={searchBox}
+      className={styles.filter}
+      value={filter}
+      onChange={(event) => setFilter(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && !recycle && filter.trim()) {
+          event.preventDefault();
+          searchEverything();
+        } else if (event.key === 'Escape' && (filter || searching)) {
+          event.preventDefault();
+          setFilter('');
+          setSearching(false);
+        }
+      }}
+      placeholder={recycle ? 'Search the Recycle Bin' : 'Search'}
+      aria-label={
+        recycle
+          ? 'Filter the Recycle Bin by name'
+          : 'Search: type to filter this folder by name, press Enter to search inside every file'
+      }
+      type="search"
+    />
+  );
+
   const menus: MenuBarMenu[] = [
     {
       id: 'file',
@@ -912,11 +1030,7 @@ export function Explorer({ windowId, args }: AppProps) {
         {
           id: 'view.refresh',
           label: 'Refresh',
-          run: () => {
-            if (recycle) trash.reload();
-            else listing.reload();
-            rootListing.reload();
-          },
+          run: refresh,
         },
       ],
     },
@@ -1065,304 +1179,302 @@ export function Explorer({ windowId, args }: AppProps) {
       onDrop={onDrop}
     >
       {/*
-        Two bars, not one.
+        Each desktop's own bars, because this is where the two Explorers differ most.
 
-        Everything used to live in a single row that wrapped, and a row of controls that reflows into
-        a column is the shape of a phone app rather than a file manager. Where you are and how you
-        move goes on top; what you can do to what is selected goes underneath. Neither wraps — below
-        the width they need the command bar sheds its labels and the places pane leaves, which is
-        what a desktop does instead of stacking.
+        Classic is the 1990s window: a menu bar, then the Standard Buttons — large pictures with
+        their names underneath, flat until the pointer is over one — then an Address field. Modern
+        is the current one: back, forward, up and refresh beside a path of folders, and under it a
+        command bar of New, the clipboard actions as icons, and Sort and View menus, with the menus
+        that have no button behind the ⋯ at the end.
 
-        There is no Refresh button, though both explorers this is modelled on have one. The listing
-        is a live subscription: it is already correct, and a button that redraws what is on screen
-        would be a control that does nothing.
+        Nothing is lost either way: everything on a bar is also on a menu, and every menu is in the
+        menu bar under classic and behind ⋯ under modern. Neither bar wraps; below the width they
+        need, the command bar sheds its labels and the tree leaves, which is what a desktop does
+        instead of stacking.
       */}
-      {/* A menu bar under classic, as the era's Explorer had; modern folds it into the ⋯ below. */}
       {classic ? <MenuBar menus={menus} label={recycle ? 'Recycle Bin' : 'Files'} /> : null}
 
-      <div className={styles.navRow}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={back}
-          disabled={!canBack}
-          aria-label="Back"
-          title="Back"
-        >
-          <Icon name="arrow-left" size={16} />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={forward}
-          disabled={!canForward}
-          aria-label="Forward"
-          title="Forward"
-        >
-          {/* The same glyph turned around, so the pair can never drift apart. */}
-          <Icon name="arrow-left" size={16} className={styles.flip} />
-        </button>
-        {/*
-          Refresh really refetches. The listing is a live subscription, so it is almost always
-          already correct and this will redraw the same rows — but `reload()` goes back to the
-          worker for them rather than redrawing what is in memory, which is the difference between
-          a button that does something and a button that looks like it does.
-
-          It stands where the parent-folder button did. Going up is not lost: Backspace still does
-          it, and the breadcrumb above is a row of buttons to every ancestor.
-        */}
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => {
-            if (recycle) trash.reload();
-            else listing.reload();
-            rootListing.reload();
-          }}
-          aria-label="Refresh this folder"
-          title="Refresh"
-        >
-          <Icon name="refresh" size={16} />
-        </button>
-
-        <nav className={styles.address} aria-label="Location">
-          {recycle ? (
-            <span className={styles.crumbCurrent}>
-              <Icon name="trash" size={14} /> Recycle Bin
-            </span>
-          ) : searching ? (
-            <span className={styles.crumbCurrent}>
-              <Icon name="search" size={14} /> Search Results
-            </span>
-          ) : (
-            path.map((node, index) => (
-              <span key={node.id} className={styles.crumb}>
-                {index > 0 ? (
-                  <Icon name="chevron-right" size={13} className={styles.crumbSeparator} />
-                ) : null}
-                {index === path.length - 1 ? (
-                  <span className={styles.crumbCurrent}>
-                    {node.id === ROOT_ID ? 'Home' : node.name}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.crumbLink}
-                    onClick={() => navigate(node.id)}
-                  >
-                    {node.id === ROOT_ID ? 'Home' : node.name}
-                  </button>
+      {classic ? (
+        <>
+          <div
+            className={styles.stdBar}
+            role="toolbar"
+            aria-label={recycle ? 'Recycle Bin actions' : 'Standard buttons'}
+          >
+            {stdButton('Back', 'arrow-left', back, !canBack)}
+            {stdButton('Forward', 'arrow-left', forward, !canForward, styles.flip)}
+            {stdButton('Up', 'arrow-up', goUp, !canUp)}
+            <span className={styles.commandDivider} aria-hidden />
+            {recycle ? (
+              <>
+                {stdButton(
+                  'Restore',
+                  'restore',
+                  () => void restoreSelected(),
+                  selection.size === 0,
                 )}
+                {stdButton('Delete', 'trash', () => void deleteSelected(), selection.size === 0)}
+                <span className={styles.commandDivider} aria-hidden />
+                {stdButton('Empty', 'trash', () => void emptyBin(), trash.nodes.length === 0)}
+              </>
+            ) : (
+              <>
+                {stdButton('Cut', 'cut', cutSelected, selection.size === 0)}
+                {stdButton('Copy', 'copy', copySelected, selection.size === 0)}
+                {stdButton('Paste', 'paste', () => void pasteInto(directoryId), clipboard === null)}
+                <span className={styles.commandDivider} aria-hidden />
+                {stdButton('Delete', 'trash', () => void trashSelected(), selection.size === 0)}
+              </>
+            )}
+            <span className={styles.commandDivider} aria-hidden />
+            <button
+              type="button"
+              className={styles.stdButton}
+              title="Views"
+              aria-haspopup="menu"
+              onClick={(event) => openUnder(event.currentTarget, viewMenu())}
+            >
+              <span className={styles.stdIcon}>
+                <Icon name={view === 'grid' ? 'grid' : 'list'} size={16} />
+                <Icon name="chevron-down" size={10} />
               </span>
-            ))
-          )}
-        </nav>
+              <span className={styles.stdLabel}>Views</span>
+            </button>
+          </div>
 
-        <input
-          ref={searchBox}
-          className={styles.filter}
-          value={filter}
-          onChange={(event) => setFilter(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !recycle && filter.trim()) {
-              event.preventDefault();
-              searchEverything();
-            } else if (event.key === 'Escape' && (filter || searching)) {
-              event.preventDefault();
-              setFilter('');
-              setSearching(false);
-            }
-          }}
-          placeholder={recycle ? 'Search the Recycle Bin' : 'Search'}
-          aria-label={
-            recycle
-              ? 'Filter the Recycle Bin by name'
-              : 'Search: type to filter this folder by name, press Enter to search inside every file'
-          }
-          type="search"
-        />
-      </div>
-
-      <div
-        className={styles.commandBar}
-        role="toolbar"
-        aria-label={recycle ? 'Recycle Bin actions' : 'File actions'}
-      >
-        {recycle ? (
-          <>
+          <div className={styles.addressRow}>
+            <span className={styles.addressLabel} id={`${windowId}-address`}>
+              Address
+            </span>
+            <div className={styles.address} role="group" aria-labelledby={`${windowId}-address`}>
+              <AppIcon name={recycle ? 'trash' : searching ? 'search' : 'folder-open'} size={16} />
+              <span className={styles.addressPath}>
+                {recycle
+                  ? 'Recycle Bin'
+                  : searching
+                    ? 'Search Results'
+                    : path.map((node) => (node.id === ROOT_ID ? 'Home' : node.name)).join('\\')}
+              </span>
+            </div>
+            {searchField}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className={styles.navRow}>
             <button
               type="button"
-              className={styles.button}
-              onClick={() => void restoreSelected()}
-              disabled={selection.size === 0}
-              title="Put the selected items back where they came from"
+              className={styles.iconButton}
+              onClick={back}
+              disabled={!canBack}
+              aria-label="Back"
+              title="Back"
             >
-              <Icon name="restore" size={15} />
-              <span className={styles.buttonLabel}>Restore</span>
+              <Icon name="arrow-left" size={16} />
             </button>
             <button
               type="button"
-              className={styles.button}
-              onClick={() => void deleteSelected()}
-              disabled={selection.size === 0}
-              title="Delete the selected items permanently (Delete)"
+              className={styles.iconButton}
+              onClick={forward}
+              disabled={!canForward}
+              aria-label="Forward"
+              title="Forward"
             >
-              <Icon name="close" size={15} />
-              <span className={styles.buttonLabel}>Delete</span>
+              {/* The same glyph turned around, so the pair can never drift apart. */}
+              <Icon name="arrow-left" size={16} className={styles.flip} />
             </button>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={goUp}
+              disabled={!canUp}
+              aria-label="Up to the folder above"
+              title="Up"
+            >
+              <Icon name="arrow-up" size={16} />
+            </button>
+            {/*
+              Refresh really refetches. The listing is a live subscription, so it is almost always
+              already correct — but `reload()` goes back to the worker for the rows rather than
+              redrawing what is in memory, which is the difference between a button that does
+              something and one that looks like it does.
+            */}
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={refresh}
+              aria-label="Refresh this folder"
+              title="Refresh"
+            >
+              <Icon name="refresh" size={16} />
+            </button>
+
+            <nav className={styles.address} aria-label="Location">
+              {recycle ? (
+                <span className={styles.crumbCurrent}>
+                  <AppIcon name="trash" size={16} /> Recycle Bin
+                </span>
+              ) : searching ? (
+                <span className={styles.crumbCurrent}>
+                  <Icon name="search" size={14} /> Search Results
+                </span>
+              ) : (
+                <>
+                  <span className={styles.crumbIcon}>
+                    <AppIcon name="folder" size={16} />
+                  </span>
+                  {path.map((node, index) => (
+                    <span key={node.id} className={styles.crumb}>
+                      <Icon name="chevron-right" size={13} className={styles.crumbSeparator} />
+                      {index === path.length - 1 ? (
+                        <span className={styles.crumbCurrent}>
+                          {node.id === ROOT_ID ? 'Home' : node.name}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.crumbLink}
+                          onClick={() => navigate(node.id)}
+                        >
+                          {node.id === ROOT_ID ? 'Home' : node.name}
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </>
+              )}
+            </nav>
+
+            {searchField}
+          </div>
+
+          <div
+            className={styles.commandBar}
+            role="toolbar"
+            aria-label={recycle ? 'Recycle Bin actions' : 'File actions'}
+          >
+            {recycle ? (
+              <>
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void restoreSelected()}
+                  disabled={selection.size === 0}
+                  title="Put the selected items back where they came from"
+                >
+                  <Icon name="restore" size={15} />
+                  <span className={styles.buttonLabel}>Restore</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void deleteSelected()}
+                  disabled={selection.size === 0}
+                  title="Delete the selected items permanently (Delete)"
+                >
+                  <Icon name="close" size={15} />
+                  <span className={styles.buttonLabel}>Delete</span>
+                </button>
+                <span className={styles.commandDivider} aria-hidden />
+                <button
+                  type="button"
+                  className={styles.button}
+                  onClick={() => void emptyBin()}
+                  disabled={trash.nodes.length === 0}
+                  title="Delete everything in the Recycle Bin permanently"
+                >
+                  <Icon name="trash" size={15} />
+                  <span className={styles.buttonLabel}>Empty Recycle Bin</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.newButton}`}
+                  aria-haspopup="menu"
+                  onClick={(event) => openUnder(event.currentTarget, newMenu())}
+                >
+                  <Icon name="plus" size={15} />
+                  <span className={styles.buttonLabel}>New</span>
+                  <Icon name="chevron-down" size={12} />
+                </button>
+
+                <span className={styles.commandDivider} aria-hidden />
+
+                {iconCommand('Cut (Ctrl+X)', 'Cut', 'cut', cutSelected, selection.size === 0)}
+                {iconCommand('Copy (Ctrl+C)', 'Copy', 'copy', copySelected, selection.size === 0)}
+                {iconCommand(
+                  'Paste (Ctrl+V)',
+                  'Paste',
+                  'paste',
+                  () => void pasteInto(directoryId),
+                  clipboard === null,
+                )}
+                {iconCommand(
+                  'Rename (F2)',
+                  'Rename',
+                  'edit',
+                  () => selectedNodes[0] && setRenaming(selectedNodes[0].id),
+                  selection.size !== 1,
+                )}
+                {iconCommand(
+                  'Move to Recycle Bin (Delete)',
+                  'Move to Recycle Bin',
+                  'trash',
+                  () => void trashSelected(),
+                  selection.size === 0,
+                )}
+              </>
+            )}
 
             <span className={styles.commandDivider} aria-hidden />
 
             <button
               type="button"
               className={styles.button}
-              onClick={() => void emptyBin()}
-              disabled={trash.nodes.length === 0}
-              title="Delete everything in the Recycle Bin permanently"
+              aria-haspopup="menu"
+              onClick={(event) => openUnder(event.currentTarget, sortMenu())}
             >
-              <Icon name="trash" size={15} />
-              <span className={styles.buttonLabel}>Empty Recycle Bin</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button type="button" className={styles.button} onClick={newFolder}>
-              <Icon name="plus" size={15} />
-              <span className={styles.buttonLabel}>New folder</span>
+              <Icon
+                name="arrow-up"
+                size={14}
+                className={sortDir === 1 ? undefined : styles.flipY}
+              />
+              <span className={styles.buttonLabel}>Sort</span>
+              <Icon name="chevron-down" size={12} />
             </button>
             <button
               type="button"
               className={styles.button}
-              onClick={async () => {
-                const entries = await pickFiles();
-                await runImport(entries, `Import ${entries.length} file(s)`);
-              }}
+              aria-haspopup="menu"
+              onClick={(event) => openUnder(event.currentTarget, viewMenu())}
             >
-              <Icon name="upload" size={15} />
-              <span className={styles.buttonLabel}>Import</span>
-            </button>
-            {pickDirectory.supported ? (
-              <button
-                type="button"
-                className={styles.iconButton}
-                title="Import a whole folder"
-                aria-label="Import a folder"
-                onClick={async () => {
-                  const entries = await pickDirectory();
-                  await runImport(entries, `Import folder (${entries.length} files)`);
-                }}
-              >
-                <Icon name="folder-open" size={16} />
-              </button>
-            ) : null}
-
-            <span className={styles.commandDivider} aria-hidden />
-
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={cutSelected}
-              disabled={selection.size === 0}
-              title="Cut (Ctrl+X)"
-              aria-label="Cut"
-            >
-              <Icon name="cut" size={16} />
-            </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={copySelected}
-              disabled={selection.size === 0}
-              title="Copy (Ctrl+C)"
-              aria-label="Copy"
-            >
-              <Icon name="copy" size={16} />
-            </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() => void pasteInto(directoryId)}
-              disabled={clipboard === null}
-              title="Paste (Ctrl+V)"
-              aria-label="Paste"
-            >
-              <Icon name="paste" size={16} />
+              <Icon name={view === 'grid' ? 'grid' : 'list'} size={14} />
+              <span className={styles.buttonLabel}>View</span>
+              <Icon name="chevron-down" size={12} />
             </button>
 
-            <span className={styles.commandDivider} aria-hidden />
-
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() => selectedNodes[0] && setRenaming(selectedNodes[0].id)}
-              disabled={selection.size !== 1}
-              title="Rename (F2)"
-              aria-label="Rename"
-            >
-              <Icon name="edit" size={16} />
-            </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() => void trashSelected()}
-              disabled={selection.size === 0}
-              title="Move to Recycle Bin (Delete)"
-              aria-label="Move to Recycle Bin"
-            >
-              <Icon name="trash" size={16} />
-            </button>
-          </>
-        )}
-
-        <span className={styles.commandSpacer} />
-
-        <select
-          className={styles.sort}
-          value={sort}
-          onChange={(event) => toggleSort(event.target.value as SortKey)}
-          aria-label="Sort by"
-        >
-          <option value="name">Name</option>
-          <option value="modified">Date modified</option>
-          <option value="kind">Type</option>
-          <option value="size">Size</option>
-        </select>
-        {classic ? null : <MenuOverflow menus={menus} className={styles.iconButton} />}
-      </div>
+            <span className={styles.commandSpacer} />
+            <MenuOverflow menus={menus} className={styles.iconButton} />
+          </div>
+        </>
+      )}
 
       <div className={styles.body}>
-        {/*
-          The places pane. Not a tree — a tree of one level is a list wearing a disclosure triangle,
-          and every folder that matters at this depth is already here. Trash sits below a rule
-          because it is a view of the file system rather than a folder in it.
-        */}
-        <nav className={styles.places} aria-label="Places">
-          <button
-            type="button"
-            className={`${styles.place} ${
-              !recycle && directoryId === ROOT_ID ? styles.placeActive : ''
-            }`}
-            onClick={() => navigate(ROOT_ID)}
-            aria-current={!recycle && directoryId === ROOT_ID ? 'true' : undefined}
-          >
-            <AppIcon name="drive" size={16} />
-            <span className={styles.placeName}>Home</span>
-          </button>
-
-          {places.map((node) => (
-            <button
-              key={node.id}
-              type="button"
-              className={`${styles.place} ${
-                !recycle && directoryId === node.id ? styles.placeActive : ''
-              }`}
-              onClick={() => navigate(node.id)}
-              aria-current={!recycle && directoryId === node.id ? 'true' : undefined}
-            >
-              <AppIcon name="folder" size={16} />
-              <span className={styles.placeName}>{node.name}</span>
-            </button>
-          ))}
+        <nav className={styles.places} aria-label="Folders">
+          {classic ? <div className={styles.treeHeader}>All Folders</div> : null}
+          <FolderTree
+            currentId={recycle || searching ? null : directoryId}
+            ancestors={path.map((node) => node.id)}
+            recycle={recycle}
+            onNavigate={navigate}
+            onRecycle={() => {
+              setSearching(false);
+              setSelection(new Set());
+              setRecycle(true);
+            }}
+          />
         </nav>
 
         <div className={styles.pane}>

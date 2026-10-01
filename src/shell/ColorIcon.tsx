@@ -218,6 +218,51 @@ const DRAWINGS: Partial<Record<IconName, Draw>> = {
     </>
   ),
 
+  pdf: () => (
+    <>
+      <path
+        d="M8 3.5h10.5L25 10v17a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 7 27V5A1.5 1.5 0 0 1 8.5 3.5Z"
+        fill="#ffffff"
+        stroke="#9aa9ba"
+        strokeWidth="1"
+      />
+      <path
+        d="M18.5 3.5V10H25"
+        fill="#e3e9f0"
+        stroke="#9aa9ba"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <rect x="4.5" y="15" width="16" height="8" rx="1.5" fill="#d93a32" />
+      <path
+        d="M7.5 21v-4h1.6a1.2 1.2 0 0 1 0 2.4H7.5M12 21v-4h1.2a2 2 0 0 1 0 4ZM17 21v-4h2.2M17 19h1.8"
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth="0.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </>
+  ),
+
+  drive: (id) => (
+    <>
+      <defs>{gradient(id('case'), '#eef2f6', '#b9c3cf')}</defs>
+      <rect
+        x="3.5"
+        y="10"
+        width="25"
+        height="12"
+        rx="2.5"
+        fill={`url(#${id('case')})`}
+        stroke="#8592a2"
+        strokeWidth="1"
+      />
+      <path d="M7 18.5h10" stroke="#8592a2" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="24" cy="18.5" r="1.4" fill="#2ec27e" />
+    </>
+  ),
+
   'file-text': () => (
     <>
       <path

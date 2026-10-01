@@ -110,6 +110,11 @@
   color: var(--text-primary);
 }
 
+.crumbIcon {
+  display: inline-flex;
+  margin: 0 var(--space-1) 0 2px;
+}
+
 .crumbCurrent {
   display: inline-flex;
   align-items: center;
@@ -143,6 +148,13 @@
   font-size: var(--text-sm);
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* New, Sort and View open menus; the caret after the label says so. */
+.newButton {
+  border-color: var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-primary);
 }
 
 .button:hover:not(:disabled) {
@@ -206,44 +218,79 @@
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  width: 172px;
+  width: 188px;
   padding: var(--space-2) var(--space-1);
-  gap: 1px;
   border-right: 1px solid var(--border-subtle);
   background: var(--surface-1);
-  overflow-y: auto;
+  overflow: auto;
 }
 
-.place {
+/* -- The folder tree (FolderTree.tsx) ----------------------------------------------------------- */
+
+.tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.treeRow {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-1) var(--space-2);
-  border: 0;
+  gap: var(--space-1);
+  height: 28px;
+  padding-right: var(--space-2);
   border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: var(--text-sm);
-  text-align: left;
-  cursor: pointer;
-}
-
-.place:hover:not(.placeActive) {
-  background: var(--surface-3);
   color: var(--text-primary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: default;
 }
 
-.placeActive {
-  background: var(--accent-subtle);
-  color: var(--accent);
+.treeRow:hover:not(.treeRowActive) {
+  background: color-mix(in oklab, var(--text-primary) 5%, transparent);
 }
 
-.placeName {
+.treeRowActive {
+  background: color-mix(in oklab, var(--text-primary) 8%, transparent);
+}
+
+.treeRow:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* The Recycle Bin is a view of the file system rather than a folder in it, so it stands apart. */
+.treeRowGap {
+  margin-top: var(--space-2);
+}
+
+.indent {
+  flex: 0 0 auto;
+}
+
+.expander {
+  display: grid;
+  place-items: center;
+  flex: 0 0 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.treeLabel {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.treeHeader {
+  display: none;
+}
+
+.guide,
+.elbow,
+.plusBox,
+.plusBoxClosed {
+  display: none;
 }
 
 .pane {
@@ -724,30 +771,6 @@
   box-shadow: var(--bevel-thin-sunken);
 }
 
-/*
- * A place is a row in that pane, not a push button — so it opts out of the bevel and the press
- * nudge every `button` gets at zero specificity. Left in, each entry would be a raised grey key
- * and the pane would read as a keypad.
- */
-:global([data-skin='classic']) .place,
-:global([data-skin='classic']) .place:hover,
-:global([data-skin='classic']) .place:active {
-  border-radius: 0;
-  box-shadow: none;
-  translate: none;
-  color: #000000;
-}
-
-:global([data-skin='classic']) .place:hover:not(.placeActive) {
-  background: #ebebeb;
-}
-
-:global([data-skin='classic']) .placeActive,
-:global([data-skin='classic']) .placeActive:hover {
-  background: #000080;
-  color: #ffffff;
-}
-
 :global([data-skin='classic']) .commandDivider {
   width: 0;
   background: transparent;
@@ -879,4 +902,209 @@
 :global([data-skin='classic']) .searchOffer {
   background: #ffffe1;
   box-shadow: none;
+}
+
+/* -- Classic: the Standard Buttons and the Address row ------------------------------------------ *
+ * The 1990s Explorer's toolbar: each command a picture over its name, flat until the pointer is
+ * over it, when it rises; pressed, it sinks. Then a row with the word Address and a white field
+ * holding the path, the way the era spelled one, with backslashes.
+ * ---------------------------------------------------------------------------------------------- */
+
+.stdBar {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 2px 4px;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-raised);
+  overflow: hidden;
+}
+
+.stdButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 46px;
+  height: 40px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #000000;
+  font-size: var(--text-chrome);
+}
+
+.stdButton:hover:not(:disabled) {
+  box-shadow: var(--bevel-thin-raised);
+}
+
+.stdButton:active:not(:disabled) {
+  box-shadow: var(--bevel-thin-sunken);
+  translate: 1px 1px;
+}
+
+.stdButton:disabled {
+  color: #808080;
+  text-shadow: 1px 1px 0 #ffffff;
+}
+
+.stdIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.stdLabel {
+  white-space: nowrap;
+}
+
+.addressRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 2px 4px 3px;
+  background: #c0c0c0;
+  box-shadow: var(--bevel-thin-raised);
+  font-size: var(--text-chrome);
+}
+
+.addressLabel {
+  padding: 0 2px;
+  color: #000000;
+}
+
+.addressPath {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global([data-skin='classic']) .address {
+  gap: 4px;
+  height: 22px;
+  padding: 0 3px;
+  font-size: var(--text-chrome);
+}
+
+:global([data-skin='classic']) .filter {
+  height: 22px;
+}
+
+/* -- Classic: the tree ----------------------------------------------------------------------------
+ * The period's tree: 16-pixel steps, dotted grey lines from each folder to its parent, and a small
+ * +/− box on the line where it turns. The pane has a caption, "All Folders", as the era's did.
+ * ---------------------------------------------------------------------------------------------- */
+
+:global([data-skin='classic']) .places {
+  padding: 0;
+}
+
+:global([data-skin='classic']) .treeHeader {
+  display: block;
+  padding: 2px 4px;
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  color: #000000;
+  font-size: var(--text-chrome);
+}
+
+:global([data-skin='classic']) .tree {
+  padding: 2px 2px 2px 4px;
+}
+
+:global([data-skin='classic']) .treeRow {
+  gap: 0;
+  height: 18px;
+  padding-right: 4px;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--text-chrome);
+}
+
+:global([data-skin='classic']) .treeRow:hover:not(.treeRowActive) {
+  background: transparent;
+}
+
+/* The icon keeps its colours; the name alone takes the selection, as the era did it. */
+:global([data-skin='classic']) .treeRow > svg {
+  flex: 0 0 auto;
+  margin-right: 3px;
+}
+
+:global([data-skin='classic']) .treeLabel {
+  padding: 0 2px;
+}
+
+:global([data-skin='classic']) .treeRowActive .treeLabel {
+  background: #000080;
+  color: #ffffff;
+}
+
+:global([data-skin='classic']) .treeRow:focus-visible {
+  outline: none;
+}
+
+:global([data-skin='classic']) .treeRow:focus-visible .treeLabel {
+  outline: 1px dotted #000000;
+  outline-offset: 0;
+}
+
+:global([data-skin='classic']) .guide,
+:global([data-skin='classic']) .elbow {
+  position: relative;
+  display: block;
+  flex: 0 0 16px;
+  align-self: stretch;
+}
+
+/* Lines are dotted borders: one pixel on, one off, which is how this tree drew them. */
+:global([data-skin='classic']) .guideLine::before,
+:global([data-skin='classic']) .elbow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  border-left: 1px dotted #808080;
+}
+
+:global([data-skin='classic']) .elbowLast::before {
+  bottom: 50%;
+}
+
+:global([data-skin='classic']) .elbow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 0;
+  border-top: 1px dotted #808080;
+}
+
+/* The box: nine pixels, grey edge, white face, a minus — and a plus when there is more inside. */
+:global([data-skin='classic']) .plusBox {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 3px;
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border: 1px solid #808080;
+  background: #ffffff linear-gradient(#000000, #000000) center / 5px 1px no-repeat;
+}
+
+:global([data-skin='classic']) .plusBoxClosed {
+  background:
+    linear-gradient(#000000, #000000) center / 5px 1px no-repeat,
+    linear-gradient(#000000, #000000) center / 1px 5px no-repeat,
+    #ffffff;
 }

@@ -4,6 +4,16 @@
 
 Added
 
+- **Files is each desktop's Explorer.** A folder tree replaces the flat list of places, in both
+  skins: folders open in place, the current one is revealed wherever it is, and the arrow keys
+  walk it. Under classic it has the era's dotted lines and +/− boxes under an "All Folders"
+  caption, the toolbar is the Standard Buttons (Back, Forward, Up, Cut, Copy, Paste, Delete, Views
+  — pictures over their names, flat until hovered), and the path sits in an Address field as
+  `Home\Documents`. Under modern there is an Up button beside Back, Forward and Refresh, the path
+  starts with a folder and is separated by chevrons, and the command bar is New ▾, the clipboard
+  actions as icons, Sort ▾ and View ▾, with everything else behind ⋯. PDFs and the drive have
+  colour icons of their own.
+
 - **Notepad is each desktop's Notepad.** The notes list down the side is gone. Under classic it is
   the 1990s program — one document per window, File ▸ Open, Search ▸ Find, no status bar — and under
   modern the current one, with documents as tabs above the menu bar, an unsaved dot on the tab,
