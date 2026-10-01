@@ -23,6 +23,7 @@ import { useSetting } from '../kernel/settings';
 import { TabulaMark } from './ColorIcon';
 import { Icon } from './Icon';
 import { AppIcon } from './PixelIcon';
+import { periodTitle } from './periodTitle';
 import { NotificationCenter } from './Notifications';
 import styles from './Taskbar.module.css';
 
@@ -225,18 +226,23 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
         </button>
 
         {/*
-        The accelerator moved from a visible chip to the tooltip. `title` describes rather than
-        names, so the button still announces as "Search..." and the shortcut is not lost with it.
+        Search is a current taskbar's; the 1990s bar had none, and Find lived in the Start menu.
+        The palette it opens is still Ctrl+K, and Start ▸ Run… under classic.
+
+        The accelerator is in the tooltip rather than a visible chip. `title` describes rather than
+        names, so the button still announces as "Search" and the shortcut is not lost with it.
       */}
-        <button
-          type="button"
-          className={styles.search}
-          onClick={onOpenPalette}
-          title="Search commands (Ctrl+K)"
-        >
-          {classic ? <AppIcon name="search" size={15} /> : <Icon name="search" size={16} />}
-          <span>{classic ? 'Search...' : 'Search'}</span>
-        </button>
+        {classic ? null : (
+          <button
+            type="button"
+            className={styles.search}
+            onClick={onOpenPalette}
+            title="Search commands (Ctrl+K)"
+          >
+            <Icon name="search" size={16} />
+            <span>Search</span>
+          </button>
+        )}
 
         <div
           className={styles.windows}
@@ -277,7 +283,7 @@ export function Taskbar({ launcherOpen, onToggleLauncher, onOpenPalette }: Taskb
                 title={window.title}
               >
                 <AppIcon name={app?.icon ?? 'file'} size={classic ? 15 : 24} />
-                <span className={styles.taskLabel}>{window.title}</span>
+                <span className={styles.taskLabel}>{periodTitle(window.title, classic)}</span>
               </button>
             );
           })}

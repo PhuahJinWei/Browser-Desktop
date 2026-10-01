@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { isTypingTarget } from '../kernel/commands';
 import { Icon, type IconName } from './Icon';
+import { AppIcon } from './PixelIcon';
 import styles from './ContextMenu.module.css';
 
 /**
@@ -278,7 +279,7 @@ function MenuPanel({
                 {checked ? (
                   <Icon name="check" size={13} />
                 ) : item.icon ? (
-                  <Icon name={item.icon} size={14} />
+                  <AppIcon name={item.icon} size={14} />
                 ) : null}
               </span>
               <span className={styles.label}>{item.label}</span>

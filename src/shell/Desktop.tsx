@@ -327,7 +327,15 @@ export function Desktop({ onOpenLauncher }: { onOpenLauncher?: () => void } = {}
       />
 
       {menu ? <ContextMenu request={menu} onClose={closeMenu} /> : null}
-      {launcherOpen ? <Launcher onClose={() => setLauncherOpen(false)} /> : null}
+      {launcherOpen ? (
+        <Launcher
+          onClose={() => setLauncherOpen(false)}
+          onRun={() => {
+            setLauncherOpen(false);
+            setPaletteOpen(true);
+          }}
+        />
+      ) : null}
       {paletteOpen ? <CommandPalette onClose={() => setPaletteOpen(false)} /> : null}
       <NotificationLayer />
       <PermissionPrompt />

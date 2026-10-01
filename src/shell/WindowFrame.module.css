@@ -261,9 +261,8 @@
    text measured 2.9:1 against it — the one place this palette failed WCAG. Two shades darker
    takes white to 5.1:1 and is indistinguishable unless the two are side by side. */
 :global([data-skin='classic']) .titleBar {
-  /* 20px, near the era's 18px caption: small enough to read as the period, tall enough that a
-     16px app icon and a 14px control button still fit without crowding. */
-  height: 20px;
+  /* 18px, the era's caption: a 16px icon and 14px caption buttons with a pixel to spare. */
+  height: 18px;
   padding: 0 2px 0 3px;
   margin: 2px 2px 0;
   background: #6e6e6e;
@@ -278,7 +277,7 @@
 
 :global([data-skin='classic']) .title {
   font-weight: 700;
-  font-size: var(--text-sm);
+  font-size: var(--text-chrome);
   color: #ffffff;
 }
 

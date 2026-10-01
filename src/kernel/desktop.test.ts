@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CLASSIC_ICON_CELL,
   ICON_CELL,
   cellToPixels,
   layoutIcons,
@@ -80,14 +81,23 @@ describe('nearestFreeCell', () => {
 describe('cells and pixels', () => {
   it('round-trips a cell through pixels', () => {
     const cell = { col: 3, row: 2 };
-    const { x, y } = cellToPixels(cell);
-    expect(pixelsToCell(x, y)).toEqual(cell);
+    const { x, y } = cellToPixels(cell, ICON_CELL);
+    expect(pixelsToCell(x, y, ICON_CELL)).toEqual(cell);
   });
 
   it('snaps a drop between two cells to the nearer one', () => {
-    const { x, y } = cellToPixels({ col: 1, row: 1 });
-    expect(pixelsToCell(x + ICON_CELL.width * 0.4, y)).toEqual({ col: 1, row: 1 });
-    expect(pixelsToCell(x + ICON_CELL.width * 0.6, y)).toEqual({ col: 2, row: 1 });
+    const { x, y } = cellToPixels({ col: 1, row: 1 }, ICON_CELL);
+    expect(pixelsToCell(x + ICON_CELL.width * 0.4, y, ICON_CELL)).toEqual({ col: 1, row: 1 });
+    expect(pixelsToCell(x + ICON_CELL.width * 0.6, y, ICON_CELL)).toEqual({ col: 2, row: 1 });
+  });
+
+  it('keeps a cell on the same cell under either skin, so an arrangement survives a switch', () => {
+    const cell = { col: 2, row: 4 };
+    for (const grid of [ICON_CELL, CLASSIC_ICON_CELL]) {
+      const { x, y } = cellToPixels(cell, grid);
+      expect(pixelsToCell(x, y, grid)).toEqual(cell);
+    }
+    expect(rowsForHeight(766, CLASSIC_ICON_CELL)).toBeGreaterThan(rowsForHeight(766, ICON_CELL));
   });
 
   it('always leaves room for at least one row, however short the desktop is', () => {

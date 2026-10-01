@@ -134,6 +134,13 @@
   box-shadow: none;
 }
 
+/* One 75-pixel cell (CLASSIC_ICON_CELL), with the 32-pixel drawing and a caption under it. */
+:global([data-skin='classic']) .item {
+  width: 75px;
+  padding: 2px;
+  gap: 3px;
+}
+
 :global([data-skin='classic']) .icon {
   filter: none;
   background: transparent;
@@ -149,6 +156,7 @@
 :global([data-skin='classic']) .label {
   /* One hard pixel offset rather than a soft halo: this skin's shadows do not blur. */
   color: #ffffff;
+  font-size: var(--text-chrome);
   text-shadow: 1px 1px 0 rgb(0 0 0 / 55%);
 }
 

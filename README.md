@@ -13,7 +13,7 @@ What a fresh desktop ships with, and nothing that one would not.
 |                  |                                                                                                                                                              |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Desktop**      | Drag, resize from eight edges, snap to halves and quarters, minimise, maximise. Icons you can arrange, right-click on everything, session restore.           |
-| **Start menu**   | Every app, and a search box: type an app's name to open it, or anything else to search your files.                                                           |
+| **Start menu**   | Every app. Classic has Programs, Documents, Settings, Find, Run… and Shut Down…; modern has a search box that opens an app by name or searches your files.   |
 | **Files**        | Browse, import by drag-and-drop or picker, rename, move, cut, copy, paste, trash and restore. Virtualised, so a folder of thousands scrolls like one of ten. |
 | **Search**       | In Files' search box: typing filters the folder by name, **Enter** searches inside every file, by what it says as well as the words it uses.                 |
 | **Notepad**      | Notes as ordinary Markdown files. Explicit save, with a flush on close so nothing is lost.                                                                   |

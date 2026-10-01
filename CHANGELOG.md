@@ -4,6 +4,15 @@
 
 Added
 
+- **The classic skin is at the era's own sizes, with the era's Start menu.** A 28px taskbar with
+  22px buttons, 18px title bars, 11px text in menus, captions and the taskbar, and a 75px desktop
+  icon grid; app content keeps its size, and the text-size setting scales both. The Start menu is
+  rows of large icons — Programs ▸ (every app, with flyouts drawn by the desktop's own menu),
+  Documents, Settings, Find ▸ Files or Folders…, Run… (the command palette) and Shut Down… — and
+  the taskbar has no search button, as the era's had none. Titles read "Untitled - Paint". Menu rows
+  are 20px rather than 32 and show the pixel icons. Icon arrangements survive a skin switch: the
+  grid pitch changes, the cells do not.
+
 - **The modern skin looks like a current desktop.** Start, search and open windows sit in one
   centred group on the taskbar; windows are icons with a dash under each one that is open, drawn
   wide under the one in front; the clock shows the date under the time. The Start menu is a centred

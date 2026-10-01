@@ -22,6 +22,8 @@ import {
 } from './ContextMenu';
 import { Icon } from './Icon';
 import { AppIcon } from './PixelIcon';
+import { periodTitle } from './periodTitle';
+import { useSetting } from '../kernel/settings';
 import styles from './WindowFrame.module.css';
 
 /**
@@ -68,6 +70,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
   const [dragging, setDragging] = useState(false);
   const { menu, open: openMenu, close: closeMenu } = useContextMenu();
   const app = getApp(win.appId);
+  const classic = useSetting('skin') === 'classic';
 
   /* The window menu: the title bar's buttons, plus the snap targets that only the keyboard had. */
   const windowMenu = (): MenuSpec => [
@@ -379,7 +382,7 @@ export function WindowFrame({ window: win, focused, viewport, onSnapPreview }: W
         >
           <AppIcon name={app?.icon ?? 'file'} size={16} />
         </button>
-        <span className={styles.title}>{win.title}</span>
+        <span className={styles.title}>{periodTitle(win.title, classic)}</span>
         <div className={styles.controls}>
           <button
             type="button"

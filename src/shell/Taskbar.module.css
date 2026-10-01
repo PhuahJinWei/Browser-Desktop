@@ -344,10 +344,14 @@
 :global([data-skin='classic']) .bar {
   /* The bar is a flex item in a column, so `height` alone loses to the base rule's flex-basis and
      the classic bar silently rendered at the modern 48px with 22px buttons adrift in the middle.
-     Both have to move together. 34px is the era's proportions loosened one notch: the buttons fill
-     the bar the way they did in 1995, without asking a 2026 display for a 22px target. */
-  height: calc(34px + env(safe-area-inset-bottom, 0px));
-  flex-basis: calc(34px + env(safe-area-inset-bottom, 0px));
+     Both have to move together.
+
+     28px with 22px buttons is the era's own size. It used to be loosened to 34 and 26, which kept
+     every proportion and still read as a copy enlarged — the bar is the one piece of chrome that is
+     on screen the whole time, so it is where "nearly" shows. A finger still gets 48px: see the
+     `pointer: coarse` block at the end. */
+  height: calc(28px + env(safe-area-inset-bottom, 0px));
+  flex-basis: calc(28px + env(safe-area-inset-bottom, 0px));
   /* The flat 2px dropped the safe-area inset the height still reserves, parking the buttons over
      an iPhone home indicator. */
   padding: 2px 2px calc(2px + env(safe-area-inset-bottom, 0px));
@@ -366,10 +370,11 @@
    reads as the way in rather than as the first of a row of tasks. */
 :global([data-skin='classic']) .launcher {
   width: auto;
-  height: 26px;
+  height: 22px;
   padding: 0 5px 0 3px;
   gap: 4px;
   font-weight: 700;
+  font-size: var(--text-chrome);
 }
 
 /* Task buttons are wider and flat-topped, and their text sits left where a title would. */
@@ -386,8 +391,9 @@
  */
 :global([data-skin='classic']) .task {
   width: auto;
-  gap: var(--space-2);
-  height: 26px;
+  gap: 4px;
+  height: 22px;
+  font-size: var(--text-chrome);
   flex: 1 1 0;
   min-width: 0;
   max-width: 160px;
@@ -418,14 +424,6 @@
   padding: 1px 5px 0 7px;
 }
 
-:global([data-skin='classic']) .search {
-  height: 26px;
-  min-width: 150px;
-  margin: 0;
-  border-radius: 0;
-  padding: 0 var(--space-2) 0 var(--space-3);
-}
-
 /* The task strip's own gap has to match the bar's, or the space before the first task button
    differs from the space between the rest of them. */
 :global([data-skin='classic']) .windows {
@@ -436,7 +434,7 @@
 /* The same tray with a different edge: a sunken well where the modern skin draws a soft panel. */
 :global([data-skin='classic']) .status {
   margin-left: auto;
-  height: 26px;
+  height: 22px;
   gap: 3px;
   padding: 0 4px;
   border: 0;
@@ -446,7 +444,6 @@
 }
 
 :global([data-skin='classic']) .launcher,
-:global([data-skin='classic']) .search,
 :global([data-skin='classic']) .task {
   border: 1px solid #000000;
   border-radius: 0;
@@ -478,7 +475,6 @@
 }
 
 :global([data-skin='classic']) .launcher:hover:not(.launcherOpen),
-:global([data-skin='classic']) .search:hover,
 :global([data-skin='classic']) .task:hover:not(.taskActive) {
   background: #c0c0c0;
   color: #000000;
@@ -489,7 +485,7 @@
 :global([data-skin='classic']) .chip,
 :global([data-skin='classic']) .chipButton,
 :global([data-skin='classic']) .clock {
-  height: 20px;
+  height: 18px;
   border-radius: 0;
   color: #000000;
 }
@@ -508,7 +504,7 @@
   align-items: center;
   padding: 0 5px 0 2px;
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-size: var(--text-chrome);
 }
 
 /*
@@ -539,7 +535,6 @@
   }
 
   :global([data-skin='classic']) .launcher,
-  :global([data-skin='classic']) .search,
   :global([data-skin='classic']) .task {
     height: 40px;
   }

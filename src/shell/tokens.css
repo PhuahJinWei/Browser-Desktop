@@ -77,6 +77,9 @@
   --text-lg: calc(1.125rem * var(--font-scale));
   --text-xl: calc(1.5rem * var(--font-scale));
   --text-2xl: calc(2rem * var(--font-scale));
+  /* The size of the frame around apps: menus, title bars, the taskbar. Its own token because the
+     classic skin sets it apart from the app text inside. */
+  --text-chrome: var(--text-sm);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -264,6 +267,11 @@
      the closest thing most other machines have. The fallbacks land somewhere reasonable
      everywhere else. */
   --font-sans: 'MS Sans Serif', 'Microsoft Sans Serif', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* The era's 8-point system face is 11 pixels, and every menu, caption and taskbar button was set in
+     it. Only the frame is: app content keeps the modern sizes, because shrinking every document to
+     11px for authenticity is a cost the reader pays, not the skin. The text-size setting scales both. */
+  --text-chrome: calc(11px * var(--font-scale));
   --font-mono: 'Lucida Console', 'Courier New', monospace;
 
   /* Nothing was rounded. */

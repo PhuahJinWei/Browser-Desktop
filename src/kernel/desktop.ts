@@ -14,13 +14,40 @@ import { settingsStore, updateSettings } from './settings';
  * (ADR 9) and calls into this module once, on drop.
  */
 
+export interface CellGeometry {
+  width: number;
+  height: number;
+  originX: number;
+  originY: number;
+}
+
 /** Cell geometry in CSS pixels. The icon itself is smaller; the cell includes its gap. */
-export const ICON_CELL = {
+export const ICON_CELL: CellGeometry = {
   width: 96,
   height: 100,
   originX: 12,
   originY: 12,
-} as const;
+};
+
+/**
+ * The classic desktop's grid: 75 pixels each way, from a 2-pixel margin, which is the spacing the
+ * era's desktop used for a 32-pixel icon and a two-line caption. The modern grid's 96 by 100 made the
+ * classic desktop look like the same icons spread out for touch.
+ *
+ * Positions are stored as cells, so switching skins keeps every arrangement; only the pitch of the
+ * grid they sit on changes.
+ */
+export const CLASSIC_ICON_CELL: CellGeometry = {
+  width: 75,
+  height: 75,
+  originX: 2,
+  originY: 4,
+};
+
+/** The grid the current skin draws on. Read at call time, so a skin change applies on next render. */
+export function iconCell(): CellGeometry {
+  return settingsStore.get().skin === 'classic' ? CLASSIC_ICON_CELL : ICON_CELL;
+}
 
 /**
  * Desktop order is not launcher order.
@@ -62,23 +89,26 @@ export function orderDesktopIds(ids: readonly string[]): string[] {
     .map(({ id }) => id);
 }
 
-export function cellToPixels(cell: IconCell): { x: number; y: number } {
+export function cellToPixels(
+  cell: IconCell,
+  grid: CellGeometry = iconCell(),
+): { x: number; y: number } {
   return {
-    x: ICON_CELL.originX + cell.col * ICON_CELL.width,
-    y: ICON_CELL.originY + cell.row * ICON_CELL.height,
+    x: grid.originX + cell.col * grid.width,
+    y: grid.originY + cell.row * grid.height,
   };
 }
 
-export function pixelsToCell(x: number, y: number): IconCell {
+export function pixelsToCell(x: number, y: number, grid: CellGeometry = iconCell()): IconCell {
   return {
-    col: Math.max(0, Math.round((x - ICON_CELL.originX) / ICON_CELL.width)),
-    row: Math.max(0, Math.round((y - ICON_CELL.originY) / ICON_CELL.height)),
+    col: Math.max(0, Math.round((x - grid.originX) / grid.width)),
+    row: Math.max(0, Math.round((y - grid.originY) / grid.height)),
   };
 }
 
 /** How many icon rows fit above the taskbar. At least one, however short the viewport is. */
-export function rowsForHeight(height: number): number {
-  return Math.max(1, Math.floor((height - ICON_CELL.originY) / ICON_CELL.height));
+export function rowsForHeight(height: number, grid: CellGeometry = iconCell()): number {
+  return Math.max(1, Math.floor((height - grid.originY) / grid.height));
 }
 
 const key = (cell: IconCell): string => `${cell.col},${cell.row}`;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { launchApp, launchInstalledApp, launcherApps } from '../kernel/apps';
 import {
-  ICON_CELL,
+  iconCell,
   arrangeIcons,
   cellToPixels,
   hideIcon,
@@ -290,9 +290,10 @@ export function DesktopIcons() {
           return;
         }
 
+        const grid = iconCell();
         const delta = {
-          cols: Math.round(dx / ICON_CELL.width),
-          rows: Math.round(dy / ICON_CELL.height),
+          cols: Math.round(dx / grid.width),
+          rows: Math.round(dy / grid.height),
         };
         if (delta.cols !== 0 || delta.rows !== 0) moveIcons(moving, delta, layout, rows);
       };

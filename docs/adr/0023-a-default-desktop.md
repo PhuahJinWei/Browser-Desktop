@@ -39,6 +39,6 @@ windows (`withKnownApps` in `src/kernel/apps.ts`) rather than opening empty fram
 The same test applied to Search. A fresh desktop has no search app; it has a search box in its file
 manager and in its Start menu. So the Search app is gone and its results view lives in Files:
 typing in Files' search box filters the folder by name, Enter searches inside every file, and the
-Start menu, the command palette and `Ctrl+Shift+F` all open Files on a search (`searchFiles` in
-`src/kernel/apps.ts`). The engine, the index and the labelled results are unchanged — only where
+Start menu (its search box under modern, Find ▸ Files or Folders… under classic), the command
+palette and `Ctrl+Shift+F` all open Files on a search (`searchFiles` in `src/kernel/apps.ts`). The engine, the index and the labelled results are unchanged — only where
 they are reached from.

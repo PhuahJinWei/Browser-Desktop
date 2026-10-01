@@ -101,3 +101,17 @@ apps are drawn as small coloured objects (`ColorIcon.tsx`) rather than outlines.
 The same line applies. The layout and proportions are reproduced; nothing identifying a vendor is.
 The Start button's picture is this desktop's own mark — a tile with a T — not four panes, and the
 colour icons are original drawings of generic objects, like the pixel set.
+
+## Amendment: Classic at the era's own sizes
+
+Classic had kept the period's proportions at a larger scale — a 34px taskbar, 20px captions, 13px
+chrome text, a 96px icon grid — which read as a copy enlarged. It now uses the era's sizes: a 28px
+taskbar with 22px buttons, 18px captions, 11px chrome text, a 75px icon grid, and a Start menu with
+the period's structure (Programs ▸, Documents, Settings, Find ▸, Run…, Shut Down…) instead of the
+modern grid restyled into rows. The taskbar loses its search button, which the era never had; Find
+in the Start menu and Ctrl+K reach the same places. Window titles use the period's hyphen.
+
+Two departures, named as the others are. **Only the frame is 11px**: menus, captions, the taskbar
+and icon labels. App content keeps the modern sizes, because shrinking every document for
+authenticity is a cost the reader pays rather than the skin; the text-size setting scales both.
+**A finger still gets 48px**: under `pointer: coarse` the taskbar and menu rows keep touch sizes.

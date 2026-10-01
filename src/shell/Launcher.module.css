@@ -186,11 +186,11 @@
 }
 
 /* -- Classic skin ------------------------------------------------------------------------------ *
- * The Start menu.
+ * The Start menu (ClassicStartMenu in Launcher.tsx).
  *
- * The single most recognisable object of the era, and almost all of it is achievable without
- * touching the markup: the grid becomes one column, the cards become menu rows, the descriptions
- * go, and the panel grows a gradient banner down its left edge.
+ * The single most recognisable object of the era: a raised grey column of large-icon rows standing
+ * on the taskbar, with a gradient banner down its left edge and the apps one level in, under
+ * Programs.
  *
  * The banner reads "Tabula". That is the point of the exercise stated in one word — the shape,
  * the geometry and the colours are a design language anyone may reproduce; the name on the banner
@@ -203,9 +203,10 @@
   transform: none;
   overflow: visible;
   left: 0;
-  /* Flush to the top of the taskbar, which is 30px including its raised edge. */
-  bottom: 30px;
-  width: 208px;
+  /* Standing on the taskbar, whose height this matches. */
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  min-width: 168px;
   /* The banner occupies the left edge, so the rows start after it. */
   padding: 2px 2px 2px 24px;
   border: 1px solid #000000;
@@ -238,110 +239,52 @@
 }
 
 /*
- * The first heading goes; the rest become the era's etched separator — one grey line with a white
- * one beneath it, which is how every menu of the period divided a list. The label survives for a
- * screen reader rather than being deleted, because the grouping is real even where it is not drawn.
+ * A row: the 32-pixel drawing, the name, and an arrow where a flyout opens. It highlights by filling
+ * edge to edge in the selection navy, not by tinting or raising — and it carries no bevel, which the
+ * classic stylesheet would otherwise give every button.
  */
-:global([data-skin='classic']) .heading {
-  margin: 3px 1px;
-  height: 0;
-  font-size: 0;
-  letter-spacing: normal;
-  border-top: 1px solid #808080;
-  border-bottom: 1px solid #ffffff;
-}
-
-:global([data-skin='classic']) .heading:first-of-type {
-  display: none;
-}
-
-:global([data-skin='classic']) .grid {
+.startRow {
   display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-:global([data-skin='classic']) .app {
-  display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 3px 6px;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+  padding: 0 8px 0 4px;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  color: #000000;
+  font-size: var(--text-chrome);
+  text-align: left;
+  cursor: default;
 }
 
-/* A menu row highlights by filling edge to edge, not by tinting a card. */
-:global([data-skin='classic']) .app:hover,
-:global([data-skin='classic']) .app:focus-visible {
+.startRow:hover,
+.startRow:focus-visible,
+.startRowOpen {
   background: #000080;
   color: #ffffff;
   outline: none;
 }
 
-:global([data-skin='classic']) .app:hover .appName,
-:global([data-skin='classic']) .app:focus-visible .appName {
-  color: #ffffff;
-}
-
-:global([data-skin='classic']) .appName {
-  font-weight: 400;
-  font-size: var(--text-sm);
+.startLabel {
+  flex: 1;
   white-space: nowrap;
 }
 
-/* No tile behind the icon: a menu of this era set the icon straight onto the menu face. */
-:global([data-skin='classic']) .appIcon {
-  width: 16px;
-  height: 16px;
-  background: transparent;
+/* The era's solid black triangle, drawn rather than typed, so it is the same in every font. */
+.startArrow {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid currentColor;
 }
 
-/* A sunken field at the head of the menu, and a menu row for the search it leads to. */
-:global([data-skin='classic']) .search {
-  margin: 2px 2px 4px;
-  height: 22px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 0;
-  background: #ffffff;
-  box-shadow: var(--bevel-sunken);
-  color: #000000;
-}
-
-:global([data-skin='classic']) .searchRow {
-  gap: 6px;
-  padding: 3px 6px;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-:global([data-skin='classic']) .searchRow:hover,
-:global([data-skin='classic']) .searchRow:focus-visible {
-  background: #000080;
-  color: #ffffff;
-  outline: none;
-}
-
-/* The new wrappers lie flat, and the foot waits for the classic pass to become menu rows. */
-:global([data-skin='classic']) .body {
-  padding: 0;
-  overflow: visible;
-}
-
-:global([data-skin='classic']) .footer {
-  display: none;
-}
-
-:global([data-skin='classic']) .appName {
-  max-width: none;
-  text-align: left;
-  font-size: var(--text-sm);
-}
-
-:global([data-skin='classic']) .heading {
-  font-weight: 400;
+/* The etched rule: a grey line with a white one beneath it. */
+.startSeparator {
+  margin: 2px 2px;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #ffffff;
 }
